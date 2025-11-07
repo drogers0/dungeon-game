@@ -214,3 +214,28 @@ export DYLD_LIBRARY_PATH="$(brew --prefix)/lib"
 ./dungeon_game
 ```
 </details>
+
+### Building Release
+```bash
+# 0. start clean
+mkdir -p dist
+cp dungeon_game dist/
+cp -R elements dist/
+cd dist
+
+# 1. put bundled dylibs in a subfolder (e.g., libs)
+mkdir -p libs
+
+# 2. bundle & rewrite load paths to @executable_path/libs
+#    (note: no -oD on "." — we're using ./libs)
+dylibbundler -b -x ./dungeon_game -d ./libs -p @executable_path/libs
+
+# 3. sanity check: all non-system deps should point at @executable_path/libs
+otool -L ./dungeon_game
+otool -L ./libs/libsfml-graphics*.dylib
+If the checks look good:
+
+
+cd ..
+zip -r dungeon_game_mac.zip dist
+```
