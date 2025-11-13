@@ -1,20 +1,30 @@
 //#pragma once
 #include <SFML/Graphics.hpp>
 #include "Game.h"
+#include "NetworkManager.h"
 #include <iostream>
 #include "AnimatedGameObject.h"
 #include "resource_path.h"
 #include <tuple>
 #include <cstdio>
+#include <memory>
 
 int highscore = 0;
 int p1score = 0;
 int p2score = 0;
 std::string clack = "";
 
-void startgame() {
-    Game game;
-    std::tuple<int,int,float,int,bool> tuple = game.run();
+void endscreen(NetworkMode mode, std::shared_ptr<NetworkManager> netManager);
+
+void startgame(NetworkMode mode = NetworkMode::LOCAL, std::shared_ptr<NetworkManager> netManager = nullptr) {
+    std::tuple<int,int,float,int,bool> tuple;
+    if (mode != NetworkMode::LOCAL && netManager) {
+        Game game(mode, netManager);
+        tuple = game.run();
+    } else {
+        Game game;
+        tuple = game.run();
+    }
     p1score = std::get<0>(tuple);
     p2score = std::get<1>(tuple);
     float tempM = std::get<2>(tuple);
@@ -161,7 +171,7 @@ void startgame() {
             srect.contains(endscreen.mapPixelToCoords(sf::Mouse::getPosition(endscreen)))) {
             background.stop();
             endscreen.close();
-            startgame();
+            startgame(mode, netManager);
         }
         if (sf::Mouse::isButtonPressed(sf::Mouse::Left) &&
             qrect.contains(endscreen.mapPixelToCoords(sf::Mouse::getPosition(endscreen)))) {
@@ -179,7 +189,7 @@ void startgame() {
                     if (event.key.code == sf::Keyboard::Y) {
                         background.stop();
                         endscreen.close();
-                        startgame();
+                        startgame(mode, netManager);
                     }
                     if (event.key.code == sf::Keyboard::N) {
                         background.stop();
@@ -189,8 +199,177 @@ void startgame() {
             }
         }
 }
+
+NetworkMode selectNetworkMode() {
+    sf::RenderWindow modeScreen(sf::VideoMode(800, 600), "Select Game Mode");
+    
+    sf::Font font;
+    if (!font.loadFromFile(resource_path + "oswald.ttf")) {
+        std::cout << "Font did not load, using default" << std::endl;
+    }
+    
+    sf::Text title("DUNGEON GAME", font, 60);
+    title.setFillColor(sf::Color::White);
+    title.setPosition(250, 50);
+    
+    sf::Text localText("1. Local Multiplayer (Same Keyboard)", font, 30);
+    localText.setFillColor(sf::Color::White);
+    localText.setPosition(150, 200);
+    
+    sf::Text hostText("2. Host Game (Online)", font, 30);
+    hostText.setFillColor(sf::Color::Green);
+    hostText.setPosition(150, 280);
+    
+    sf::Text joinText("3. Join Game (Online)", font, 30);
+    joinText.setFillColor(sf::Color::Blue);
+    joinText.setPosition(150, 360);
+    
+    sf::Text instructText("Press 1, 2, or 3 to select mode", font, 20);
+    instructText.setFillColor(sf::Color(200, 200, 200));
+    instructText.setPosition(200, 500);
+    
+    while (modeScreen.isOpen()) {
+        sf::Event event;
+        while (modeScreen.pollEvent(event)) {
+            if (event.type == sf::Event::Closed) {
+                modeScreen.close();
+                exit(0);
+            }
+            if (event.type == sf::Event::KeyPressed) {
+                if (event.key.code == sf::Keyboard::Num1 || event.key.code == sf::Keyboard::Numpad1) {
+                    modeScreen.close();
+                    return NetworkMode::LOCAL;
+                }
+                if (event.key.code == sf::Keyboard::Num2 || event.key.code == sf::Keyboard::Numpad2) {
+                    modeScreen.close();
+                    return NetworkMode::HOST;
+                }
+                if (event.key.code == sf::Keyboard::Num3 || event.key.code == sf::Keyboard::Numpad3) {
+                    modeScreen.close();
+                    return NetworkMode::CLIENT;
+                }
+            }
+        }
+        
+        modeScreen.clear(sf::Color(30, 30, 30));
+        modeScreen.draw(title);
+        modeScreen.draw(localText);
+        modeScreen.draw(hostText);
+        modeScreen.draw(joinText);
+        modeScreen.draw(instructText);
+        modeScreen.display();
+    }
+    
+    return NetworkMode::LOCAL;
+}
+
+std::string getIpAddress() {
+    sf::RenderWindow ipScreen(sf::VideoMode(800, 400), "Enter Host IP");
+    
+    sf::Font font;
+    if (!font.loadFromFile(resource_path + "oswald.ttf")) {
+        std::cout << "Font did not load" << std::endl;
+    }
+    
+    sf::Text prompt("Enter Host IP Address:", font, 30);
+    prompt.setFillColor(sf::Color::White);
+    prompt.setPosition(200, 100);
+    
+    std::string ipInput = "127.0.0.1";
+    sf::Text ipText(ipInput, font, 40);
+    ipText.setFillColor(sf::Color::Green);
+    ipText.setPosition(200, 200);
+    
+    sf::Text instruct("Type IP and press Enter (default: localhost)", font, 20);
+    instruct.setFillColor(sf::Color(200, 200, 200));
+    instruct.setPosition(150, 300);
+    
+    while (ipScreen.isOpen()) {
+        sf::Event event;
+        while (ipScreen.pollEvent(event)) {
+            if (event.type == sf::Event::Closed) {
+                ipScreen.close();
+                exit(0);
+            }
+            if (event.type == sf::Event::TextEntered) {
+                if (event.text.unicode == '\b' && !ipInput.empty()) {
+                    ipInput.pop_back();
+                } else if (event.text.unicode == '\r' || event.text.unicode == '\n') {
+                    ipScreen.close();
+                    return ipInput;
+                } else if (event.text.unicode < 128 && event.text.unicode != '\b') {
+                    ipInput += static_cast<char>(event.text.unicode);
+                }
+                ipText.setString(ipInput);
+            }
+            if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Return) {
+                ipScreen.close();
+                return ipInput;
+            }
+        }
+        
+        ipScreen.clear(sf::Color(30, 30, 30));
+        ipScreen.draw(prompt);
+        ipScreen.draw(ipText);
+        ipScreen.draw(instruct);
+        ipScreen.display();
+    }
+    
+    return ipInput;
+}
+
     int main()
     {
+        // Select network mode first
+        NetworkMode mode = selectNetworkMode();
+        std::shared_ptr<NetworkManager> netManager = nullptr;
+        
+        if (mode == NetworkMode::HOST) {
+            netManager = std::make_shared<NetworkManager>();
+            if (!netManager->startHost()) {
+                std::cout << "Failed to start host" << std::endl;
+                return 1;
+            }
+            std::cout << "Waiting for client to connect..." << std::endl;
+            
+            // Show waiting screen
+            sf::RenderWindow waitScreen(sf::VideoMode(800, 400), "Waiting for Player 2");
+            sf::Font font;
+            font.loadFromFile(resource_path + "oswald.ttf");
+            sf::Text waitText("Waiting for player 2 to connect...", font, 30);
+            waitText.setFillColor(sf::Color::White);
+            waitText.setPosition(150, 180);
+            
+            bool connected = false;
+            while (waitScreen.isOpen() && !connected) {
+                sf::Event event;
+                while (waitScreen.pollEvent(event)) {
+                    if (event.type == sf::Event::Closed) {
+                        waitScreen.close();
+                        return 0;
+                    }
+                }
+                
+                if (netManager->waitForClient(sf::milliseconds(100))) {
+                    connected = true;
+                    waitScreen.close();
+                }
+                
+                waitScreen.clear(sf::Color(30, 30, 30));
+                waitScreen.draw(waitText);
+                waitScreen.display();
+            }
+            
+            if (!connected) return 0;
+            
+        } else if (mode == NetworkMode::CLIENT) {
+            std::string hostIp = getIpAddress();
+            netManager = std::make_shared<NetworkManager>();
+            if (!netManager->connectToHost(hostIp)) {
+                std::cout << "Failed to connect to host" << std::endl;
+                return 1;
+            }
+        }
 
         RegularGameObject david = RegularGameObject();
         david.load(resource_path + "david_background.png");
@@ -293,7 +472,7 @@ void startgame() {
             if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && srect.contains(startscreen.mapPixelToCoords(sf::Mouse::getPosition(startscreen)))) {
                 background.stop();
                 startscreen.close();
-                startgame();
+                startgame(mode, netManager);
             }
             if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && qrect.contains(startscreen.mapPixelToCoords(sf::Mouse::getPosition(startscreen)))) {
                 background.stop();
@@ -311,7 +490,7 @@ void startgame() {
                         std::cout << "OPEN GAME" << std::endl;
                         background.stop();
                         startscreen.close();
-                        startgame();
+                        startgame(mode, netManager);
 
                     }
                     if (event.key.code == sf::Keyboard::N) {
