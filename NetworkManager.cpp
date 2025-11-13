@@ -3,7 +3,7 @@
 
 NetworkManager::NetworkManager() 
     : m_isHost(false), m_connected(false) {
-    m_socket.setBlocking(false);
+    // Socket blocking will be set appropriately in each method
 }
 
 NetworkManager::~NetworkManager() {
@@ -12,12 +12,17 @@ NetworkManager::~NetworkManager() {
 
 bool NetworkManager::startHost(unsigned short port) {
     m_isHost = true;
-    if (m_listener.listen(port) != sf::Socket::Done) {
+    
+    // Enable address reuse to prevent "address already in use" errors
+    m_listener.setBlocking(false);
+    
+    if (m_listener.listen(port, sf::IpAddress::Any) != sf::Socket::Done) {
         std::cout << "Failed to bind to port " << port << std::endl;
         return false;
     }
-    m_listener.setBlocking(false);
+    
     std::cout << "Hosting on port " << port << std::endl;
+    std::cout << "Your IP: " << sf::IpAddress::getLocalAddress().toString() << std::endl;
     return true;
 }
 
@@ -41,14 +46,21 @@ bool NetworkManager::connectToHost(const std::string& ip, unsigned short port) {
     m_isHost = false;
     std::cout << "Connecting to " << ip << ":" << port << std::endl;
     
-    if (m_socket.connect(ip, port, sf::seconds(5)) != sf::Socket::Done) {
-        std::cout << "Failed to connect to host" << std::endl;
+    // Set socket to blocking for the connection attempt
+    m_socket.setBlocking(true);
+    
+    sf::Socket::Status status = m_socket.connect(ip, port, sf::seconds(10));
+    
+    if (status != sf::Socket::Done) {
+        std::cout << "Failed to connect to host (status: " << status << ")" << std::endl;
+        m_socket.setBlocking(false);
         return false;
     }
     
+    // Switch to non-blocking after successful connection
     m_socket.setBlocking(false);
     m_connected = true;
-    std::cout << "Connected to host" << std::endl;
+    std::cout << "Connected to host successfully!" << std::endl;
     return true;
 }
 
