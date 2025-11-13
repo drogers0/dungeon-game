@@ -24,7 +24,7 @@ main.cpp                Start menu + end screen loop; calls Game::run()
 resource_path.h         Defines resource_path = "elements//" for asset loading
 elements/               Asset root (images, audio, fonts, sprite sheets)
 content/                (Present but unused in current code – legacy folder)
-SkeletonCode.vcxproj*   Legacy Visual Studio project files (not used on macOS)
+SkeletonCode.vcxproj*   Visual Studio project files for Windows builds
 ```
 All asset loads are performed via `resource_path + filename`, meaning the **working directory must be the project root** (so that `elements/` resolves). If you run from another directory (e.g. inside `build/`), either copy the `elements/` folder next to the executable or adjust `resource_path.h`.
 
