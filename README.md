@@ -2,6 +2,8 @@
 
 A small two‑player arcade style prototype built on **SFML 2**. Players control a rocket and a robot, earn points via collisions / attacks, and the game features animated sprites, sounds, music, and a simple start/end screen loop.
 
+**NEW: Online Multiplayer Support!** Play with a friend over the network - one player hosts and the other joins via IP address.
+
 This repository originated from a Windows Visual Studio project (`.vcxproj`). This README focuses on building and running the code on **macOS (Apple Silicon or Intel)** using Homebrew + `clang++`, and optionally CMake or Xcode.
 
 Note about SFML versions:
@@ -14,6 +16,7 @@ AnimatedGameObject.*    Sprite sheet animation helper
 RegularGameObject.*     Simple textured sprite wrapper
 Game.*                  Core game loop, input handling, scoring, collisions
 GameObject.h            Base interface (implied by usage) for drawable/movable objects
+NetworkManager.*        TCP-based networking for online multiplayer
 main.cpp                Start menu + end screen loop; calls Game::run()
 resource_path.h         Defines resource_path = "elements//" for asset loading
 elements/               Asset root (images, audio, fonts, sprite sheets)
@@ -29,8 +32,9 @@ The source includes and APIs from:
 - Audio (`sf::Music`, `sf::Sound`, `sf::SoundBuffer`)
 - Window / Events (`sf::RenderWindow`, `sf::Event`)
 - System (`sf::Clock`, `sf::Time`)
+- Network (`sf::TcpListener`, `sf::TcpSocket`, `sf::Packet`) – for online multiplayer
 
-You must link: `sfml-graphics sfml-window sfml-system sfml-audio`.
+You must link: `sfml-graphics sfml-window sfml-system sfml-audio sfml-network`.
 
 ---
 ## 3. Prerequisites (macOS)
@@ -49,10 +53,10 @@ Homebrew places headers in `/opt/homebrew/include` or `/opt/homebrew/opt/sfml` (
 From the project root (so `elements/` is visible):
 ```bash
 clang++ -std=c++17 \
-  main.cpp Game.cpp AnimatedGameObject.cpp RegularGameObject.cpp \
+  main.cpp Game.cpp AnimatedGameObject.cpp RegularGameObject.cpp NetworkManager.cpp \
   -I"$(brew --prefix sfml@2)/include" \
   -L"$(brew --prefix sfml@2)/lib" \
-  -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio \
+  -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio -lsfml-network \
   -Wl,-rpath,"$(brew --prefix sfml@2)/lib" \
   -O2 -o dungeon_game
 
@@ -93,15 +97,16 @@ set(SOURCES
     Game.cpp
     AnimatedGameObject.cpp
     RegularGameObject.cpp
+    NetworkManager.cpp
 )
 
 # Find SFML (Homebrew install). Accept either 2.x or 3.x
 set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH};$(brew --prefix sfml)")
-find_package(SFML REQUIRED COMPONENTS graphics window system audio)
+find_package(SFML REQUIRED COMPONENTS graphics window system audio network)
 
 add_executable(dungeon_game ${SOURCES})
 
-target_link_libraries(dungeon_game PRIVATE sfml-graphics sfml-window sfml-system sfml-audio)
+target_link_libraries(dungeon_game PRIVATE sfml-graphics sfml-window sfml-system sfml-audio sfml-network)
 
 # Ensure runtime finds dylibs (embed rpath)
 set_target_properties(dungeon_game PROPERTIES
@@ -152,18 +157,61 @@ So the executable must see `./elements/…` at runtime. Options:
 - Change to an absolute path or use macOS bundle resource logic (future improvement).
 
 ---
-## 9. Controls (Observed From Source)
-Player 1 (Robot): Arrow keys (Right key triggers attack), Numpad 4/6/8/5 also mapped for movement.
-Player 2 (Rocket): WASD movement, Space triggers attack.
-Other keys:
-- `O` slow down movement speed.
-- `P` speed up movement speed.
-- `K` skip cooldown.
-- `Escape` closes the main game window.
-- Menu interactions: Mouse over Start/Quit images and click.
+## 9. Online Multiplayer Mode
+The game now supports online multiplayer! When you start the game, you'll see a mode selection screen:
+
+### Game Modes
+1. **Local Multiplayer** - Original mode with two players on the same keyboard
+2. **Host Game** - Start a server and wait for a friend to connect
+3. **Join Game** - Connect to a friend's hosted game
+
+### How to Play Online
+**Player 1 (Host):**
+1. Launch the game and select "2. Host Game"
+2. The game will listen on port 53000
+3. Wait for Player 2 to connect
+4. Once connected, the game will start automatically
+
+**Player 2 (Client):**
+1. Launch the game and select "3. Join Game"
+2. Enter the host's IP address (use `127.0.0.1` for local testing)
+3. Press Enter to connect
+4. Once connected, you'll join the game
+
+### Network Controls
+- **Host (Player 1)**: Controls the Rocket using Arrow keys (Right arrow to attack)
+- **Client (Player 2)**: Controls the Robot using WASD (Space to attack)
+
+### Finding Your IP Address
+To play over a network (not on the same computer):
+- **macOS/Linux**: Run `ifconfig` or `ip addr` in terminal
+- **Windows**: Run `ipconfig` in command prompt
+- Look for your local network IP (usually starts with 192.168.x.x or 10.x.x.x)
+
+### Network Requirements
+- Both players must be on the same network OR
+- Host must forward port 53000 if playing over the internet
+- Firewall may need to allow connections on port 53000
 
 ---
-## 10. Troubleshooting (macOS)
+## 10. Controls (Observed From Source)
+**Local Mode:**
+- Player 1 (Rocket): Arrow keys (Right key triggers attack), Numpad 4/6/8/5 also mapped for movement
+- Player 2 (Robot): WASD movement, Space triggers attack
+
+**Online Mode:**
+- Host: Controls Player 1 (Rocket) with Arrow keys
+- Client: Controls Player 2 (Robot) with WASD
+
+**Common Controls:**
+- `O` slow down movement speed
+- `P` speed up movement speed
+- `K` skip cooldown
+- `Escape` closes the main game window
+- Menu interactions: Mouse over Start/Quit images and click, or press 1/2/3 for mode selection
+
+---
+## 11. Troubleshooting (macOS)
 | Issue | Cause | Fix |
 |-------|-------|-----|
 | `dyld: Library not loaded: libsfml-graphics.*.dylib` | Runtime loader can't locate SFML dylibs | Add runpath: compile with `-Wl,-rpath,"$(brew --prefix)/lib"` OR export `DYLD_LIBRARY_PATH=$(brew --prefix)/lib`. In CMake set `INSTALL_RPATH`. |
@@ -181,7 +229,7 @@ brew info sfml               # Confirm install paths
 ```
 
 ---
-## 11. Suggested Improvements (Future Work)
+## 12. Suggested Improvements (Future Work)
 - Introduce a unified game state loop (menu, play, end) rather than recursive `startgame()` calls.
 - Replace hardcoded asset dimensions (sprite sheet frame calculations) with metadata.
 - Add frame limiting or vertical sync (`m_window.setFramerateLimit(60)` or `m_window.setVerticalSyncEnabled(true)`).
@@ -190,19 +238,19 @@ brew info sfml               # Confirm install paths
 - Bundle resources using an app bundle (`.app`) and relative `Resources/` path for macOS distribution.
 
 ---
-## 12. License Notes
+## 13. License Notes
 Fonts and other third‑party assets inside `elements/` may carry their own licenses (e.g. SIL Open Font License). Review and preserve any included license files when distributing.
 
 ---
-## 13. Quick Reference Commands
+## 14. Quick Reference Commands
 ```bash
 # Install dependencies
 brew install sfml
 
 # Build (simple)
-clang++ -std=c++17 main.cpp Game.cpp AnimatedGameObject.cpp RegularGameObject.cpp \
+clang++ -std=c++17 main.cpp Game.cpp AnimatedGameObject.cpp RegularGameObject.cpp NetworkManager.cpp \
   -I"$(brew --prefix)/include" -L"$(brew --prefix)/lib" \
-  -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio \
+  -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio -lsfml-network \
   -Wl,-rpath,"$(brew --prefix)/lib" \
   -o dungeon_game
 
