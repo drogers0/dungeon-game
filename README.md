@@ -2,10 +2,16 @@
 
 A small two‑player arcade style prototype built on **SFML 2**. Players control a rocket and a robot, earn points via collisions / attacks, and the game features animated sprites, sounds, music, and a simple start/end screen loop.
 
-This repository originated from a Windows Visual Studio project (`.vcxproj`). This README focuses on building and running the code on **macOS (Apple Silicon or Intel)** using Homebrew + `clang++`, and optionally CMake or Xcode.
+This repository originated from a Windows Visual Studio project (`.vcxproj`). This README covers building and running on both **Windows** and **macOS**.
+
+**Quick Navigation:**
+- [Windows Build Instructions](#windows-build-instructions) (Visual Studio, MSVC, MinGW)
+- [macOS Build Instructions](#macos-build-instructions) (Homebrew + clang++)
+- [Building a Release](#building-a-release)
 
 Note about SFML versions:
-- Homebrew may install SFML 3 by default as of late 2025. This code works with SFML 2.x
+- This code works with SFML 2.x (SFML 2.5.1 or later recommended)
+- Homebrew on macOS may install SFML 3 by default as of late 2025 - use `sfml@2` to get version 2.x
 
 ---
 ## 1. Project Structure
@@ -33,7 +39,152 @@ The source includes and APIs from:
 You must link: `sfml-graphics sfml-window sfml-system sfml-audio`.
 
 ---
-## 3. Prerequisites (macOS)
+# Windows Build Instructions
+
+## 3. Prerequisites (Windows)
+
+### Option A: Visual Studio (Recommended for Windows)
+1. **Install Visual Studio** (2017 or later):
+   - Download from https://visualstudio.microsoft.com/
+   - Select "Desktop development with C++" workload
+   - Visual Studio 2017 (v141 toolset) or later is supported
+
+2. **Download and Install SFML 2.x**:
+   - Download SFML 2.5.1 (or latest 2.x) from https://www.sfml-dev.org/download.php
+   - Choose the version matching your Visual Studio version:
+     - Visual Studio 2017: Use SFML Visual C++ 15 (2017) - 32-bit or 64-bit
+     - Visual Studio 2019: Use SFML Visual C++ 15 (2017) - 32-bit or 64-bit (compatible)
+     - Visual Studio 2022: Use SFML Visual C++ 17 (2022) - 32-bit or 64-bit
+   - Extract to `C:\SFML\SFML-2.5.1\` (or update paths in the `.vcxproj` file)
+
+3. **SFML Directory Structure** should look like:
+   ```
+   C:\SFML\SFML-2.5.1\
+   ├── include\
+   │   └── SFML\
+   │       ├── Graphics.hpp
+   │       ├── Audio.hpp
+   │       └── ...
+   └── lib\
+       ├── sfml-graphics.lib
+       ├── sfml-graphics-d.lib  (debug version)
+       └── ...
+   ```
+
+### Option B: MinGW-w64 (Command Line Build)
+1. **Install MinGW-w64**:
+   - Download from https://www.mingw-w64.org/ or use MSYS2
+   - Add MinGW `bin` directory to your PATH
+
+2. **Download SFML for MinGW**:
+   - Get SFML 2.5.1 MinGW version from https://www.sfml-dev.org/download.php
+   - Extract to a known location (e.g., `C:\SFML\SFML-2.5.1-mingw\`)
+
+---
+## 4. Building with Visual Studio
+
+### Using the Visual Studio IDE:
+1. Open `SkeletonCode.vcxproj` in Visual Studio
+2. **Update SFML paths if needed** (if not using `C:\SFML\SFML-2.5.1\`):
+   - Right-click project → Properties
+   - Under C/C++ → General → Additional Include Directories: Update SFML include path
+   - Under Linker → General → Additional Library Directories: Update SFML lib path
+3. Select configuration:
+   - **Debug** (Win32 or x64) for development
+   - **Release** (Win32 or x64) for final builds
+4. Build → Build Solution (or press F7)
+5. **Copy SFML DLLs** to the output directory:
+   - From `C:\SFML\SFML-2.5.1\bin\`, copy these DLLs next to your `.exe`:
+     - `sfml-graphics-2.dll`
+     - `sfml-window-2.dll`
+     - `sfml-system-2.dll`
+     - `sfml-audio-2.dll`
+     - `openal32.dll` (for audio)
+   - For **Debug** builds, use debug DLLs (e.g., `sfml-graphics-d-2.dll`)
+6. Ensure `elements/` folder is accessible from the `.exe` location
+7. Run the game from Visual Studio (F5) or double-click the `.exe`
+
+### Using MSBuild (Command Line):
+```cmd
+REM Open Developer Command Prompt for Visual Studio
+cd path\to\dungeon-game
+
+REM Build Release (Win32)
+msbuild SkeletonCode.vcxproj /p:Configuration=Release /p:Platform=Win32
+
+REM Build Release (x64)
+msbuild SkeletonCode.vcxproj /p:Configuration=Release /p:Platform=x64
+
+REM Copy SFML DLLs to output directory
+copy C:\SFML\SFML-2.5.1\bin\*.dll Release\
+
+REM Run
+cd Release
+SkeletonCode.exe
+```
+
+---
+## 5. Building with MinGW (Command Line)
+
+From the project root (Windows Command Prompt or PowerShell):
+```bash
+g++ -std=c++17 ^
+  main.cpp Game.cpp AnimatedGameObject.cpp RegularGameObject.cpp ^
+  -I"C:\SFML\SFML-2.5.1-mingw\include" ^
+  -L"C:\SFML\SFML-2.5.1-mingw\lib" ^
+  -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio ^
+  -O2 -o dungeon_game.exe
+
+REM Copy SFML DLLs to current directory
+copy C:\SFML\SFML-2.5.1-mingw\bin\*.dll .
+
+REM Run
+dungeon_game.exe
+```
+
+**Note:** Make sure SFML DLLs are in the same directory as your executable or in your system PATH.
+
+---
+## 6. Windows Runtime Requirements
+
+For distributing your Windows build, include these files:
+```
+dungeon_game.exe (or SkeletonCode.exe)
+elements/              (all game assets - images, audio, fonts)
+sfml-graphics-2.dll
+sfml-window-2.dll
+sfml-system-2.dll
+sfml-audio-2.dll
+openal32.dll
+```
+
+**Visual C++ Runtime:** Users need the appropriate Visual C++ Redistributable installed:
+- For Visual Studio 2017/2019: [VC++ 2017 Redistributable](https://aka.ms/vs/16/release/vc_redist.x64.exe)
+- For Visual Studio 2022: [VC++ 2022 Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe)
+
+---
+## 7. Windows Troubleshooting
+
+| Issue | Cause | Fix |
+|-------|-------|-----|
+| `SFML headers not found` during compile | Include path not set correctly | Update Additional Include Directories in VS project or `-I` flag in command line |
+| `Cannot open sfml-graphics.lib` during link | Library path not set correctly | Update Additional Library Directories in VS project or `-L` flag in command line |
+| `Missing sfml-graphics-2.dll` at runtime | DLLs not in PATH or exe directory | Copy all required SFML DLLs next to your `.exe` file |
+| `MSVCP140.dll missing` | Visual C++ Runtime not installed | Install Visual C++ Redistributable for your VS version |
+| Window opens then closes immediately | Working directory doesn't contain `elements/` folder | Run from project root or copy `elements/` folder next to `.exe` |
+| Black/empty window or missing assets | Asset loading failures due to incorrect path | Ensure `elements/` folder is in the working directory |
+| Build errors about platform toolset | VS version mismatch | Update project properties Platform Toolset to match your installed VS version |
+
+**Check DLL dependencies:**
+```cmd
+REM Use Dependency Walker or dumpbin to check what DLLs are required
+dumpbin /dependents SkeletonCode.exe
+```
+
+---
+# macOS Build Instructions
+
+## 8. Prerequisites (macOS)
 1. Install Homebrew (if not installed):
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -45,7 +196,7 @@ brew install sfml@2
 Homebrew places headers in `/opt/homebrew/include` or `/opt/homebrew/opt/sfml` (Apple Silicon) or `/usr/local/include` (Intel), and libs in the matching `lib` directory. Use `brew --prefix sfml@2` to confirm.
 
 ---
-## 4. Quick Build & Run (One‑liner)
+## 9. Quick Build & Run (One‑liner)
 From the project root (so `elements/` is visible):
 ```bash
 clang++ -std=c++17 \
@@ -65,7 +216,7 @@ clang++ -std=c++17 \
 <summary>Everything further is ai gerated and untested</summary>
 
 ---
-## 5. Recommended: Separate Build Directory
+## 10. Recommended: Separate Build Directory
 ```bash
 mkdir -p build
 cd build
@@ -82,7 +233,7 @@ cp -R ../elements ./
 Alternative: edit `resource_path.h` to `"../elements//"` when running from `build/`.
 
 ---
-## 6. CMake Support (Optional)
+## 11. CMake Support (Optional)
 Create `CMakeLists.txt` in the repo root:
 ```cmake
 cmake_minimum_required(VERSION 3.15)
@@ -125,7 +276,7 @@ cmake -DSFML_DIR="$(brew --prefix sfml)/lib/cmake/SFML" ..
 If you specifically need SFML 2.x, point `SFML_DIR` at the 2.x config dir you built/installed.
 
 ---
-## 7. Xcode IDE Setup (Manual Linking)
+## 12. Xcode IDE Setup (Manual Linking)
 1. Open Xcode, create a new macOS Command Line Tool project (C++). 
 2. Add existing source files (`main.cpp`, etc.) to the project.
 3. Drag in the `elements/` folder ("Create folder references" so PNG/TTF/WAV ship with build or copy manually later).
@@ -141,7 +292,7 @@ If you specifically need SFML 2.x, point `SFML_DIR` at the 2.x config dir you bu
 7. Ensure working directory set to project root (Scheme > Run > Options) or resource paths updated accordingly.
 
 ---
-## 8. Runtime Asset Path
+## 13. Runtime Asset Path
 `resource_path.h` hardcodes:
 ```cpp
 const std::string resource_path = "elements//";
@@ -152,7 +303,7 @@ So the executable must see `./elements/…` at runtime. Options:
 - Change to an absolute path or use macOS bundle resource logic (future improvement).
 
 ---
-## 9. Controls (Observed From Source)
+## 14. Controls (Observed From Source)
 Player 1 (Robot): Arrow keys (Right key triggers attack), Numpad 4/6/8/5 also mapped for movement.
 Player 2 (Rocket): WASD movement, Space triggers attack.
 Other keys:
@@ -163,7 +314,7 @@ Other keys:
 - Menu interactions: Mouse over Start/Quit images and click.
 
 ---
-## 10. Troubleshooting (macOS)
+## 15. Troubleshooting (macOS)
 | Issue | Cause | Fix |
 |-------|-------|-----|
 | `dyld: Library not loaded: libsfml-graphics.*.dylib` | Runtime loader can't locate SFML dylibs | Add runpath: compile with `-Wl,-rpath,"$(brew --prefix)/lib"` OR export `DYLD_LIBRARY_PATH=$(brew --prefix)/lib`. In CMake set `INSTALL_RPATH`. |
@@ -181,7 +332,7 @@ brew info sfml               # Confirm install paths
 ```
 
 ---
-## 11. Suggested Improvements (Future Work)
+## 16. Suggested Improvements (Future Work)
 - Introduce a unified game state loop (menu, play, end) rather than recursive `startgame()` calls.
 - Replace hardcoded asset dimensions (sprite sheet frame calculations) with metadata.
 - Add frame limiting or vertical sync (`m_window.setFramerateLimit(60)` or `m_window.setVerticalSyncEnabled(true)`).
@@ -190,11 +341,11 @@ brew info sfml               # Confirm install paths
 - Bundle resources using an app bundle (`.app`) and relative `Resources/` path for macOS distribution.
 
 ---
-## 12. License Notes
+## 17. License Notes
 Fonts and other third‑party assets inside `elements/` may carry their own licenses (e.g. SIL Open Font License). Review and preserve any included license files when distributing.
 
 ---
-## 13. Quick Reference Commands
+## 18. Quick Reference Commands (macOS)
 ```bash
 # Install dependencies
 brew install sfml
@@ -214,6 +365,76 @@ export DYLD_LIBRARY_PATH="$(brew --prefix)/lib"
 ./dungeon_game
 ```
 </details>
+
+---
+# Building a Release
+
+## 19. Building a Release for Windows
+
+### Using Visual Studio:
+1. **Set Configuration to Release**:
+   - Select "Release" and target platform (Win32 or x64) from the toolbar
+   
+2. **Build the Release**:
+   ```cmd
+   REM In Developer Command Prompt
+   msbuild SkeletonCode.vcxproj /p:Configuration=Release /p:Platform=x64
+   ```
+   Or press Ctrl+Shift+B in Visual Studio IDE
+
+3. **Create Distribution Folder**:
+   ```cmd
+   mkdir dist
+   cd dist
+   
+   REM Copy executable
+   copy ..\x64\Release\SkeletonCode.exe dungeon_game.exe
+   
+   REM Copy game assets
+   xcopy /E /I ..\elements elements
+   
+   REM Copy SFML DLLs (Release versions - no "-d" suffix)
+   copy C:\SFML\SFML-2.5.1\bin\sfml-graphics-2.dll .
+   copy C:\SFML\SFML-2.5.1\bin\sfml-window-2.dll .
+   copy C:\SFML\SFML-2.5.1\bin\sfml-system-2.dll .
+   copy C:\SFML\SFML-2.5.1\bin\sfml-audio-2.dll .
+   copy C:\SFML\SFML-2.5.1\bin\openal32.dll .
+   ```
+
+4. **Optional: Check Dependencies**:
+   ```cmd
+   dumpbin /dependents dungeon_game.exe
+   ```
+
+5. **Create Distribution Archive**:
+   ```cmd
+   cd ..
+   powershell Compress-Archive -Path dist\* -DestinationPath dungeon_game_windows.zip
+   ```
+   Or use 7-Zip, WinRAR, etc.
+
+### Distribution Package Contents:
+```
+dungeon_game_windows.zip/
+├── dungeon_game.exe
+├── elements/
+│   ├── (all PNG, WAV, TTF files)
+├── sfml-graphics-2.dll
+├── sfml-window-2.dll
+├── sfml-system-2.dll
+├── sfml-audio-2.dll
+└── openal32.dll
+```
+
+### Notes for Windows Distribution:
+- Users will need Visual C++ Redistributable installed
+- Consider including a README.txt with instructions
+- Test on a clean Windows machine without Visual Studio installed
+- For x64 builds, use x64 versions of SFML DLLs
+- For x86 (Win32) builds, use x86 versions of SFML DLLs
+
+---
+## 20. Building a Release for macOS
 
 ### Building Release
 ```bash
