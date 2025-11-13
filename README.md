@@ -142,7 +142,9 @@ REM Run
 dungeon_game.exe
 ```
 
-**Note:** Make sure SFML DLLs are in the same directory as your executable or in your system PATH.
+**Note:** 
+- Make sure SFML DLLs are in the same directory as your executable or in your system PATH.
+- If using online multiplayer features, add `NetworkManager.cpp` to the source files and link with `-lsfml-network`.
 
 ---
 ## 6. Windows Runtime Requirements
@@ -432,6 +434,7 @@ dungeon_game_windows.zip/
 - Test on a clean Windows machine without Visual Studio installed
 - For x64 builds, use x64 versions of SFML DLLs
 - For x86 (Win32) builds, use x86 versions of SFML DLLs
+- **If using online multiplayer features**: Also include `sfml-network-2.dll` and add `NetworkManager.cpp` to the build
 
 ---
 ## 20. Building a Release for macOS
