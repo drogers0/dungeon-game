@@ -9,12 +9,15 @@
 #include "RegularGameObject.h"
 #include "GameObject.h"
 #include "AnimatedGameObject.h"
+#include "NetworkManager.h"
 #include <tuple>
+#include <memory>
 
 class Game {
 public:
 	//use default screen size
 	Game();
+	Game(NetworkMode mode, std::shared_ptr<NetworkManager> netManager);
 	//run the game
 	std::tuple<int,int,float,int,bool> run();
 
@@ -90,6 +93,13 @@ private:
 	bool wait = false;
 	bool p1_time_passed = true;
 	bool p2_time_passed = true;
+
+	// Network support
+	NetworkMode m_networkMode = NetworkMode::LOCAL;
+	std::shared_ptr<NetworkManager> m_networkManager;
+	void handleNetworkCommunication(float gameTime);
+	void applyNetworkState(const GameState& state);
+	GameState captureGameState() const;
 
 };
 

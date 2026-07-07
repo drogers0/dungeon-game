@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install SFML system dependencies (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update && sudo apt-get install -y \
+            libx11-dev libxrandr-dev libxcursor-dev libxi-dev \
+            libudev-dev libgl-dev libopenal-dev \
+            libfreetype-dev libflac-dev libvorbis-dev libogg-dev
+
+      - name: Cache SFML build deps
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/build/_deps
+          key: ${{ runner.os }}-sfmldeps-v1-${{ hashFiles('CMakeLists.txt', '.github/workflows/ci.yml') }}
+          restore-keys: ${{ runner.os }}-sfmldeps-v1-
+
+      - name: Configure
+        run: cmake -B build -DDUNGEON_BUILD_TESTS=OFF
+
+      - name: Build
+        run: cmake --build build -j
