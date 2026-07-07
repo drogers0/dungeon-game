@@ -37,6 +37,7 @@ add_library(dungeon_lib STATIC
     src/replay.cpp
     src/rng.cpp
     src/key_bindings.cpp
+    src/ai.cpp
 )
 
 target_include_directories(dungeon_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)

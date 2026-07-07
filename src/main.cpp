@@ -1,6 +1,7 @@
 #include "AnimatedGameObject.h"
 #include "Game.h"
 #include "NetworkManager.h"
+#include "ai.h"
 #include "asset_load.h"
 #include "debug.h"
 #include "key_bindings.h"
@@ -21,12 +22,13 @@
 static constexpr float kMenuW = 1024.f;
 static constexpr float kMenuH = 576.f;
 
-enum MenuState { MAIN_MENU, HOST_WAITING, JOIN_INPUT, READY_TO_START };
+enum MenuState { MAIN_MENU, HOST_WAITING, JOIN_INPUT, AI_DIFFICULTY, READY_TO_START };
 
 struct MenuResult {
     NetworkMode mode = NetworkMode::LOCAL;
     std::shared_ptr<NetworkManager> netManager;
     bool quit = false;
+    AiDifficulty ai = AiDifficulty::None;
 };
 
 // ── showEndscreen ─────────────────────────────────────────────────────────────
@@ -238,6 +240,10 @@ static MenuResult showMenu() {
     bool host_updated = false;
     bool join_updated = false;
     bool back_updated = false;
+    bool one_player_updated = false;
+    bool easy_updated = false;
+    bool medium_updated = false;
+    bool hard_updated = false;
 
     sf::RenderWindow startscreen(sf::VideoMode(1024, 576), "Dungeon Game", sf::Style::Default);
     startscreen.setView(makeLetterboxView({kMenuW, kMenuH}, startscreen.getSize()));
@@ -272,6 +278,31 @@ static MenuResult showMenu() {
     m_back->setPosition(100, 50);
     m_back->setScale(.25f);
 
+    // 1-player / AI-difficulty buttons
+    auto m_one_player = std::make_unique<AnimatedGameObject>(1331, 300, 2, 1, 2, 0);
+    loadOrThrow(*m_one_player, resource_path + "start.png");
+    m_one_player->setOrigin();
+    m_one_player->setPosition(kMenuW / 2, 120);
+    m_one_player->setScale(.4f);
+
+    auto m_easy = std::make_unique<AnimatedGameObject>(1331, 300, 2, 1, 2, 0);
+    loadOrThrow(*m_easy, resource_path + "start.png");
+    m_easy->setOrigin();
+    m_easy->setPosition(kMenuW / 2, 180);
+    m_easy->setScale(.4f);
+
+    auto m_medium = std::make_unique<AnimatedGameObject>(1331, 300, 2, 1, 2, 0);
+    loadOrThrow(*m_medium, resource_path + "start.png");
+    m_medium->setOrigin();
+    m_medium->setPosition(kMenuW / 2, 300);
+    m_medium->setScale(.4f);
+
+    auto m_hard = std::make_unique<AnimatedGameObject>(1331, 300, 2, 1, 2, 0);
+    loadOrThrow(*m_hard, resource_path + "start.png");
+    m_hard->setOrigin();
+    m_hard->setPosition(kMenuW / 2, 420);
+    m_hard->setScale(.4f);
+
     sf::Text localLabel("LOCAL", font, 40);
     localLabel.setFillColor(sf::Color::White);
     localLabel.setStyle(sf::Text::Bold);
@@ -286,6 +317,22 @@ static MenuResult showMenu() {
 
     sf::Text backLabel("BACK", font, 20);
     backLabel.setFillColor(sf::Color::White);
+
+    sf::Text onePlayerLabel("1 PLAYER", font, 36);
+    onePlayerLabel.setFillColor(sf::Color::Yellow);
+    onePlayerLabel.setStyle(sf::Text::Bold);
+
+    sf::Text easyLabel("EASY", font, 38);
+    easyLabel.setFillColor(sf::Color::Green);
+    easyLabel.setStyle(sf::Text::Bold);
+
+    sf::Text mediumLabel("MEDIUM", font, 38);
+    mediumLabel.setFillColor(sf::Color::Yellow);
+    mediumLabel.setStyle(sf::Text::Bold);
+
+    sf::Text hardLabel("HARD", font, 38);
+    hardLabel.setFillColor(sf::Color::Red);
+    hardLabel.setStyle(sf::Text::Bold);
 
     MenuResult result;
 
@@ -347,8 +394,34 @@ static MenuResult showMenu() {
                                  m_back->getPosition().y - (m_back->getHeight() / 4),
                                  m_back->getWidth() * m_back->getScale().x,
                                  m_back->getHeight() * m_back->getScale().y);
+        sf::Rect<float> onePlayerRect(
+            m_one_player->getPosition().x - (m_one_player->getWidth() / 4),
+            m_one_player->getPosition().y - (m_one_player->getHeight() / 4),
+            m_one_player->getWidth() * m_one_player->getScale().x,
+            m_one_player->getHeight() * m_one_player->getScale().y);
+        sf::Rect<float> easyRect(m_easy->getPosition().x - (m_easy->getWidth() / 4),
+                                 m_easy->getPosition().y - (m_easy->getHeight() / 4),
+                                 m_easy->getWidth() * m_easy->getScale().x,
+                                 m_easy->getHeight() * m_easy->getScale().y);
+        sf::Rect<float> mediumRect(m_medium->getPosition().x - (m_medium->getWidth() / 4),
+                                   m_medium->getPosition().y - (m_medium->getHeight() / 4),
+                                   m_medium->getWidth() * m_medium->getScale().x,
+                                   m_medium->getHeight() * m_medium->getScale().y);
+        sf::Rect<float> hardRect(m_hard->getPosition().x - (m_hard->getWidth() / 4),
+                                 m_hard->getPosition().y - (m_hard->getHeight() / 4),
+                                 m_hard->getWidth() * m_hard->getScale().x,
+                                 m_hard->getHeight() * m_hard->getScale().y);
 
         if (menuState == MAIN_MENU) {
+            if (onePlayerRect.contains(mousePos) && !one_player_updated) {
+                m_one_player->update(0.0f);
+                one_player_updated = true;
+                press.play();
+            } else if (!onePlayerRect.contains(mousePos) && one_player_updated) {
+                one_player_updated = false;
+                m_one_player->update(0.0f);
+                up.play();
+            }
             if (startRect.contains(mousePos) && !start_updated) {
                 m_start->update(0.0f);
                 start_updated = true;
@@ -386,7 +459,10 @@ static MenuResult showMenu() {
                 up.play();
             }
             if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
-                if (startRect.contains(mousePos)) {
+                if (onePlayerRect.contains(mousePos)) {
+                    menuState = AI_DIFFICULTY;
+                    sf::sleep(sf::milliseconds(200));
+                } else if (startRect.contains(mousePos)) {
                     mode = NetworkMode::LOCAL;
                     menuState = READY_TO_START;
                     sf::sleep(sf::milliseconds(200));
@@ -449,6 +525,64 @@ static MenuResult showMenu() {
                 statusMessage = "";
                 sf::sleep(sf::milliseconds(200));
             }
+        } else if (menuState == AI_DIFFICULTY) {
+            if (easyRect.contains(mousePos) && !easy_updated) {
+                m_easy->update(0.0f);
+                easy_updated = true;
+                press.play();
+            } else if (!easyRect.contains(mousePos) && easy_updated) {
+                easy_updated = false;
+                m_easy->update(0.0f);
+                up.play();
+            }
+            if (mediumRect.contains(mousePos) && !medium_updated) {
+                m_medium->update(0.0f);
+                medium_updated = true;
+                press.play();
+            } else if (!mediumRect.contains(mousePos) && medium_updated) {
+                medium_updated = false;
+                m_medium->update(0.0f);
+                up.play();
+            }
+            if (hardRect.contains(mousePos) && !hard_updated) {
+                m_hard->update(0.0f);
+                hard_updated = true;
+                press.play();
+            } else if (!hardRect.contains(mousePos) && hard_updated) {
+                hard_updated = false;
+                m_hard->update(0.0f);
+                up.play();
+            }
+            if (backRect.contains(mousePos) && !back_updated) {
+                m_back->update(0.0f);
+                back_updated = true;
+                press.play();
+            } else if (!backRect.contains(mousePos) && back_updated) {
+                back_updated = false;
+                m_back->update(0.0f);
+                up.play();
+            }
+            if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
+                if (easyRect.contains(mousePos)) {
+                    result.ai = AiDifficulty::Easy;
+                    mode = NetworkMode::LOCAL;
+                    menuState = READY_TO_START;
+                    sf::sleep(sf::milliseconds(200));
+                } else if (mediumRect.contains(mousePos)) {
+                    result.ai = AiDifficulty::Medium;
+                    mode = NetworkMode::LOCAL;
+                    menuState = READY_TO_START;
+                    sf::sleep(sf::milliseconds(200));
+                } else if (hardRect.contains(mousePos)) {
+                    result.ai = AiDifficulty::Hard;
+                    mode = NetworkMode::LOCAL;
+                    menuState = READY_TO_START;
+                    sf::sleep(sf::milliseconds(200));
+                } else if (backRect.contains(mousePos)) {
+                    menuState = MAIN_MENU;
+                    sf::sleep(sf::milliseconds(200));
+                }
+            }
         } else if (menuState == READY_TO_START) {
             if (startRect.contains(mousePos) && !start_updated) {
                 m_start->update(0.0f);
@@ -472,11 +606,19 @@ static MenuResult showMenu() {
         david.draw(startscreen);
 
         if (menuState == MAIN_MENU) {
+            m_one_player->draw(startscreen);
+            onePlayerLabel.setOrigin(onePlayerLabel.getGlobalBounds().width / 2,
+                                     onePlayerLabel.getGlobalBounds().height / 2);
+            onePlayerLabel.setPosition(m_one_player->getPosition().x,
+                                       m_one_player->getPosition().y);
+            startscreen.draw(onePlayerLabel);
+
             m_start->draw(startscreen);
             m_host->draw(startscreen);
             m_join->draw(startscreen);
             m_quit->draw(startscreen);
 
+            localLabel.setString("2 PLAYER");
             localLabel.setOrigin(localLabel.getGlobalBounds().width / 2,
                                  localLabel.getGlobalBounds().height / 2);
             localLabel.setPosition(m_start->getPosition().x, m_start->getPosition().y);
@@ -558,6 +700,37 @@ static MenuResult showMenu() {
                 statusText.setPosition(kMenuW / 2, 460);
                 startscreen.draw(statusText);
             }
+        } else if (menuState == AI_DIFFICULTY) {
+            m_back->draw(startscreen);
+            backLabel.setOrigin(backLabel.getGlobalBounds().width / 2,
+                                backLabel.getGlobalBounds().height / 2);
+            backLabel.setPosition(m_back->getPosition().x, m_back->getPosition().y);
+            startscreen.draw(backLabel);
+
+            sf::Text diffTitle("SELECT DIFFICULTY", font, 40);
+            diffTitle.setFillColor(sf::Color::White);
+            diffTitle.setStyle(sf::Text::Bold);
+            diffTitle.setOrigin(diffTitle.getGlobalBounds().width / 2, 0);
+            diffTitle.setPosition(kMenuW / 2, 80);
+            startscreen.draw(diffTitle);
+
+            m_easy->draw(startscreen);
+            easyLabel.setOrigin(easyLabel.getGlobalBounds().width / 2,
+                                easyLabel.getGlobalBounds().height / 2);
+            easyLabel.setPosition(m_easy->getPosition().x, m_easy->getPosition().y);
+            startscreen.draw(easyLabel);
+
+            m_medium->draw(startscreen);
+            mediumLabel.setOrigin(mediumLabel.getGlobalBounds().width / 2,
+                                  mediumLabel.getGlobalBounds().height / 2);
+            mediumLabel.setPosition(m_medium->getPosition().x, m_medium->getPosition().y);
+            startscreen.draw(mediumLabel);
+
+            m_hard->draw(startscreen);
+            hardLabel.setOrigin(hardLabel.getGlobalBounds().width / 2,
+                                hardLabel.getGlobalBounds().height / 2);
+            hardLabel.setPosition(m_hard->getPosition().x, m_hard->getPosition().y);
+            startscreen.draw(hardLabel);
         } else if (menuState == READY_TO_START) {
             m_start->draw(startscreen);
             localLabel.setString("START");
@@ -615,35 +788,47 @@ int main(int argc, char** argv) {
                 } else if (arg == "--seed") {
                     seed = static_cast<unsigned>(std::stoul(needValue(arg, i)));
                     haveSeed = true;
+                } else if (arg == "--ai") {
+                    std::string val(needValue(arg, i));
+                    if (val == "easy")
+                        config.ai = AiDifficulty::Easy;
+                    else if (val == "medium")
+                        config.ai = AiDifficulty::Medium;
+                    else if (val == "hard")
+                        config.ai = AiDifficulty::Hard;
+                    else
+                        throw std::runtime_error("--ai must be easy, medium, or hard");
                 } else if (arg == "--help") {
-                    std::cout << "Usage: dungeon_game [options]\n"
-                              << "  --frames N             Run N sim steps then exit\n"
-                              << "  --replay <file>        Drive P2 (robot) from replay file\n"
-                              << "  --replay-p1 <file>     Drive P1 (rocket) from replay file\n"
-                              << "  --screenshot-every N   Save screenshot every N steps\n"
-                              << "  --screenshot-dir <d>   Directory for screenshots (default: .)\n"
-                              << "  --seed <n>             Seed the RNG\n"
-                              << "\n"
-                              << "Key bindings can be customised by placing a controls.cfg file\n"
-                              << "next to the dungeon_game binary.  Example:\n"
-                              << "  p1_up = Num8\n"
-                              << "  p1_down = Num5\n"
-                              << "  p1_left = Num4\n"
-                              << "  p1_right = Num6\n"
-                              << "  p1_attack = Right\n"
-                              << "  p2_up = W\n"
-                              << "  p2_down = S\n"
-                              << "  p2_left = A\n"
-                              << "  p2_right = D\n"
-                              << "  p2_attack = Space\n"
-                              << "  slow_down = O\n"
-                              << "  speed_up = P\n"
-                              << "  skip_cooldown = K\n"
-                              << "\n"
-                              << "Replay format: one line per step — 'up down left right attack' "
-                                 "(0 or 1)\n"
-                              << "  Everything from '#' to end-of-line is ignored; blank lines "
-                                 "skipped.\n";
+                    std::cout
+                        << "Usage: dungeon_game [options]\n"
+                        << "  --frames N             Run N sim steps then exit\n"
+                        << "  --replay <file>        Drive P2 (robot) from replay file\n"
+                        << "  --replay-p1 <file>     Drive P1 (rocket) from replay file\n"
+                        << "  --screenshot-every N   Save screenshot every N steps\n"
+                        << "  --screenshot-dir <d>   Directory for screenshots (default: .)\n"
+                        << "  --seed <n>             Seed the RNG\n"
+                        << "  --ai <easy|medium|hard>   AI opponent for P2 (requires --frames)\n"
+                        << "\n"
+                        << "Key bindings can be customised by placing a controls.cfg file\n"
+                        << "next to the dungeon_game binary.  Example:\n"
+                        << "  p1_up = Num8\n"
+                        << "  p1_down = Num5\n"
+                        << "  p1_left = Num4\n"
+                        << "  p1_right = Num6\n"
+                        << "  p1_attack = Right\n"
+                        << "  p2_up = W\n"
+                        << "  p2_down = S\n"
+                        << "  p2_left = A\n"
+                        << "  p2_right = D\n"
+                        << "  p2_attack = Space\n"
+                        << "  slow_down = O\n"
+                        << "  speed_up = P\n"
+                        << "  skip_cooldown = K\n"
+                        << "\n"
+                        << "Replay format: one line per step — 'up down left right attack' "
+                           "(0 or 1)\n"
+                        << "  Everything from '#' to end-of-line is ignored; blank lines "
+                           "skipped.\n";
                     return 0;
                 } else {
                     std::cerr << "Error: unknown option '" << arg << "' (try --help)\n";
@@ -695,6 +880,8 @@ int main(int argc, char** argv) {
 
                 Game game(menu.mode, menu.netManager);
                 game.setBindings(bindings);
+                if (menu.ai != AiDifficulty::None)
+                    game.setAiOpponent(menu.ai);
                 auto [p1score, p2score, minutes, seconds, p1win, peerLeft] = game.run();
 
                 if (p1score > highscore)

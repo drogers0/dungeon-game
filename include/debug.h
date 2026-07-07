@@ -1,4 +1,5 @@
 #pragma once
+#include "ai_difficulty.h"
 #include <string>
 
 struct DebugConfig {
@@ -10,6 +11,10 @@ struct DebugConfig {
     // When >= 0, Game closes + sets quitToMenu after this many sim steps.
     // Also makes active() return true so vsync/F11 are gated off correctly.
     int quitAtStep = -1;
+
+    // AI opponent for P2 (--ai easy|medium|hard).  Does NOT affect active()
+    // so --ai without --frames is a silent no-op for the harness bypass check.
+    AiDifficulty ai = AiDifficulty::None;
 
     bool active() const {
         return frames > 0 || !replayPath.empty() || !replayPathP1.empty() || screenshotEvery > 0 ||

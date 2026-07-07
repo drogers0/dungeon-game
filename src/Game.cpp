@@ -7,6 +7,7 @@
 #include "geometry.h"
 #include "letterbox.h"
 #include "resource_path.h"
+#include "rng.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -144,6 +145,45 @@ void Game::setDebugConfig(const DebugConfig& cfg) {
         m_replayP1 = loadReplay(cfg.replayPathP1);
         m_replayP1Idx = 0;
     }
+    if (cfg.ai != AiDifficulty::None)
+        setAiOpponent(cfg.ai);
+}
+
+// ── AI opponent ──────────────────────────────────────────────────────────────
+
+void Game::setAiOpponent(AiDifficulty d) {
+    if (d != AiDifficulty::None)
+        m_ai = std::make_unique<AiController>(paramsFor(d), rng::engine());
+    else
+        m_ai.reset();
+}
+
+AiView Game::makeAiView() const {
+    AiView view;
+    view.selfPos = m_robot->getPosition();
+
+    // Both bounds must be normalised to positive width/height: either fighter
+    // may face left (scale.x = -1), which makes objectBounds negative-width.
+    // The decider's nearest-edge math needs a canonical left/width, so use
+    // normalizedBounds for self AND opponent (opp normalisation matters when
+    // P1 faces left while the robot is to its left — otherwise nearOppEdge
+    // picks the far edge and the AI thinks it is a full body-width too far).
+    view.selfBounds = normalizedBounds(*m_robot);
+
+    view.selfFacingLeft = m_p2FacingLeft;
+    view.oppPos = m_rocket->getPosition();
+    view.oppBounds = normalizedBounds(*m_rocket);
+
+    // arena[0] is the brick floor; arena[1..3] are the three fire hazards.
+    for (int i = 0; i < 3; ++i)
+        view.hazards[static_cast<std::size_t>(i)] =
+            objectBounds(*m_arena[static_cast<std::size_t>(i + 1)]);
+
+    view.inCooldown = m_inCooldown;
+    view.selfScore = m_robotScore;
+    view.oppScore = m_rocketScore;
+    view.step = m_steps;
+    return view;
 }
 
 // ── run ───────────────────────────────────────────────────────────────────────
@@ -229,6 +269,8 @@ void Game::simStep() {
         } else {
             applyPlayerInput(PlayerInput{}); // EOF → all-false
         }
+    } else if (m_ai) {
+        applyPlayerInput(m_ai->step(makeAiView()));
     }
 
     // Apply replay input for P1.
@@ -386,7 +428,9 @@ void Game::handlePlayerInput(sf::Keyboard::Key key, bool isDown) {
         }
 
         // Player 2 controls (robot — configurable, default WASD+Space)
-        if (m_networkMode == NetworkMode::LOCAL || m_networkMode == NetworkMode::CLIENT) {
+        // Gated off when AI is driving P2.
+        if ((m_networkMode == NetworkMode::LOCAL || m_networkMode == NetworkMode::CLIENT) &&
+            !m_ai) {
             if (key == m_bindings.p2.up)
                 m_p2Up = isDown;
             if (key == m_bindings.p2.left)

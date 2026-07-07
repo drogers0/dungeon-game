@@ -88,6 +88,57 @@ TEST_CASE("objectBounds: negative scale.x produces negative-width rect (pinned q
     REQUIRE(r.height == Catch::Approx(180.f));
 }
 
+// ── normalizedBounds ─────────────────────────────────────────────────────────
+// normalizedBounds() is objectBounds() forced to positive width/height. It is
+// what the AI feeds its nearest-edge math (a left-facing fighter would otherwise
+// give a negative-width rect and the near edge would be computed as the far one).
+// Guards the helper for every sign combination; objectBounds() stays raw.
+
+TEST_CASE("normalizedBounds: normalises every scale-sign combination", "[geometry][unit]") {
+    StubGameObject obj;
+    obj.px = 500;
+    obj.py = 400;
+    obj.w = 119;
+    obj.h = 180;
+
+    SECTION("positive scale — unchanged") {
+        obj.sx = 2;
+        obj.sy = 2;
+        sf::FloatRect r = normalizedBounds(obj);
+        REQUIRE(r.left == Catch::Approx(500.f));
+        REQUIRE(r.top == Catch::Approx(400.f));
+        REQUIRE(r.width == Catch::Approx(238.f));
+        REQUIRE(r.height == Catch::Approx(360.f));
+    }
+    SECTION("negative scale.x — left shifts, width positive") {
+        obj.sx = -1;
+        obj.sy = 1;
+        sf::FloatRect r = normalizedBounds(obj);
+        REQUIRE(r.left == Catch::Approx(381.f)); // 500 + (-119)
+        REQUIRE(r.top == Catch::Approx(400.f));
+        REQUIRE(r.width == Catch::Approx(119.f));
+        REQUIRE(r.height == Catch::Approx(180.f));
+    }
+    SECTION("negative scale.y — top shifts, height positive") {
+        obj.sx = 1;
+        obj.sy = -1;
+        sf::FloatRect r = normalizedBounds(obj);
+        REQUIRE(r.left == Catch::Approx(500.f));
+        REQUIRE(r.top == Catch::Approx(220.f)); // 400 + (-180)
+        REQUIRE(r.width == Catch::Approx(119.f));
+        REQUIRE(r.height == Catch::Approx(180.f));
+    }
+    SECTION("both negative — both axes corrected") {
+        obj.sx = -1;
+        obj.sy = -1;
+        sf::FloatRect r = normalizedBounds(obj);
+        REQUIRE(r.left == Catch::Approx(381.f));
+        REQUIRE(r.top == Catch::Approx(220.f));
+        REQUIRE(r.width == Catch::Approx(119.f));
+        REQUIRE(r.height == Catch::Approx(180.f));
+    }
+}
+
 TEST_CASE("objectBounds: touching rects with negative-width rect do not crash",
           "[geometry][unit]") {
     StubGameObject a, b;

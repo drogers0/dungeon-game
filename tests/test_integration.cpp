@@ -17,7 +17,9 @@
 
 #include "Game.h"
 #include "NetworkManager.h"
+#include "ai.h"
 #include "debug.h"
+#include "rng.h"
 
 // Absolute path to tests/data/ is injected at build time via CMake define.
 #ifndef TESTS_DATA_DIR
@@ -451,4 +453,73 @@ TEST_CASE("integration: HOST game detects peer loss", "[integration]") {
     auto [result, s] = runGame(cfg, NetworkMode::HOST, hostMgr);
 
     REQUIRE(std::get<5>(result) == true); // peerLeft
+}
+
+// ── 20. AI Hard scores on idle P1 ────────────────────────────────────────────
+// rng::seed(42), Hard AI, 900 frames, P1 idle → robot (P2) scores at least once.
+
+TEST_CASE("integration: AI Hard scores on idle P1 within 900 frames", "[integration]") {
+    rng::seed(42);
+    DebugConfig cfg;
+    cfg.frames = 900;
+    cfg.ai = AiDifficulty::Hard;
+    auto [t, s] = runGame(cfg);
+
+    REQUIRE(s.p2_score >= 1); // robot kills idle rocket at least once
+    REQUIRE(s.p1_score == 0); // idle rocket never damages robot
+}
+
+// ── 21. AI reproducibility ────────────────────────────────────────────────────
+// Two runs with identical seed → identical snapshot fields.
+
+TEST_CASE("integration: AI reproducibility — reseed 42 between runs gives identical snapshot",
+          "[integration]") {
+    DebugConfig cfg;
+    cfg.frames = 300;
+    cfg.ai = AiDifficulty::Hard;
+
+    rng::seed(42);
+    auto [t1, s1] = runGame(cfg);
+
+    rng::seed(42);
+    auto [t2, s2] = runGame(cfg);
+
+    REQUIRE(s1.p1_x == Catch::Approx(s2.p1_x).margin(0.001f));
+    REQUIRE(s1.p1_y == Catch::Approx(s2.p1_y).margin(0.001f));
+    REQUIRE(s1.p2_x == Catch::Approx(s2.p2_x).margin(0.001f));
+    REQUIRE(s1.p2_y == Catch::Approx(s2.p2_y).margin(0.001f));
+    REQUIRE(s1.p1_score == s2.p1_score);
+    REQUIRE(s1.p2_score == s2.p2_score);
+    REQUIRE(s1.wait == s2.wait);
+}
+
+// ── 22. AI Easy completes without crash ──────────────────────────────────────
+
+TEST_CASE("integration: AI Easy runs 600 frames without crash", "[integration]") {
+    rng::seed(7);
+    DebugConfig cfg;
+    cfg.frames = 600;
+    cfg.ai = AiDifficulty::Easy;
+    auto [t, s] = runGame(cfg);
+
+    REQUIRE(s.p1_score >= 0);
+    REQUIRE(s.p2_score >= 0);
+}
+
+// ── 23. Replay overrides AI ───────────────────────────────────────────────────
+// With both ai=Hard and replayPath set, the replay takes precedence (else-if
+// ordering).  The scripted P2 kill should happen, not AI behaviour.
+
+TEST_CASE("integration: replay overrides AI — replay kill wins over Hard AI", "[integration]") {
+    rng::seed(42);
+    DebugConfig cfg;
+    cfg.frames = 75;
+    cfg.ai = AiDifficulty::Hard;
+    cfg.replayPath = dataPath("p2_kill.replay");
+    auto [t, s] = runGame(cfg);
+
+    // Replay's scripted kill: p2_score==1, wait==true (same as test 2)
+    REQUIRE(s.p2_score == 1);
+    REQUIRE(s.p1_score == 0);
+    REQUIRE(s.wait == true);
 }
