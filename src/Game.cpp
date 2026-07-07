@@ -191,7 +191,9 @@ std::tuple<int, int, float, int, bool, bool> Game::run() {
             simStep();
         } else if (!m_paused || m_networkMode != NetworkMode::LOCAL) {
             m_accumulator += iterDt;
-            while (m_accumulator >= kFixedDt) {
+            // Guard on isOpen() so a simStep() that closes the window mid-drain
+            // (e.g. debug quitAtStep) can't overshoot the target step count.
+            while (m_accumulator >= kFixedDt && m_window.isOpen()) {
                 simStep();
                 m_accumulator -= kFixedDt;
             }
