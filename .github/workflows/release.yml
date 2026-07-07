@@ -90,9 +90,25 @@ jobs:
       - name: Stage (macOS)
         if: matrix.os == 'macos-latest'
         run: |
-          mkdir dungeon-game-macos
-          cp build/dungeon_game   dungeon-game-macos/
-          cp -r build/assets      dungeon-game-macos/
+          mkdir -p dungeon-game-macos/Frameworks
+          cp build/dungeon_game dungeon-game-macos/
+          cp -R build/assets    dungeon-game-macos/
+          # SFML 2.6.2 on macOS does NOT static-link its third-party libs — it links
+          # bundled frameworks via @rpath (pointed at the build tree). Bundle those
+          # frameworks next to the binary and repoint the rpath so the zip is portable.
+          fwsrc=build/_deps/sfml-src/extlibs/libs-osx/Frameworks
+          for fw in freetype OpenAL vorbisenc vorbisfile vorbis ogg FLAC; do
+            cp -R "$fwsrc/$fw.framework" dungeon-game-macos/Frameworks/
+          done
+          bin=dungeon-game-macos/dungeon_game
+          old_rpath=$(otool -l "$bin" | awk '$1=="path"{print $2; exit}')
+          [ -n "$old_rpath" ] && install_name_tool -delete_rpath "$old_rpath" "$bin"
+          install_name_tool -add_rpath @executable_path/Frameworks "$bin"
+          # Sanity: the executable-relative rpath must be present and the stale
+          # build-tree rpath (…/libs-osx/…) must be gone, else the zip won't launch.
+          rpaths=$(otool -l "$bin" | awk '$1=="path"{print $2}')
+          echo "$rpaths" | grep -qx "@executable_path/Frameworks" || { echo "rpath fix missing"; exit 1; }
+          echo "$rpaths" | grep -q "libs-osx" && { echo "stale build-tree rpath remains"; exit 1; } || true
 
       - name: Stage (Linux)
         if: matrix.os == 'ubuntu-latest'
