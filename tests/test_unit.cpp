@@ -1,7 +1,7 @@
 // Unit tests for extracted free functions:
 //   objectBounds — rectangle construction from a GameObject
 //   advanceFrameRect — sprite-sheet frame stepping
-//   applyInputToP1 — P1 input mapping (int attack parameter)
+//   applyInputToP1 — P1 input mapping (bool attack parameter)
 // Also: RegularGameObject method coverage.
 
 #include <catch2/catch_approx.hpp>
@@ -234,7 +234,7 @@ TEST_CASE("advanceFrameRect: robot sheet - walk first frame", "[anim][unit]") {
 
 // ── applyInputToP1 ─────────────────────────────────────────────────────────────
 
-TEST_CASE("applyInputToP1 maps all five fields; attack is int", "[harness][unit]") {
+TEST_CASE("applyInputToP1 maps all five fields; attack is bool", "[harness][unit]") {
     PlayerInput in;
     in.up = true;
     in.down = false;
@@ -243,25 +243,25 @@ TEST_CASE("applyInputToP1 maps all five fields; attack is int", "[harness][unit]
     in.attack = true;
 
     bool w = false, a = false, s = true, d = true;
-    int attack = 0;
+    bool attack = false;
     applyInputToP1(w, a, s, d, attack, in);
 
-    REQUIRE(w == true);   // in.up    → m_up
-    REQUIRE(a == true);   // in.left  → m_left
-    REQUIRE(s == false);  // in.down  → m_down
-    REQUIRE(d == false);  // in.right → m_right
-    REQUIRE(attack == 1); // in.attack → right (int)
+    REQUIRE(w == true);      // in.up    → m_up
+    REQUIRE(a == true);      // in.left  → m_left
+    REQUIRE(s == false);     // in.down  → m_down
+    REQUIRE(d == false);     // in.right → m_right
+    REQUIRE(attack == true); // in.attack → right (bool)
 }
 
-TEST_CASE("applyInputToP1 attack=false maps to 0", "[harness][unit]") {
+TEST_CASE("applyInputToP1 attack=false maps to false", "[harness][unit]") {
     PlayerInput in;
     in.attack = false;
 
     bool w = false, a = false, s = false, d = false;
-    int attack = 99;
+    bool attack = true;
     applyInputToP1(w, a, s, d, attack, in);
 
-    REQUIRE(attack == 0);
+    REQUIRE(attack == false);
 }
 
 // ── RegularGameObject: method coverage ───────────────────────────────────────

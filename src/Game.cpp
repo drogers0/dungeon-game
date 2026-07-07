@@ -578,12 +578,12 @@ void Game::update(sf::Time deltaT, float time)
         speed_up.play();
     }
 
-    if ((m_up || m_down || m_left || m_right) & !collision(m_player, player2)) {
+    if ((m_up || m_down || m_left || m_right) && !collision(m_player, player2)) {
         m_player->move(p1movement * deltaT.asSeconds());
         m_player->update(time);
     }
 
-    if ((w || a || s || d) & !collision(m_player, player2)) {
+    if ((w || a || s || d) && !collision(m_player, player2)) {
         player2->move(p2movement * deltaT.asSeconds());
         player2->update(time);
     }

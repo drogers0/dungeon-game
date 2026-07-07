@@ -104,7 +104,7 @@ private:
     bool  space            = false;
     int   points           = 0;
     int   p2points         = 0;
-    int   right            = false;
+    bool  right            = false;
     bool  p1left           = false;
     bool  p2left           = true;
     bool  p                = false;
