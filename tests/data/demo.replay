@@ -1,0 +1,45 @@
+# demo.replay — determinism test replay for dungeon_game
+# format: up down left right attack  (one sim step per line, values 0 or 1)
+# P2 moves right 10 steps, attacks, moves left 10 steps, moves up+right 5 steps, idles.
+# EOF before --frames N limit → remaining steps receive all-false PlayerInput.
+
+# move right
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+
+# attack
+0 0 0 0 1
+
+# move left
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+
+# move up-right
+1 0 0 1 0
+1 0 0 1 0
+1 0 0 1 0
+1 0 0 1 0
+1 0 0 1 0
+
+# move down
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0

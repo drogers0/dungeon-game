@@ -8,8 +8,12 @@ target_link_libraries(test_netcode PRIVATE dungeon_lib)
 add_executable(test_loopback test_loopback.cpp)
 target_link_libraries(test_loopback PRIVATE dungeon_lib)
 
+# ── Harness unit tests (replay parser, applyInputTo, gameSeconds) ─────────────
+add_executable(test_harness test_harness.cpp)
+target_link_libraries(test_harness PRIVATE dungeon_lib)
+
 # ── Warnings (mirror root settings) ──────────────────────────────────────────
-foreach(t test_netcode test_loopback)
+foreach(t test_netcode test_loopback test_harness)
     if(MSVC)
         target_compile_options(${t} PRIVATE /W4)
     else()
@@ -20,3 +24,4 @@ endforeach()
 # ── Register with ctest ───────────────────────────────────────────────────────
 add_test(NAME netcode_unit     COMMAND test_netcode)
 add_test(NAME netcode_loopback COMMAND test_loopback)
+add_test(NAME harness_unit     COMMAND test_harness)

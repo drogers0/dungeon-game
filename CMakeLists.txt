@@ -32,6 +32,8 @@ add_library(dungeon_lib STATIC
     AnimatedGameObject.cpp
     RegularGameObject.cpp
     resource_path.cpp
+    replay.cpp
+    rng.cpp
 )
 
 target_include_directories(dungeon_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

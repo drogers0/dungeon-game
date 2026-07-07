@@ -5,9 +5,13 @@
 #include <iostream>
 #include "AnimatedGameObject.h"
 #include "resource_path.h"
+#include "debug.h"
+#include "rng.h"
+#include <filesystem>
 #include <tuple>
 #include <cstdio>
 #include <memory>
+#include <string>
 
 int highscore = 0;
 int p1score = 0;
@@ -220,6 +224,58 @@ enum MenuState {
 int main(int argc, char** argv)
 {
     initResourcePath(argv[0]);
+
+    // ── CLI parsing ───────────────────────────────────────────────────────────
+    DebugConfig  config;
+    unsigned     seed     = 0;
+    bool         haveSeed = false;
+
+    for (int i = 1; i < argc; ++i) {
+        std::string arg(argv[i]);
+        if (arg == "--frames" && i + 1 < argc) {
+            config.frames = std::stoi(argv[++i]);
+        } else if (arg == "--replay" && i + 1 < argc) {
+            config.replayPath = argv[++i];
+        } else if (arg == "--screenshot-every" && i + 1 < argc) {
+            config.screenshotEvery = std::stoi(argv[++i]);
+        } else if (arg == "--screenshot-dir" && i + 1 < argc) {
+            config.screenshotDir = argv[++i];
+        } else if (arg == "--seed" && i + 1 < argc) {
+            seed     = static_cast<unsigned>(std::stoul(argv[++i]));
+            haveSeed = true;
+        } else if (arg == "--help") {
+            std::cout
+                << "Usage: dungeon_game [options]\n"
+                << "  --frames N             Run N sim steps then exit\n"
+                << "  --replay <file>        Drive P2 from replay file\n"
+                << "  --screenshot-every N   Save screenshot every N steps\n"
+                << "  --screenshot-dir <d>   Directory for screenshots (default: .)\n"
+                << "  --seed <n>             Seed the RNG\n"
+                << "\n"
+                << "Replay format: one line per step — 'up down left right attack' (0 or 1)\n"
+                << "  Blank lines and lines starting with '#' are ignored.\n";
+            return 0;
+        }
+    }
+
+    // ── Debug / harness bypass ────────────────────────────────────────────────
+    if (config.active()) {
+        if (haveSeed)
+            rng::seed(seed);
+        if (config.screenshotEvery > 0)
+            std::filesystem::create_directories(config.screenshotDir);
+
+        Game game;
+        game.setDebugConfig(config);
+        auto result = game.run();
+
+        std::cout << "P1 score: " << std::get<0>(result) << "\n"
+                  << "P2 score: " << std::get<1>(result) << "\n"
+                  << "Steps:    " << game.steps() << "\n";
+        return 0;
+    }
+
+    // ── Normal menu flow (unchanged) ──────────────────────────────────────────
     MenuState menuState = MAIN_MENU;
     NetworkMode mode = NetworkMode::LOCAL;
     std::shared_ptr<NetworkManager> netManager = nullptr;
