@@ -4,12 +4,7 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch:
-    inputs:
-      prerelease:
-        description: 'Mark as pre-release'
-        required: false
-        default: 'false'
+  workflow_dispatch: # dry-run: builds + uploads per-OS zips as workflow artifacts (no release)
 
 permissions:
   contents: write
@@ -26,8 +21,6 @@ jobs:
 
       - name: Create release
         uses: softprops/action-gh-release@v2
-        with:
-          prerelease: ${{ github.event.inputs.prerelease == 'true' }}
 
   # ── Build + package per platform ─────────────────────────────────────────
   build:
@@ -37,6 +30,7 @@ jobs:
     if: always() && (github.event_name == 'workflow_dispatch' || needs.create-release.result == 'success')
 
     strategy:
+      fail-fast: false # one platform failing must not cancel the others (release would lose their assets)
       matrix:
         include:
           - os: windows-latest
