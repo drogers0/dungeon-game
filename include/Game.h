@@ -8,6 +8,7 @@
 #include "NetworkManager.h"
 #include "RegularGameObject.h"
 #include "debug.h"
+#include "key_bindings.h"
 #include "replay.h"
 #include <SFML/Audio.hpp>
 #include <SFML/Graphics.hpp>
@@ -24,8 +25,14 @@ public:
     // Configure debug/harness options; call before run().
     void setDebugConfig(const DebugConfig& cfg);
 
+    // Override key bindings (defaults loaded from controls.cfg or hard-coded defaults).
+    void setBindings(const KeyBindings& b) { m_bindings = b; }
+
     // Accessor for step count (useful for post-run reporting).
     long long steps() const { return m_steps; }
+
+    // True if the game ended because the user chose "quit to menu" (Escape+Q or quitAtStep).
+    bool quitToMenu() const { return m_quitToMenu; }
 
     // Public snapshot of game state (for tests and network round-trip verification).
     GameState snapshot() const;
@@ -144,4 +151,15 @@ private:
     GameState m_latestState;
     float m_stateAccum = 0.f;
     static constexpr float kStateSendInterval = 1.f / 25.f; // ~25 Hz
+
+    // Pause / quit-to-menu state
+    bool m_paused = false;
+    bool m_quitToMenu = false;
+
+    // Fullscreen toggle (F11); track current mode to know how to recreate.
+    bool m_fullscreen = false;
+    void toggleFullscreen();
+
+    // Key bindings (loaded from controls.cfg; defaults = original hard-coded keys).
+    KeyBindings m_bindings = defaultBindings();
 };

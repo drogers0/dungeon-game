@@ -396,7 +396,22 @@ TEST_CASE("integration: P2 left-direction flip branch sets p2left and scale", "[
     REQUIRE(s.p2_scale_x == Catch::Approx(-1.f).margin(0.01f));
 }
 
-// ── 18. HOST Game + loopback NetworkManager ───────────────────────────────────
+// ── 18. quitAtStep ────────────────────────────────────────────────────────────
+// When DebugConfig::quitAtStep is set, the Game closes after that many sim
+// steps and sets m_quitToMenu.  This pins the step-8 outer-loop contract.
+
+TEST_CASE("integration: quitAtStep closes game and sets quitToMenu", "[integration]") {
+    Game g;
+    DebugConfig cfg;
+    cfg.quitAtStep = 5;
+    g.setDebugConfig(cfg);
+    g.run();
+
+    REQUIRE(g.quitToMenu() == true);
+    REQUIRE(g.steps() == 5);
+}
+
+// ── 19. HOST Game + loopback NetworkManager ───────────────────────────────────
 // Client connects, sends one input, disconnects.  Host detects peerLost via
 // poll(); Game's handleNetworkCommunication() then sets m_peerLeft → run()
 // tuple element 5 == true.

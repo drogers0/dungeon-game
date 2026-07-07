@@ -5,6 +5,7 @@
 #include "Game.h"
 #include "asset_load.h"
 #include "geometry.h"
+#include "letterbox.h"
 #include "resource_path.h"
 #include <algorithm>
 #include <cmath>
@@ -22,14 +23,37 @@ static void captureScreenshot(const sf::RenderWindow& w, const std::string& path
 }
 // LCOV_EXCL_STOP
 
+// ── toggleFullscreen ──────────────────────────────────────────────────────────
+// LCOV_EXCL_START — requires a display; not reachable from harness tests
+void Game::toggleFullscreen() {
+    m_fullscreen = !m_fullscreen;
+    const std::string title = m_networkMode == NetworkMode::LOCAL  ? "Dungeon Game"
+                              : m_networkMode == NetworkMode::HOST ? "Dungeon Game - Host"
+                                                                   : "Dungeon Game - Client";
+    if (m_fullscreen) {
+        m_window.create(sf::VideoMode::getDesktopMode(), title, sf::Style::Fullscreen);
+    } else {
+        m_window.create(sf::VideoMode(1920, 1080), title, sf::Style::Default);
+    }
+    // Re-apply display settings after create() resets them.
+    // NOTE (macOS): SFML 2 create() reconstructs the GL context; textures
+    // live on the shared context and should survive, but verify visually.
+    if (!m_debug.active())
+        m_window.setVerticalSyncEnabled(true);
+    m_window.setView(makeLetterboxView({kLogicalW, kLogicalH}, m_window.getSize()));
+}
+// LCOV_EXCL_STOP
+
 // ── constructors ──────────────────────────────────────────────────────────────
 
 Game::Game() : Game(NetworkMode::LOCAL, nullptr) {}
 
 Game::Game(NetworkMode mode, std::shared_ptr<NetworkManager> netManager)
-    : m_window(sf::VideoMode(1920, 1080), mode == NetworkMode::LOCAL  ? "Dungeon Game"
-                                          : mode == NetworkMode::HOST ? "Dungeon Game - Host"
-                                                                      : "Dungeon Game - Client"),
+    : m_window(sf::VideoMode(1920, 1080),
+               mode == NetworkMode::LOCAL  ? "Dungeon Game"
+               : mode == NetworkMode::HOST ? "Dungeon Game - Host"
+                                           : "Dungeon Game - Client",
+               sf::Style::Default),
       m_networkMode(mode), m_networkManager(netManager) {
     loadOrThrow(background, resource_path + "background.wav");
 
@@ -125,6 +149,11 @@ void Game::setDebugConfig(const DebugConfig& cfg) {
 // ── run ───────────────────────────────────────────────────────────────────────
 
 std::tuple<int, int, float, int, bool, bool> Game::run() {
+    // Apply display settings now that debug config is known.
+    if (!m_debug.active())
+        m_window.setVerticalSyncEnabled(true);
+    m_window.setView(makeLetterboxView({kLogicalW, kLogicalH}, m_window.getSize()));
+
     sf::Clock clock;
     background.play();
     background.setLoop(true);
@@ -160,13 +189,15 @@ std::tuple<int, int, float, int, bool, bool> Game::run() {
         // ── Sim steps ────────────────────────────────────────────────────────
         if (framesMode) {
             simStep();
-        } else {
+        } else if (!m_paused || m_networkMode != NetworkMode::LOCAL) {
             m_accumulator += iterDt;
             while (m_accumulator >= kFixedDt) {
                 simStep();
                 m_accumulator -= kFixedDt;
             }
         }
+        // When LOCAL-paused, iterDt was consumed by clock.restart() above;
+        // skipping the accumulator prevents a time-jump on unpause.
 
         // ── Render + capture (back buffer ready; swap comes last) ─────────────
         render();
@@ -252,6 +283,13 @@ void Game::simStep() {
         m_rocketScore = 0;
 
     ++m_steps;
+
+    // quitAtStep: harness-controlled exit that sets quitToMenu so callers can
+    // distinguish it from the frames-limit exit.
+    if (m_debug.quitAtStep >= 0 && m_steps >= static_cast<long long>(m_debug.quitAtStep)) {
+        m_quitToMenu = true;
+        m_window.close();
+    }
 }
 
 // ── applyPlayerInput / captureIfDue ──────────────────────────────────────────
@@ -282,12 +320,20 @@ void Game::processEvents() {
     sf::Event event;
     while (m_window.pollEvent(event)) {
         switch (event.type) {
-        // LCOV_EXCL_START — keyboard events are not generated in harness/headless runs
+        // LCOV_EXCL_START — UI events not generated in harness/headless runs
         case sf::Event::KeyPressed:
+            if (event.key.code == sf::Keyboard::F11 && !m_debug.active()) {
+                toggleFullscreen();
+                return; // restart event loop with the new window
+            }
             handlePlayerInput(event.key.code, true);
             break;
         case sf::Event::KeyReleased:
             handlePlayerInput(event.key.code, false);
+            break;
+        case sf::Event::Resized:
+            m_window.setView(
+                makeLetterboxView({kLogicalW, kLogicalH}, {event.size.width, event.size.height}));
             break;
         case sf::Event::Closed:
             m_window.close();
@@ -303,43 +349,60 @@ void Game::processEvents() {
 
 // LCOV_EXCL_START — keyboard glue; entirely gated off when the harness is active
 void Game::handlePlayerInput(sf::Keyboard::Key key, bool isDown) {
-    // Gate all game-key bindings when the harness is active so that live
+    // Gate all interactive bindings when the harness is active so that live
     // keyboard cannot perturb a --frames / --replay run.
     if (!m_debug.active()) {
-        // Player 1 controls (rocket — numpad)
+        // Pause / resume
+        if (key == sf::Keyboard::Escape && isDown) {
+            m_paused = !m_paused;
+            if (m_paused)
+                background.pause();
+            else
+                background.play();
+        }
+
+        // Quit to menu while paused
+        if (m_paused && key == sf::Keyboard::Q && isDown) {
+            if (m_networkManager)
+                m_networkManager->disconnect();
+            m_quitToMenu = true;
+            m_window.close();
+        }
+
+        // Player 1 controls (rocket — configurable, default numpad)
         if (m_networkMode == NetworkMode::LOCAL || m_networkMode == NetworkMode::HOST) {
-            if (key == sf::Keyboard::Numpad4)
+            if (key == m_bindings.p1.left)
                 m_p1Left = isDown;
-            if (key == sf::Keyboard::Numpad6)
+            if (key == m_bindings.p1.right)
                 m_p1Right = isDown;
-            if (key == sf::Keyboard::Numpad8)
+            if (key == m_bindings.p1.up)
                 m_p1Up = isDown;
-            if (key == sf::Keyboard::Numpad5)
+            if (key == m_bindings.p1.down)
                 m_p1Down = isDown;
-            if (key == sf::Keyboard::Right)
+            if (key == m_bindings.p1.attack)
                 m_p1Attack = isDown;
         }
 
-        // Player 2 controls (robot — WASD)
+        // Player 2 controls (robot — configurable, default WASD+Space)
         if (m_networkMode == NetworkMode::LOCAL || m_networkMode == NetworkMode::CLIENT) {
-            if (key == sf::Keyboard::W)
+            if (key == m_bindings.p2.up)
                 m_p2Up = isDown;
-            if (key == sf::Keyboard::A)
+            if (key == m_bindings.p2.left)
                 m_p2Left = isDown;
-            if (key == sf::Keyboard::S)
+            if (key == m_bindings.p2.down)
                 m_p2Down = isDown;
-            if (key == sf::Keyboard::D)
+            if (key == m_bindings.p2.right)
                 m_p2Right = isDown;
-            if (key == sf::Keyboard::Space)
+            if (key == m_bindings.p2.attack)
                 m_p2Attack = !isDown;
         }
 
         // Speed tweaks and wait-skip
-        if (key == sf::Keyboard::O)
+        if (key == m_bindings.slowDown)
             m_slowDownPressed = !isDown;
-        if (key == sf::Keyboard::P)
+        if (key == m_bindings.speedUp)
             m_speedUpPressed = !isDown;
-        if (key == sf::Keyboard::K) {
+        if (key == m_bindings.skipCooldown && isDown) {
             if (m_inCooldown) {
                 m_inCooldown = false;
                 gong.play();
@@ -347,9 +410,7 @@ void Game::handlePlayerInput(sf::Keyboard::Key key, bool isDown) {
         }
     }
 
-    // Always-active: window close and manual screenshot.
-    if (key == sf::Keyboard::Escape)
-        m_window.close();
+    // Always-active: manual screenshot (F12).
     if (key == sf::Keyboard::F12 && isDown)
         captureScreenshot(m_window,
                           m_debug.screenshotDir + "/manual_" + std::to_string(m_steps) + ".png");
@@ -626,6 +687,18 @@ void Game::render() {
     if (m_inCooldown) {
         m_window.draw(pause_text);
         m_window.draw(info);
+    }
+    if (m_paused) {
+        sf::RectangleShape overlay(sf::Vector2f(kLogicalW, kLogicalH));
+        overlay.setFillColor(sf::Color(0, 0, 0, 140));
+        m_window.draw(overlay);
+        sf::Text txt("PAUSED\nEsc: resume   Q: quit to menu", font, 60);
+        txt.setFillColor(sf::Color::White);
+        txt.setStyle(sf::Text::Bold);
+        auto bounds = txt.getLocalBounds();
+        txt.setOrigin(bounds.width / 2.f, bounds.height / 2.f);
+        txt.setPosition(kLogicalW / 2.f, kLogicalH / 2.f);
+        m_window.draw(txt);
     }
     // NOTE: m_window.display() is called by run() so screenshots can be
     // captured between draw and swap.
