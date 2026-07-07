@@ -6,7 +6,8 @@
 //   1. client sendInput  → host poll / nextInput
 //   2. host sendGameState → client poll / stateBuf
 //   3. unknown-type discard via raw TcpSocket (same framing, type byte = 99)
-//   4. disconnect detection: client disconnect → host peerLost()
+//   4. receive-side disconnect detection: client disconnect → host peerLost()
+//   5. send-side disconnect detection: host drops → client sendInput path → peerLost()
 
 #include <cassert>
 #include <cmath>
@@ -100,13 +101,40 @@ int main()
         assert(!host2.nextInput(dummy));
     }
 
-    // ── Test 4: disconnect detection ─────────────────────────────────────────
-    // Disconnect the client; host should detect it via poll().
+    // ── Test 4: receive-side disconnect detection ────────────────────────────
+    // Disconnect the client; host should detect it via poll() (receive path).
     {
         client.disconnect();
 
         bool detected = waitFor(host,
             [&]{ return !host.isConnected() || host.peerLost(); });
+        assert(detected);
+    }
+
+    // ── Test 5: send-side disconnect detection ───────────────────────────────
+    // Host drops abruptly; the CLIENT (the frequent sender) must detect the dead
+    // connection through its SEND path (flushSend → Error/Disconnected →
+    // setDisconnected) with NO poll() — the OS may buffer the first writes before
+    // reporting the reset, so retry a bounded number of sends.
+    {
+        NetworkManager host3;
+        assert(host3.startHost(0));
+        unsigned short port3 = host3.localPort();
+
+        NetworkManager client3;
+        assert(client3.connectToHost("127.0.0.1", port3));
+        assert(host3.waitForClient(sf::seconds(5)));
+        assert(client3.isConnected());
+
+        host3.disconnect(); // host gone
+
+        bool detected = false;
+        PlayerInput inp;
+        for (int i = 0; i < 300 && !detected; ++i) {
+            client3.sendInput(inp); // send path only — no poll()
+            if (!client3.isConnected() || client3.peerLost()) detected = true;
+            sf::sleep(sf::milliseconds(5));
+        }
         assert(detected);
     }
 

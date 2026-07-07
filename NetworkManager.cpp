@@ -67,9 +67,10 @@ bool NetworkManager::flushSend()
     }
     if (status == sf::Socket::Disconnected || status == sf::Socket::Error)
         setDisconnected();
-    // Partial: SFML 2.x stores the send position inside the packet; the next
-    // flushSend() call will re-send the same instance and resume from there.
-    // Slot stays occupied; caller drops its new message (by returning false).
+    // Partial: SFML 2.x copies the payload into the SOCKET's internal buffer on the
+    // first send() and stores progress there; the next send() on this socket resumes
+    // from that buffer regardless of which packet instance is passed (we pass the same
+    // untouched m_pendingSend). Slot stays occupied; caller drops its new message.
     return false;
 }
 
@@ -111,7 +112,7 @@ bool NetworkManager::connectToHost(const std::string& ip, unsigned short port)
         std::cout << "Invalid IP address: " << ip << "\n";
         return false;
     }
-    if (port < 1024 || port > 65535) {
+    if (port < 1024) { // unsigned short caps at 65535, so only the low bound is meaningful
         std::cout << "Invalid port: " << port << "\n";
         return false;
     }
@@ -187,6 +188,9 @@ void NetworkManager::disconnect()
 {
     m_socket.disconnect();
     m_listener.close();
-    m_connected = false;
-    m_peerLeft  = false; // reset so a reused manager starts clean
+    m_connected  = false;
+    m_peerLeft   = false;
+    m_hasPending = false; // reset all transient state so a reused manager starts clean
+    m_stateBuf.clear();
+    m_inputQueue.clear();
 }
