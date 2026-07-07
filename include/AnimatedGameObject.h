@@ -7,38 +7,37 @@
 
 class AnimatedGameObject : public GameObject {
 public:
-
     AnimatedGameObject();
 
-    AnimatedGameObject(double x,double y,int nx,int ny,int howmany,int angle);
+    AnimatedGameObject(double x, double y, int nx, int ny, int howmany, int angle);
 
-    bool load(const std::string& filename);
+    bool load(const std::string& filename) override;
 
-    void draw(sf::RenderWindow& window);
+    void draw(sf::RenderWindow& window) override;
 
-    void update(float deltaT);
+    void update(float deltaT) override;
 
-    void setPosition(float x, float y);
+    void setPosition(float x, float y) override;
 
-    void move(sf::Vector2f);
+    void move(sf::Vector2f) override;
 
-    sf::Vector2f getPosition() const;
+    sf::Vector2f getPosition() const override;
 
-    float getHeight() const;
+    float getHeight() const override;
 
-    float getWidth() const;
+    float getWidth() const override;
 
-    void setScale(float scale);
+    void setScale(float scale) override;
 
-    void setScale(float x, float y);
+    void setScale(float x, float y) override;
 
-    sf::Vector2f getScale() const;
+    sf::Vector2f getScale() const override;
 
-    void changeValid(bool a);
+    void changeValid(bool a) override;
 
-    bool isValid();
+    bool isValid() override;
 
-    void setOrigin();
+    void setOrigin() override;
 
 private:
     sf::Sprite m_sprite;
@@ -53,4 +52,3 @@ private:
     int curr;
     sf::IntRect rect;
 };
-

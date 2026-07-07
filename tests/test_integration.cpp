@@ -385,8 +385,7 @@ TEST_CASE("integration: P2 moves down — p2_y increases 20 px per step", "[inte
 // Step 2 (a=1): triggers if(!p2left) branch → p2left=true, scale.x=-1 (pinned here).
 // Steps 3-5: continue left; p2left stays true (no re-flip).
 
-TEST_CASE("integration: P2 left-direction flip branch sets p2left and scale",
-          "[integration]") {
+TEST_CASE("integration: P2 left-direction flip branch sets p2left and scale", "[integration]") {
     DebugConfig cfg;
     cfg.frames = 5;
     cfg.replayPath = dataPath("p2_left_flip.replay"); // 1 right then 4 left steps

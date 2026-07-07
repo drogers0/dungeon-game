@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.16)
 project(dungeon_game CXX)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -60,8 +62,8 @@ if(MSVC)
     target_compile_options(dungeon_lib    PRIVATE /W4)
     target_compile_options(dungeon_game   PRIVATE /W4)
 else()
-    target_compile_options(dungeon_lib    PRIVATE -Wall -Wextra -Wpedantic)
-    target_compile_options(dungeon_game   PRIVATE -Wall -Wextra -Wpedantic)
+    target_compile_options(dungeon_lib    PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    target_compile_options(dungeon_game   PRIVATE -Wall -Wextra -Wpedantic -Werror)
 endif()
 
 # ── Copy assets next to the binary at build time ────────────────────────────

@@ -4,7 +4,8 @@
 std::string resource_path = "assets/";
 
 void initResourcePath(const char* argv0) {
-    if (!argv0) return;
+    if (!argv0)
+        return;
     namespace fs = std::filesystem;
     fs::path exeDir = fs::weakly_canonical(fs::path(argv0)).parent_path();
     if (fs::exists(exeDir / "assets")) {

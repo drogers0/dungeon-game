@@ -1,0 +1,12 @@
+Checks: >
+  bugprone-*, performance-*,
+  modernize-use-override, modernize-use-nullptr, modernize-use-emplace,
+  modernize-loop-convert, modernize-make-unique, modernize-use-equals-default,
+  cppcoreguidelines-virtual-class-destructor, cppcoreguidelines-special-member-functions,
+  cppcoreguidelines-init-variables, cppcoreguidelines-slicing,
+  misc-unused-parameters, misc-redundant-expression,
+  readability-redundant-*, readability-container-size-empty,
+  readability-inconsistent-declaration-parameter-name, readability-misleading-indentation,
+  -bugprone-easily-swappable-parameters, -bugprone-narrowing-conversions
+WarningsAsErrors: ''
+HeaderFilterRegex: '(include|src)/'

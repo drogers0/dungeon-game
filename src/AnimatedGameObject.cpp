@@ -14,7 +14,7 @@ AnimatedGameObject::AnimatedGameObject() {
     curr = 1;
 }
 
-AnimatedGameObject::AnimatedGameObject(double x,double y,int nx,int ny,int n,int angle) {
+AnimatedGameObject::AnimatedGameObject(double x, double y, int nx, int ny, int n, int angle) {
     m_sprite.setRotation(angle);
     xsize = x;
     ysize = y;
@@ -28,8 +28,7 @@ bool AnimatedGameObject::load(const std::string& filename) {
     if (m_texture.loadFromFile(filename)) {
         m_filename = filename;
         m_sprite.setTexture(m_texture);
-        //std::cout << floor(xsize/(double)howmanyx) << "   " << floor(ysize/(double)howmanyy) << std::endl;
-        rect = sf::IntRect(0,0,floor(xsize/(double)howmanyx),floor(ysize/(double)howmanyy));
+        rect = sf::IntRect(0, 0, floor(xsize / (double)howmanyx), floor(ysize / (double)howmanyy));
         m_sprite.setTextureRect(rect);
         m_valid = true;
         return true;
@@ -43,19 +42,17 @@ void AnimatedGameObject::update(float Tsec) {
     if (Tsec > .1f || Tsec == 0) {
         work = true;
     }
-    if (work){
+    if (work) {
         auto res = advanceFrameRect(rect, curr, howmanyx, howmanyy, howmany, xsize, ysize);
         rect = res.rect;
         curr = res.curr;
         m_sprite.setTextureRect(rect);
     }
-
 }
 
 void AnimatedGameObject::draw(sf::RenderWindow& window) {
     if (m_valid) {
         window.draw(m_sprite);
-        //std::cout << "i am drawn  " << m_filename << std::endl;
     }
 }
 
@@ -76,22 +73,18 @@ sf::Vector2f AnimatedGameObject::getPosition() const {
         return sf::Vector2f(0, 0);
 }
 
-float AnimatedGameObject::getHeight() const {
-    return m_sprite.getLocalBounds().height;
-}
+float AnimatedGameObject::getHeight() const { return m_sprite.getLocalBounds().height; }
 
-float AnimatedGameObject::getWidth() const {
-    return m_sprite.getLocalBounds().width;
-}
+float AnimatedGameObject::getWidth() const { return m_sprite.getLocalBounds().width; }
 
 void AnimatedGameObject::setScale(float scale) {
     if (m_valid)
         m_sprite.setScale(scale, scale);
 }
 
-void AnimatedGameObject::setScale(float x,float y) {
+void AnimatedGameObject::setScale(float x, float y) {
     if (m_valid)
-        m_sprite.setScale(x,y);
+        m_sprite.setScale(x, y);
 }
 
 sf::Vector2f AnimatedGameObject::getScale() const {
@@ -101,19 +94,15 @@ sf::Vector2f AnimatedGameObject::getScale() const {
         return sf::Vector2f(0, 0);
 }
 
-void AnimatedGameObject::changeValid(bool a) {
-    m_valid = a;
-}
+void AnimatedGameObject::changeValid(bool a) { m_valid = a; }
 
-bool AnimatedGameObject::isValid() {
-    return m_valid;
-}
+bool AnimatedGameObject::isValid() { return m_valid; }
 
 void AnimatedGameObject::setOrigin() {
     if (m_sprite.getOrigin().x == 0) {
-        m_sprite.setOrigin((m_sprite.getLocalBounds().width) / 2, (m_sprite.getLocalBounds().height) / 2);
-    }
-    else {
+        m_sprite.setOrigin((m_sprite.getLocalBounds().width) / 2,
+                           (m_sprite.getLocalBounds().height) / 2);
+    } else {
         m_sprite.setOrigin(0, 0);
     }
 }
