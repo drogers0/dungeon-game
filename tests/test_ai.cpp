@@ -8,8 +8,8 @@
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-static AiView makeView(float selfX, float selfY, float oppX, float oppY,
-                       bool facingLeft = true, bool inCooldown = false) {
+static AiView makeView(float selfX, float selfY, float oppX, float oppY, bool facingLeft = true,
+                       bool inCooldown = false) {
     AiView v;
     v.selfPos = {selfX, selfY};
     v.selfBounds = {selfX - 60.f, selfY - 90.f, 120.f, 180.f}; // normalised positive rect
@@ -48,7 +48,7 @@ TEST_CASE("ai: in range, aligned, facing, missTimeProb=0 → attack==true", "[ai
 TEST_CASE("ai: beyond attackRange → no attack, moves toward opponent", "[ai]") {
     AiParams p = paramsFor(AiDifficulty::Hard);
     p.mistakeProb = 0.f;
-    p.aggression = 1.f;    // always close in
+    p.aggression = 1.f;     // always close in
     p.preferredGapX = 50.f; // preferred gap much less than actual distance
 
     std::mt19937 rng(1);
@@ -274,14 +274,10 @@ TEST_CASE("ai: decisionEvery hold — output constant within hold window", "[ai]
     }
     // Within the window, all outputs should equal step0
     for (int i = 1; i < p.decisionEvery; ++i) {
-        REQUIRE(window1[static_cast<std::size_t>(i)].left ==
-                window1[0].left);
-        REQUIRE(window1[static_cast<std::size_t>(i)].right ==
-                window1[0].right);
-        REQUIRE(window1[static_cast<std::size_t>(i)].up ==
-                window1[0].up);
-        REQUIRE(window1[static_cast<std::size_t>(i)].down ==
-                window1[0].down);
+        REQUIRE(window1[static_cast<std::size_t>(i)].left == window1[0].left);
+        REQUIRE(window1[static_cast<std::size_t>(i)].right == window1[0].right);
+        REQUIRE(window1[static_cast<std::size_t>(i)].up == window1[0].up);
+        REQUIRE(window1[static_cast<std::size_t>(i)].down == window1[0].down);
     }
 
     // Step decisionEvery: re-decide with vB — output should differ

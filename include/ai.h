@@ -11,16 +11,16 @@
 // All tunable knobs for one difficulty level.
 
 struct AiParams {
-    int reactionSteps;    // frames of opponent-position delay
-    int decisionEvery;    // re-decide every N steps; hold in between
-    float attackRange;    // max horizontal distance (px) to trigger attack
-    float attackAlignY;   // max vertical distance (px) to trigger attack
-    float missTimeProb;   // probability of passing on a valid attack opportunity
-    int swingEverySteps;  // minimum steps between successive attack=true outputs
-    float hazardMargin;   // px to inflate selfBounds before hazard intersection check
-    float preferredGapX;  // preferred horizontal distance from opponent (px)
-    float aggression;     // probability [0,1] of closing in when gap > preferredGapX
-    float mistakeProb;    // probability [0,1] of going idle on any given decision
+    int reactionSteps;   // frames of opponent-position delay
+    int decisionEvery;   // re-decide every N steps; hold in between
+    float attackRange;   // max horizontal distance (px) to trigger attack
+    float attackAlignY;  // max vertical distance (px) to trigger attack
+    float missTimeProb;  // probability of passing on a valid attack opportunity
+    int swingEverySteps; // minimum steps between successive attack=true outputs
+    float hazardMargin;  // px to inflate selfBounds before hazard intersection check
+    float preferredGapX; // preferred horizontal distance from opponent (px)
+    float aggression;    // probability [0,1] of closing in when gap > preferredGapX
+    float mistakeProb;   // probability [0,1] of going idle on any given decision
 };
 
 AiParams paramsFor(AiDifficulty d);
@@ -31,7 +31,7 @@ AiParams paramsFor(AiDifficulty d);
 
 struct AiView {
     sf::Vector2f selfPos;
-    sf::FloatRect selfBounds;   // normalised (positive width/height)
+    sf::FloatRect selfBounds; // normalised (positive width/height)
     bool selfFacingLeft;
     sf::Vector2f oppPos;
     sf::FloatRect oppBounds;
@@ -74,8 +74,8 @@ private:
     };
     std::deque<OppSnapshot> m_ring; // opponent history for reaction delay
 
-    int m_holdCounter = 0;       // steps until next re-decide (0 → decide now)
-    PlayerInput m_heldDecision;  // last computed decision
+    int m_holdCounter = 0;      // steps until next re-decide (0 → decide now)
+    PlayerInput m_heldDecision; // last computed decision
 
     int m_swingCooldown = 0; // steps remaining before attack=true is allowed again
 };

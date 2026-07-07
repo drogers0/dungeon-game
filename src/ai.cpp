@@ -68,8 +68,8 @@ PlayerInput decideAiInput(const AiView& view, const AiParams& p, std::mt19937& r
     // This accounts for the opponent's body width so the AI fires when its weapon can
     // actually connect, not just when the sprite anchors are within attackRange.
     {
-        float nearOppEdge = oppToRight ? view.oppBounds.left
-                                       : view.oppBounds.left + view.oppBounds.width;
+        float nearOppEdge =
+            oppToRight ? view.oppBounds.left : view.oppBounds.left + view.oppBounds.width;
         float horizDist = (view.selfPos.x - nearOppEdge);
         if (horizDist < 0.f)
             horizDist = -horizDist;
