@@ -1,6 +1,7 @@
 
 
 #include "AnimatedGameObject.h"
+#include "sprite_anim.h"
 #include <cmath>
 #include <iostream>
 
@@ -42,32 +43,11 @@ void AnimatedGameObject::update(float Tsec) {
     if (Tsec > .1f || Tsec == 0) {
         work = true;
     }
-    //int temp = 0;
     if (work){
-       // std::cout << curr << std::endl;
-    if (curr <  howmany) {
-        int check = curr % howmanyx;
-
-        if (check == 0) {
-            rect = sf::IntRect(0,rect.top + rect.height,floor(xsize/(double)howmanyx),floor(ysize/(double)howmanyy));
-            m_sprite.setTextureRect(rect);
-         //   std::cout << "i get here at 3" << std::endl;
-        } else {
-            int h = (int) floor(ysize/(double)howmanyy);
-            //std::cout << "h: " << h << std::endl;
-            rect = sf::IntRect(rect.left + rect.width,((int)ceil(curr/howmanyx))*h,rect.width,ysize/howmanyy);
-            m_sprite.setTextureRect(rect);
-            //std::cout << "david's ceil function: " << (int)ceil(curr/howmanyx) << std::endl;
-            //std::cout << rect.left << "  "<< ((int)ceil(curr/howmanyx)-1)*h << std::endl;
-        }
-        curr++;
-    } else {
-        rect = sf::IntRect(0,0,floor(xsize/(double)howmanyx),floor(ysize/(double)howmanyy));
+        auto res = advanceFrameRect(rect, curr, howmanyx, howmanyy, howmany, xsize, ysize);
+        rect = res.rect;
+        curr = res.curr;
         m_sprite.setTextureRect(rect);
-        curr = 1;
-       // std::cout << "i am here at 9" << std::endl;
-    }
-       // std::cout << curr << "   " << std::endl;
     }
 
 }

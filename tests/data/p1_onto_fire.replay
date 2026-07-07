@@ -1,0 +1,34 @@
+# p1_onto_fire.replay — P1 moves right ~30 steps onto fire2 (at x~955)
+# P1 starts at x=134.  After 28+ right steps P1 overlaps fire2.
+# Used with --replay-p1.
+# up down left right attack
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0

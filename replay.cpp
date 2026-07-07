@@ -12,6 +12,15 @@ void applyInputTo(bool& w, bool& a, bool& s, bool& d, bool& space, const PlayerI
     space = in.attack;
 }
 
+void applyInputToP1(bool& w, bool& a, bool& s, bool& d, int& attack, const PlayerInput& in)
+{
+    w      = in.up;
+    a      = in.left;
+    s      = in.down;
+    d      = in.right;
+    attack = in.attack ? 1 : 0;
+}
+
 std::vector<PlayerInput> loadReplay(const std::string& path)
 {
     std::vector<PlayerInput> result;

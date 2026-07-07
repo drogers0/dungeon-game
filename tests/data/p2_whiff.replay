@@ -1,0 +1,4 @@
+# p2_whiff.replay — P2 attacks immediately from default position (far from P1)
+# The sword hit rect does not overlap P1; score stays unchanged.
+# up down left right attack
+0 0 0 0 1

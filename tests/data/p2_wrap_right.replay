@@ -1,0 +1,30 @@
+# p2_wrap_right.replay — P2 moves right until it wraps to the left side of screen
+# P2 starts at x=1636 (facing left, p2left=true).
+# Frame 1: direction flip → scale(1,1), position shifts to x=1517, then moves right.
+# After 22 right frames total, position > 1920 → wraps to x=-119.
+# up down left right attack
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0
+0 0 0 1 0

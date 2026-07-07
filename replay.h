@@ -13,3 +13,7 @@ std::vector<PlayerInput> loadReplay(const std::string& path);
 // Map a PlayerInput onto the five P2 bool variables.
 // Extracted as a free function so it can be unit-tested without a Game/window.
 void applyInputTo(bool& w, bool& a, bool& s, bool& d, bool& space, const PlayerInput& in);
+
+// Map a PlayerInput onto the five P1 variables.
+// The last parameter is int& (not bool&) because Game::right is declared int.
+void applyInputToP1(bool& w, bool& a, bool& s, bool& d, int& attack, const PlayerInput& in);
