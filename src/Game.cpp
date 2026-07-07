@@ -46,28 +46,31 @@ Game::Game(NetworkMode mode, std::shared_ptr<NetworkManager> netManager)
     player2->setScale(-1.0f, 1.0f);
     player2->setPosition(m_window.getSize().x - (m_player->getWidth() + 150), 400);
 
-    GameObject* wall = new RegularGameObject();
-    stuff.push_back(wall);
+    stuff.push_back(std::make_unique<RegularGameObject>());
     stuff[0]->load(resource_path + "brick.png");
     stuff[0]->setScale(2.0f);
 
-    GameObject* fire = new AnimatedGameObject(216, 216, 5, 3, 10, 0);
-    fire->load(resource_path + "fire.png");
-    fire->setScale(2.0f);
-    fire->setPosition(-15, 400);
-    stuff.push_back(fire);
-
-    GameObject* fire2 = new AnimatedGameObject(216, 216, 5, 3, 10, 0);
-    fire2->load(resource_path + "fire.png");
-    fire2->setScale(2.0f);
-    fire2->setPosition((1920 / 2) - 5, 400);
-    stuff.push_back(fire2);
-
-    GameObject* fire3 = new AnimatedGameObject(216, 216, 5, 3, 10, 0);
-    fire3->load(resource_path + "fire.png");
-    fire3->setScale(2.0f);
-    fire3->setPosition(1820, 400);
-    stuff.push_back(fire3);
+    {
+        auto fire = std::make_unique<AnimatedGameObject>(216, 216, 5, 3, 10, 0);
+        fire->load(resource_path + "fire.png");
+        fire->setScale(2.0f);
+        fire->setPosition(-15, 400);
+        stuff.push_back(std::move(fire));
+    }
+    {
+        auto fire2 = std::make_unique<AnimatedGameObject>(216, 216, 5, 3, 10, 0);
+        fire2->load(resource_path + "fire.png");
+        fire2->setScale(2.0f);
+        fire2->setPosition((1920 / 2) - 5, 400);
+        stuff.push_back(std::move(fire2));
+    }
+    {
+        auto fire3 = std::make_unique<AnimatedGameObject>(216, 216, 5, 3, 10, 0);
+        fire3->load(resource_path + "fire.png");
+        fire3->setScale(2.0f);
+        fire3->setPosition(1820, 400);
+        stuff.push_back(std::move(fire3));
+    }
 
     if (!font.loadFromFile(resource_path + "oswald.ttf")) {
         std::cout << "Font did not load" << std::endl;
@@ -257,13 +260,13 @@ void Game::simStep()
 
     // Hazard collision + scoring.
     for (int x = 1; x < static_cast<int>(stuff.size()); x++) {
-        if (collision(stuff[x], m_player) && p1_time_passed) {
+        if (collision(*stuff[x], *m_player) && p1_time_passed) {
             burn.play();
             p2points--;
             p1_time_passed = false;
             p1_timeout     = static_cast<float>(gameSeconds()) + 2.2f;
         }
-        if (collision(stuff[x], player2) && p2_time_passed) {
+        if (collision(*stuff[x], *player2) && p2_time_passed) {
             burn.play();
             points--;
             p2_time_passed = false;
@@ -398,7 +401,7 @@ void Game::update(sf::Time deltaT, float time)
                                   (m_window.getSize().y) - m_player->getHeight());
         }
 
-        if (collision(m_player, player2)) {
+        if (collision(*m_player, *player2)) {
             m_player->setPosition(m_player->getPosition().x, m_player->getPosition().y + 40);
         } else {
             p1movement.y -= m_speed;
@@ -410,7 +413,7 @@ void Game::update(sf::Time deltaT, float time)
             m_player->setPosition(m_player->getPosition().x, -(m_player->getHeight()));
         }
 
-        if (collision(m_player, player2)) {
+        if (collision(*m_player, *player2)) {
             m_player->setPosition(m_player->getPosition().x, m_player->getPosition().y - 40);
         } else {
             p1movement.y += m_speed;
@@ -429,7 +432,7 @@ void Game::update(sf::Time deltaT, float time)
                 m_player->getPosition().y);
         }
 
-        if (collision(m_player, player2)) {
+        if (collision(*m_player, *player2)) {
             m_player->setPosition(m_player->getPosition().x + 40, m_player->getPosition().y);
         } else {
             p1movement.x -= m_speed;
@@ -450,7 +453,7 @@ void Game::update(sf::Time deltaT, float time)
                 m_player->getPosition().y);
         }
 
-        if (collision(m_player, player2)) {
+        if (collision(*m_player, *player2)) {
             m_player->setPosition(m_player->getPosition().x - 40, m_player->getPosition().y);
         } else {
             p1movement.x += m_speed;
@@ -462,7 +465,7 @@ void Game::update(sf::Time deltaT, float time)
                                  (m_window.getSize().y) - player2->getHeight());
         }
 
-        if (collision(m_player, player2)) {
+        if (collision(*m_player, *player2)) {
             player2->setPosition(player2->getPosition().x, player2->getPosition().y + 40);
         } else {
             p2movement.y -= m_speed;
@@ -473,7 +476,7 @@ void Game::update(sf::Time deltaT, float time)
             player2->setPosition(player2->getPosition().x, -(player2->getHeight()));
         }
 
-        if (collision(m_player, player2)) {
+        if (collision(*m_player, *player2)) {
             player2->setPosition(player2->getPosition().x, player2->getPosition().y - 40);
         } else {
             p2movement.y += m_speed;
@@ -492,7 +495,7 @@ void Game::update(sf::Time deltaT, float time)
                 player2->getPosition().y);
         }
 
-        if (collision(m_player, player2)) {
+        if (collision(*m_player, *player2)) {
             player2->setPosition(player2->getPosition().x + 40, player2->getPosition().y);
         } else {
             p2movement.x -= m_speed;
@@ -511,7 +514,7 @@ void Game::update(sf::Time deltaT, float time)
                 player2->getPosition().y);
         }
 
-        if (collision(m_player, player2)) {
+        if (collision(*m_player, *player2)) {
             player2->setPosition(player2->getPosition().x - 40, player2->getPosition().y);
         } else {
             p2movement.x += m_speed;
@@ -531,7 +534,7 @@ void Game::update(sf::Time deltaT, float time)
                              (player2->getHeight()) * (player2->getScale().y)));
         }
 
-        if (collision(hit, m_player)) {
+        if (collision(hit, *m_player)) {
             metal.play();
             points++;
             reset = true;
@@ -555,7 +558,7 @@ void Game::update(sf::Time deltaT, float time)
                              (m_player->getHeight()) * (m_player->getScale().y)));
         }
 
-        if (collision(hit, player2)) {
+        if (collision(hit, *player2)) {
             p2points++;
             reset = true;
             p2hit.play();
@@ -578,12 +581,12 @@ void Game::update(sf::Time deltaT, float time)
         speed_up.play();
     }
 
-    if ((m_up || m_down || m_left || m_right) && !collision(m_player, player2)) {
+    if ((m_up || m_down || m_left || m_right) && !collision(*m_player, *player2)) {
         m_player->move(p1movement * deltaT.asSeconds());
         m_player->update(time);
     }
 
-    if ((w || a || s || d) && !collision(m_player, player2)) {
+    if ((w || a || s || d) && !collision(*m_player, *player2)) {
         player2->move(p2movement * deltaT.asSeconds());
         player2->update(time);
     }
@@ -677,14 +680,14 @@ void Game::render()
 
 // ── collision ─────────────────────────────────────────────────────────────────
 
-bool Game::collision(GameObject* a, GameObject* b)
+bool Game::collision(const GameObject& a, const GameObject& b)
 {
-    return objectBounds(*a).intersects(objectBounds(*b));
+    return objectBounds(a).intersects(objectBounds(b));
 }
 
-bool Game::collision(sf::Rect<float> a, GameObject* b)
+bool Game::collision(sf::Rect<float> a, const GameObject& b)
 {
-    return a.intersects(objectBounds(*b));
+    return a.intersects(objectBounds(b));
 }
 
 // ── handleNetworkCommunication ────────────────────────────────────────────────

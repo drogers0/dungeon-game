@@ -45,8 +45,8 @@ private:
     // handle input from the user
     void handlePlayerInput(sf::Keyboard::Key key, bool isDown);
     // check collision with walls or other objects
-    bool collision(GameObject* a, GameObject* b);
-    bool collision(sf::Rect<float> a, GameObject* b);
+    bool collision(const GameObject& a, const GameObject& b);
+    bool collision(sf::Rect<float> a, const GameObject& b);
 
     // Fixed-timestep deterministic sim body.
     void simStep();
@@ -76,9 +76,9 @@ private:
 
     sf::Music background;
 
-    GameObject* m_player = new AnimatedGameObject(404, 206, 3, 3, 9, 0);
-    GameObject* player2  = new AnimatedGameObject(959, 180, 8, 1, 8, 0);
-    std::vector<GameObject*> stuff;
+    std::unique_ptr<GameObject> m_player = std::make_unique<AnimatedGameObject>(404, 206, 3, 3, 9, 0);
+    std::unique_ptr<GameObject> player2  = std::make_unique<AnimatedGameObject>(959, 180, 8, 1, 8, 0);
+    std::vector<std::unique_ptr<GameObject>> stuff;
 
     sf::Font font;
     sf::Font tfont;

@@ -112,14 +112,13 @@ void startgame(int& highscore, NetworkMode mode = NetworkMode::LOCAL, std::share
     bool start_updated = false;
     bool quit_updated = false;
 
-    GameObject *m_start = new AnimatedGameObject(1331, 300, 2, 1, 2, 0);
+    auto m_start = std::make_unique<AnimatedGameObject>(1331, 300, 2, 1, 2, 0);
     m_start->load(resource_path + "start.png");
     m_start->setOrigin();
     m_start->setPosition((endscreen.getSize().x / 2),(endscreen.getSize().y / 3));
     m_start->setScale(.5f);
 
-
-    GameObject *m_quit = new AnimatedGameObject(1332, 300, 2, 1, 2, 0);
+    auto m_quit = std::make_unique<AnimatedGameObject>(1332, 300, 2, 1, 2, 0);
     m_quit->load(resource_path + "quit.png");
     m_quit->setOrigin();
     m_quit->setPosition((endscreen.getSize().x / 2), 2 * (endscreen.getSize().y / 3));
@@ -330,33 +329,33 @@ int main(int argc, char** argv)
     
     sf::RenderWindow startscreen(sf::VideoMode(1024, 576), "Dungeon Game");
     // Create button objects for main menu
-    GameObject* m_start = new AnimatedGameObject(1331, 300, 2,1,2,0);
+    auto m_start = std::make_unique<AnimatedGameObject>(1331, 300, 2,1,2,0);
     m_start->load(resource_path + "start.png");
     m_start->setOrigin();
     m_start->setPosition(startscreen.getSize().x/2, 200);
     m_start->setScale(.4f);
 
     // Create host and join buttons (will use text labels with start button image)
-    GameObject* m_host = new AnimatedGameObject(1331, 300, 2,1,2,0);
+    auto m_host = std::make_unique<AnimatedGameObject>(1331, 300, 2,1,2,0);
     m_host->load(resource_path + "start.png");
     m_host->setOrigin();
     m_host->setPosition(startscreen.getSize().x/2, 320);
     m_host->setScale(.4f);
 
-    GameObject* m_join = new AnimatedGameObject(1331, 300, 2,1,2,0);
+    auto m_join = std::make_unique<AnimatedGameObject>(1331, 300, 2,1,2,0);
     m_join->load(resource_path + "start.png");
     m_join->setOrigin();
     m_join->setPosition(startscreen.getSize().x/2, 440);
     m_join->setScale(.4f);
 
-    GameObject* m_quit = new AnimatedGameObject(1332, 300, 2,1,2,0);
+    auto m_quit = std::make_unique<AnimatedGameObject>(1332, 300, 2,1,2,0);
     m_quit->load(resource_path+"quit.png");
     m_quit->setOrigin();
     m_quit->setPosition((startscreen.getSize().x/2), 520);
     m_quit->setScale(.3f);
-    
+
     // Back button (using quit button graphics)
-    GameObject* m_back = new AnimatedGameObject(1332, 300, 2,1,2,0);
+    auto m_back = std::make_unique<AnimatedGameObject>(1332, 300, 2,1,2,0);
     m_back->load(resource_path+"quit.png");
     m_back->setOrigin();
     m_back->setPosition(100, 50);

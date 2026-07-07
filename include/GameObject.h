@@ -8,8 +8,14 @@
 
 class GameObject {
 public:
+    GameObject()                             = default;
+    virtual ~GameObject()                    = default;
+    GameObject(const GameObject&)            = delete;
+    GameObject& operator=(const GameObject&) = delete;
+    GameObject(GameObject&&)                 = delete;
+    GameObject& operator=(GameObject&&)      = delete;
 
-	virtual bool load(const std::string& filename) = 0;
+    virtual bool load(const std::string& filename) = 0;
 
 	virtual void draw(sf::RenderWindow& window) = 0;
 
