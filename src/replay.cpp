@@ -3,35 +3,32 @@
 #include <iostream>
 #include <sstream>
 
-void applyInputTo(bool& w, bool& a, bool& s, bool& d, bool& space, const PlayerInput& in)
-{
-    w     = in.up;
-    a     = in.left;
-    s     = in.down;
-    d     = in.right;
+void applyInputTo(bool& w, bool& a, bool& s, bool& d, bool& space, const PlayerInput& in) {
+    w = in.up;
+    a = in.left;
+    s = in.down;
+    d = in.right;
     space = in.attack;
 }
 
-void applyInputToP1(bool& w, bool& a, bool& s, bool& d, bool& attack, const PlayerInput& in)
-{
-    w      = in.up;
-    a      = in.left;
-    s      = in.down;
-    d      = in.right;
+void applyInputToP1(bool& w, bool& a, bool& s, bool& d, bool& attack, const PlayerInput& in) {
+    w = in.up;
+    a = in.left;
+    s = in.down;
+    d = in.right;
     attack = in.attack;
 }
 
-std::vector<PlayerInput> loadReplay(const std::string& path)
-{
+std::vector<PlayerInput> loadReplay(const std::string& path) {
     std::vector<PlayerInput> result;
-    std::ifstream            f(path);
+    std::ifstream f(path);
     if (!f.is_open()) {
         std::cerr << "replay: cannot open '" << path << "'\n";
         return result;
     }
 
     std::string line;
-    int         lineNum = 0;
+    int lineNum = 0;
     while (std::getline(f, line)) {
         ++lineNum;
 
@@ -52,8 +49,8 @@ std::vector<PlayerInput> loadReplay(const std::string& path)
 
         // Parse exactly 5 fields, each 0 or 1
         std::istringstream ss(line);
-        int                vals[5];
-        bool               ok = true;
+        int vals[5];
+        bool ok = true;
         for (int i = 0; i < 5 && ok; ++i) {
             if (!(ss >> vals[i]))
                 ok = false;
@@ -73,10 +70,10 @@ std::vector<PlayerInput> loadReplay(const std::string& path)
         }
 
         PlayerInput inp;
-        inp.up     = (vals[0] != 0);
-        inp.down   = (vals[1] != 0);
-        inp.left   = (vals[2] != 0);
-        inp.right  = (vals[3] != 0);
+        inp.up = (vals[0] != 0);
+        inp.down = (vals[1] != 0);
+        inp.left = (vals[2] != 0);
+        inp.right = (vals[3] != 0);
         inp.attack = (vals[4] != 0);
         result.push_back(inp);
     }

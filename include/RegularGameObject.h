@@ -27,7 +27,7 @@ public:
 
     void setScale(float scale) override;
 
-    void setScale(float x,float y) override;
+    void setScale(float x, float y) override;
 
     sf::Vector2f getScale() const override;
 
@@ -42,6 +42,4 @@ private:
     sf::Texture m_texture;
     std::string m_filename;
     bool m_valid = false;
-
 };
-

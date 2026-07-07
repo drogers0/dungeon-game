@@ -1,7 +1,7 @@
 #pragma once
+#include "NetworkManager.h"
 #include <string>
 #include <vector>
-#include "NetworkManager.h"
 
 // Parse a replay file.  Text format: one line per sim step, five 0/1 fields
 // (up down left right attack), whitespace-separated.  Everything from '#' to

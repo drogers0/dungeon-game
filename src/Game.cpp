@@ -14,8 +14,7 @@
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 // LCOV_EXCL_START — screenshot requires a live RenderWindow; not testable headless
-static void captureScreenshot(const sf::RenderWindow& w, const std::string& path)
-{
+static void captureScreenshot(const sf::RenderWindow& w, const std::string& path) {
     sf::Texture t;
     t.create(w.getSize().x, w.getSize().y);
     t.update(w);
@@ -28,13 +27,10 @@ static void captureScreenshot(const sf::RenderWindow& w, const std::string& path
 Game::Game() : Game(NetworkMode::LOCAL, nullptr) {}
 
 Game::Game(NetworkMode mode, std::shared_ptr<NetworkManager> netManager)
-    : m_window(sf::VideoMode(1920, 1080),
-               mode == NetworkMode::LOCAL ? "Dungeon Game"
-               : mode == NetworkMode::HOST ? "Dungeon Game - Host"
-                                           : "Dungeon Game - Client"),
-      m_networkMode(mode),
-      m_networkManager(netManager)
-{
+    : m_window(sf::VideoMode(1920, 1080), mode == NetworkMode::LOCAL  ? "Dungeon Game"
+                                          : mode == NetworkMode::HOST ? "Dungeon Game - Host"
+                                                                      : "Dungeon Game - Client"),
+      m_networkMode(mode), m_networkManager(netManager) {
     loadOrThrow(background, resource_path + "background.wav");
 
     loadOrThrow(*m_rocket, resource_path + "rocket.png");
@@ -71,7 +67,7 @@ Game::Game(NetworkMode mode, std::shared_ptr<NetworkManager> netManager)
         m_arena.push_back(std::move(fire3));
     }
 
-    loadOrThrow(font,  resource_path + "oswald.ttf");
+    loadOrThrow(font, resource_path + "oswald.ttf");
     loadOrThrow(tfont, resource_path + "timer.ttf");
     loadOrThrow(block, resource_path + "Blockt.ttf");
 
@@ -83,17 +79,18 @@ Game::Game(NetworkMode mode, std::shared_ptr<NetworkManager> netManager)
     info.setPosition(pause_text.getPosition().x + 150, pause_text.getPosition().y + 500);
     info.setFillColor(sf::Color::Black);
 
-    m_rocketScoreText  = sf::Text("Rocket Score: 0", font, 40);
+    m_rocketScoreText = sf::Text("Rocket Score: 0", font, 40);
     m_robotScoreText = sf::Text("Robot Score: 0", font, 40);
     timer = sf::Text("timer", tfont, 60);
     timer.setPosition((m_window.getSize().x / 2) - 60, 0);
     m_rocketScoreText.setPosition(10, 0);
-    m_robotScoreText.setPosition(m_window.getSize().x - m_robotScoreText.getGlobalBounds().width, 0);
+    m_robotScoreText.setPosition(m_window.getSize().x - m_robotScoreText.getGlobalBounds().width,
+                                 0);
     m_robotScoreText.setFillColor(sf::Color::Green);
     timer.setFillColor(sf::Color::Black);
     m_rocketScoreText.setFillColor(sf::Color::Blue);
 
-    loadOrThrow(sbuffer,     resource_path + "sword_miss.wav");
+    loadOrThrow(sbuffer, resource_path + "sword_miss.wav");
     sword.setBuffer(sbuffer);
     loadOrThrow(p2hitbuffer, resource_path + "skeleton.wav");
     p2hit.setBuffer(p2hitbuffer);
@@ -103,52 +100,50 @@ Game::Game(NetworkMode mode, std::shared_ptr<NetworkManager> netManager)
     metal.setBuffer(metalbuffer);
     loadOrThrow(speedbuffer, resource_path + "SpeedUp.wav");
     speed_up.setBuffer(speedbuffer);
-    loadOrThrow(slowbuffer,  resource_path + "SlowDown.wav");
+    loadOrThrow(slowbuffer, resource_path + "SlowDown.wav");
     slow_down.setBuffer(slowbuffer);
-    loadOrThrow(burnbuffer,  resource_path + "burn.wav");
+    loadOrThrow(burnbuffer, resource_path + "burn.wav");
     burn.setBuffer(burnbuffer);
-    loadOrThrow(gongbuffer,  resource_path + "gong.wav");
+    loadOrThrow(gongbuffer, resource_path + "gong.wav");
     gong.setBuffer(gongbuffer);
     laser.setVolume(60);
 }
 
 // ── debug config ──────────────────────────────────────────────────────────────
 
-void Game::setDebugConfig(const DebugConfig& cfg)
-{
+void Game::setDebugConfig(const DebugConfig& cfg) {
     m_debug = cfg;
     if (!cfg.replayPath.empty()) {
-        m_replay    = loadReplay(cfg.replayPath);
+        m_replay = loadReplay(cfg.replayPath);
         m_replayIdx = 0;
     }
     if (!cfg.replayPathP1.empty()) {
-        m_replayP1    = loadReplay(cfg.replayPathP1);
+        m_replayP1 = loadReplay(cfg.replayPathP1);
         m_replayP1Idx = 0;
     }
 }
 
 // ── run ───────────────────────────────────────────────────────────────────────
 
-std::tuple<int, int, float, int, bool, bool> Game::run()
-{
+std::tuple<int, int, float, int, bool, bool> Game::run() {
     sf::Clock clock;
     background.play();
     background.setLoop(true);
     background.setVolume(40);
     gong.setVolume(50);
 
-    float     minutes = 0.f;
-    int       seconds      = 0;
-    bool      p1win        = false;
-    int       framesLeft   = m_debug.frames;
-    const bool framesMode  = (framesLeft > 0);
+    float minutes = 0.f;
+    int seconds = 0;
+    bool p1win = false;
+    int framesLeft = m_debug.frames;
+    const bool framesMode = (framesLeft > 0);
 
     while (m_window.isOpen()) {
         // ── Timer display from step counter ──────────────────────────────────
         {
-            int totalSecs  = static_cast<int>(gameSeconds());
-            minutes   = static_cast<float>(totalSecs / 60);
-            seconds        = totalSecs % 60;
+            int totalSecs = static_cast<int>(gameSeconds());
+            minutes = static_cast<float>(totalSecs / 60);
+            seconds = totalSecs % 60;
             char gClock[10];
             std::snprintf(gClock, sizeof(gClock), "%02.0f:%02d", minutes, seconds);
             timer.setString(gClock);
@@ -194,8 +189,7 @@ std::tuple<int, int, float, int, bool, bool> Game::run()
 
 // ── simStep ───────────────────────────────────────────────────────────────────
 
-void Game::simStep()
-{
+void Game::simStep() {
     // Apply replay input for P2 (before update so the flags are set when update() runs).
     if (!m_replay.empty()) {
         if (m_replayIdx < m_replay.size()) {
@@ -208,7 +202,8 @@ void Game::simStep()
     // Apply replay input for P1.
     if (!m_replayP1.empty()) {
         if (m_replayP1Idx < m_replayP1.size()) {
-            applyInputToP1(m_p1Up, m_p1Left, m_p1Down, m_p1Right, m_p1Attack, m_replayP1[m_replayP1Idx++]);
+            applyInputToP1(m_p1Up, m_p1Left, m_p1Down, m_p1Right, m_p1Attack,
+                           m_replayP1[m_replayP1Idx++]);
         } else {
             PlayerInput empty{};
             applyInputToP1(m_p1Up, m_p1Left, m_p1Down, m_p1Right, m_p1Attack, empty);
@@ -241,13 +236,13 @@ void Game::simStep()
             burn.play();
             m_rocketScore--;
             m_p1HazardReady = false;
-            m_p1HazardCooldownEnd     = static_cast<float>(gameSeconds()) + 2.2f;
+            m_p1HazardCooldownEnd = static_cast<float>(gameSeconds()) + 2.2f;
         }
         if (collision(*m_arena[x], *m_robot) && m_p2HazardReady) {
             burn.play();
             m_robotScore--;
             m_p2HazardReady = false;
-            m_p2HazardCooldownEnd     = static_cast<float>(gameSeconds()) + 2.2f;
+            m_p2HazardCooldownEnd = static_cast<float>(gameSeconds()) + 2.2f;
         }
     }
 
@@ -262,29 +257,29 @@ void Game::simStep()
 
 // ── applyPlayerInput / captureIfDue ──────────────────────────────────────────
 
-void Game::applyPlayerInput(const PlayerInput& in)
-{
+void Game::applyPlayerInput(const PlayerInput& in) {
     applyInputTo(m_p2Up, m_p2Left, m_p2Down, m_p2Right, m_p2Attack, in);
 }
 
-void Game::captureIfDue()
-{
-    if (m_debug.screenshotEvery <= 0) return;
-    if (m_nextShot == 0) m_nextShot = m_debug.screenshotEvery; // lazy init
+void Game::captureIfDue() {
+    if (m_debug.screenshotEvery <= 0)
+        return;
+    if (m_nextShot == 0)
+        m_nextShot = m_debug.screenshotEvery; // lazy init
     // Threshold (not modulo) so a multi-step accumulator drain that jumps past a
     // boundary still captures once; --frames mode (1 step/iter) lands exactly on
     // each multiple, keeping frame_60/120/... filenames stable for determinism.
     if (m_steps >= m_nextShot) {
         captureScreenshot(m_window,
                           m_debug.screenshotDir + "/frame_" + std::to_string(m_steps) + ".png");
-        while (m_nextShot <= m_steps) m_nextShot += m_debug.screenshotEvery;
+        while (m_nextShot <= m_steps)
+            m_nextShot += m_debug.screenshotEvery;
     }
 }
 
 // ── processEvents ─────────────────────────────────────────────────────────────
 
-void Game::processEvents()
-{
+void Game::processEvents() {
     sf::Event event;
     while (m_window.pollEvent(event)) {
         switch (event.type) {
@@ -308,8 +303,7 @@ void Game::processEvents()
 // ── handlePlayerInput ─────────────────────────────────────────────────────────
 
 // LCOV_EXCL_START — keyboard glue; entirely gated off when the harness is active
-void Game::handlePlayerInput(sf::Keyboard::Key key, bool isDown)
-{
+void Game::handlePlayerInput(sf::Keyboard::Key key, bool isDown) {
     // Gate all game-key bindings when the harness is active so that live
     // keyboard cannot perturb a --frames / --replay run.
     if (!m_debug.active()) {
@@ -365,8 +359,7 @@ void Game::handlePlayerInput(sf::Keyboard::Key key, bool isDown)
 
 // ── update ────────────────────────────────────────────────────────────────────
 
-void Game::update(sf::Time deltaT, float time)
-{
+void Game::update(sf::Time deltaT, float time) {
     bool reset = false;
 
     sf::Vector2f p1movement(0.0f, 0.0f);
@@ -403,10 +396,9 @@ void Game::update(sf::Time deltaT, float time)
         if (!m_p1FacingLeft) {
             m_rocket->setScale(-2.0f, 2);
             m_p1FacingLeft = true;
-            m_rocket->setPosition(
-                m_rocket->getPosition().x -
-                    (m_rocket->getWidth() * m_rocket->getScale().x),
-                m_rocket->getPosition().y);
+            m_rocket->setPosition(m_rocket->getPosition().x -
+                                      (m_rocket->getWidth() * m_rocket->getScale().x),
+                                  m_rocket->getPosition().y);
         }
 
         if (collision(*m_rocket, *m_robot)) {
@@ -424,10 +416,9 @@ void Game::update(sf::Time deltaT, float time)
 
         if (m_p1FacingLeft) {
             m_p1FacingLeft = false;
-            m_rocket->setPosition(
-                m_rocket->getPosition().x -
-                    (m_rocket->getWidth() * m_rocket->getScale().x),
-                m_rocket->getPosition().y);
+            m_rocket->setPosition(m_rocket->getPosition().x -
+                                      (m_rocket->getWidth() * m_rocket->getScale().x),
+                                  m_rocket->getPosition().y);
         }
 
         if (collision(*m_rocket, *m_robot)) {
@@ -466,10 +457,9 @@ void Game::update(sf::Time deltaT, float time)
         m_robot->setScale(-1.0f, 1.0f);
         if (!m_p2FacingLeft) {
             m_p2FacingLeft = true;
-            m_robot->setPosition(
-                m_robot->getPosition().x -
-                    (m_robot->getWidth() * m_robot->getScale().x),
-                m_robot->getPosition().y);
+            m_robot->setPosition(m_robot->getPosition().x -
+                                     (m_robot->getWidth() * m_robot->getScale().x),
+                                 m_robot->getPosition().y);
         }
 
         if (collision(*m_rocket, *m_robot)) {
@@ -485,10 +475,9 @@ void Game::update(sf::Time deltaT, float time)
         }
         if (m_p2FacingLeft) {
             m_p2FacingLeft = false;
-            m_robot->setPosition(
-                m_robot->getPosition().x -
-                    (m_robot->getWidth() * m_robot->getScale().x),
-                m_robot->getPosition().y);
+            m_robot->setPosition(m_robot->getPosition().x -
+                                     (m_robot->getWidth() * m_robot->getScale().x),
+                                 m_robot->getPosition().y);
         }
 
         if (collision(*m_rocket, *m_robot)) {
@@ -578,33 +567,33 @@ void Game::update(sf::Time deltaT, float time)
         m_rocket->setPosition(m_rocket->getWidth() + 20, 400);
         m_p1FacingLeft = false;
         m_p2FacingLeft = true;
-        m_inCooldown   = true;
+        m_inCooldown = true;
     }
 
     m_rocketScoreText.setString("Rocket Score: " + std::to_string(m_rocketScore));
     m_robotScoreText.setString("Robot Score: " + std::to_string(m_robotScore));
-    m_robotScoreText.setPosition(m_window.getSize().x - m_robotScoreText.getGlobalBounds().width - 20, 0);
+    m_robotScoreText.setPosition(
+        m_window.getSize().x - m_robotScoreText.getGlobalBounds().width - 20, 0);
 }
 
 // ── render ────────────────────────────────────────────────────────────────────
 
-void Game::render()
-{
+void Game::render() {
     // CLIENT: temporarily shift sprites to interpolated positions for drawing.
     // Positions are saved and restored so update()/collision use authoritative coords.
     sf::Vector2f p1Saved, p2Saved;
-    bool         didShift = false;
+    bool didShift = false;
 
     // LCOV_EXCL_START — CLIENT interpolation; only runs in networked CLIENT mode
     if (m_networkMode == NetworkMode::CLIENT && m_networkManager &&
         !m_networkManager->stateBuf().empty()) {
-        p1Saved  = m_rocket->getPosition();
-        p2Saved  = m_robot->getPosition();
+        p1Saved = m_rocket->getPosition();
+        p2Saved = m_robot->getPosition();
         didShift = true;
 
-        const auto& buf          = m_networkManager->stateBuf();
+        const auto& buf = m_networkManager->stateBuf();
         constexpr float kInterpDelay = 0.04f; // 40 ms behind
-        sf::Time        target   = m_networkManager->elapsed() - sf::seconds(kInterpDelay);
+        sf::Time target = m_networkManager->elapsed() - sf::seconds(kInterpDelay);
 
         sf::Vector2f rp1, rp2;
         if (buf.size() >= 2) {
@@ -613,12 +602,11 @@ void Game::render()
                 if (buf[i].arrival <= target)
                     ai = i;
             }
-            std::size_t bi  = std::min(ai + 1, buf.size() - 1);
-            const auto& sa  = buf[ai];
-            const auto& sb  = buf[bi];
-            float       span = (sb.arrival - sa.arrival).asSeconds();
-            float       t =
-                (span > 0.f) ? (target - sa.arrival).asSeconds() / span : 1.f;
+            std::size_t bi = std::min(ai + 1, buf.size() - 1);
+            const auto& sa = buf[ai];
+            const auto& sb = buf[bi];
+            float span = (sb.arrival - sa.arrival).asSeconds();
+            float t = (span > 0.f) ? (target - sa.arrival).asSeconds() / span : 1.f;
             rp1 = lerpPos({sa.state.p1_x, sa.state.p1_y}, {sb.state.p1_x, sb.state.p1_y}, t);
             rp2 = lerpPos({sa.state.p2_x, sa.state.p2_y}, {sb.state.p2_x, sb.state.p2_y}, t);
         } else {
@@ -657,20 +645,17 @@ void Game::render()
 
 // ── collision ─────────────────────────────────────────────────────────────────
 
-bool Game::collision(const GameObject& a, const GameObject& b)
-{
+bool Game::collision(const GameObject& a, const GameObject& b) {
     return objectBounds(a).intersects(objectBounds(b));
 }
 
-bool Game::collision(sf::Rect<float> a, const GameObject& b)
-{
+bool Game::collision(sf::Rect<float> a, const GameObject& b) {
     return a.intersects(objectBounds(b));
 }
 
 // ── handleNetworkCommunication ────────────────────────────────────────────────
 
-void Game::handleNetworkCommunication(sf::Time deltaT)
-{
+void Game::handleNetworkCommunication(sf::Time deltaT) {
     if (!m_networkManager)
         return;
 
@@ -680,10 +665,10 @@ void Game::handleNetworkCommunication(sf::Time deltaT)
         // Consume all queued inputs; keep only the most recent.
         PlayerInput clientInput;
         PlayerInput tmp;
-        bool        got = false;
+        bool got = false;
         while (m_networkManager->nextInput(tmp)) {
             clientInput = tmp;
-            got         = true;
+            got = true;
         }
         if (got) {
             applyPlayerInput(clientInput);
@@ -698,10 +683,10 @@ void Game::handleNetworkCommunication(sf::Time deltaT)
     } else if (m_networkMode == NetworkMode::CLIENT && m_networkManager->isConnected()) {
         // Send local input every frame.
         PlayerInput myInput;
-        myInput.up     = m_p2Up;
-        myInput.down   = m_p2Down;
-        myInput.left   = m_p2Left;
-        myInput.right  = m_p2Right;
+        myInput.up = m_p2Up;
+        myInput.down = m_p2Down;
+        myInput.left = m_p2Left;
+        myInput.right = m_p2Right;
         myInput.attack = m_p2Attack;
         m_networkManager->sendInput(myInput);
 
@@ -726,33 +711,31 @@ void Game::handleNetworkCommunication(sf::Time deltaT)
 
 GameState Game::snapshot() const { return captureGameState(); }
 
-GameState Game::captureGameState() const
-{
+GameState Game::captureGameState() const {
     GameState state;
-    state.p1_x      = m_rocket->getPosition().x;
-    state.p1_y      = m_rocket->getPosition().y;
-    state.p2_x      = m_robot->getPosition().x;
-    state.p2_y      = m_robot->getPosition().y;
-    state.p1_score  = m_rocketScore;
-    state.p2_score  = m_robotScore;
-    state.p1_left   = m_p1FacingLeft;
-    state.p2_left   = m_p2FacingLeft;
+    state.p1_x = m_rocket->getPosition().x;
+    state.p1_y = m_rocket->getPosition().y;
+    state.p2_x = m_robot->getPosition().x;
+    state.p2_y = m_robot->getPosition().y;
+    state.p1_score = m_rocketScore;
+    state.p2_score = m_robotScore;
+    state.p1_left = m_p1FacingLeft;
+    state.p2_left = m_p2FacingLeft;
     state.p1_scale_x = m_rocket->getScale().x;
     state.p1_scale_y = m_rocket->getScale().y;
     state.p2_scale_x = m_robot->getScale().x;
     state.p2_scale_y = m_robot->getScale().y;
-    state.wait       = m_inCooldown;
+    state.wait = m_inCooldown;
     return state;
 }
 
-void Game::applyNetworkState(const GameState& state)
-{
+void Game::applyNetworkState(const GameState& state) {
     m_rocket->setPosition(state.p1_x, state.p1_y);
     m_robot->setPosition(state.p2_x, state.p2_y);
     m_rocketScore = state.p1_score;
-    m_robotScore   = state.p2_score;
-    m_p1FacingLeft   = state.p1_left;
-    m_p2FacingLeft   = state.p2_left;
+    m_robotScore = state.p2_score;
+    m_p1FacingLeft = state.p1_left;
+    m_p2FacingLeft = state.p2_left;
     m_rocket->setScale(state.p1_scale_x, state.p1_scale_y);
     m_robot->setScale(state.p2_scale_x, state.p2_scale_y);
     m_inCooldown = state.wait;

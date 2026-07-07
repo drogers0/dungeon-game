@@ -7,10 +7,9 @@
 
 class AnimatedGameObject : public GameObject {
 public:
-
     AnimatedGameObject();
 
-    AnimatedGameObject(double x,double y,int nx,int ny,int howmany,int angle);
+    AnimatedGameObject(double x, double y, int nx, int ny, int howmany, int angle);
 
     bool load(const std::string& filename) override;
 
@@ -53,4 +52,3 @@ private:
     int curr;
     sf::IntRect rect;
 };
-
