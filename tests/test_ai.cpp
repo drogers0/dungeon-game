@@ -1,5 +1,5 @@
 // Unit tests for the AI decider + controller.
-// Pure functions only — no window, no display, no audio.
+// Pure functions only - no window, no display, no audio.
 
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
@@ -28,16 +28,16 @@ static AiView makeView(float selfX, float selfY, float oppX, float oppY, bool fa
     return v;
 }
 
-// ── 1. In range + aligned + facing + missTimeProb=0 → attack ─────────────────
+// ── 1. In range + aligned + facing + missTimeProb=0 -> attack ─────────────────
 
-TEST_CASE("ai: in range, aligned, facing, missTimeProb=0 → attack==true", "[ai]") {
+TEST_CASE("ai: in range, aligned, facing, missTimeProb=0 -> attack==true", "[ai]") {
     AiParams p = paramsFor(AiDifficulty::Hard);
     p.missTimeProb = 0.f;
     p.mistakeProb = 0.f;
 
     std::mt19937 rng(1);
     // Self at 960, opponent to the LEFT at 700 (dx = -260 < attackRange=320)
-    // Facing left (selfFacingLeft=true), opponent is to the left → correct facing
+    // Facing left (selfFacingLeft=true), opponent is to the left -> correct facing
     AiView v = makeView(960.f, 400.f, 700.f, 400.f, /*facingLeft=*/true);
 
     PlayerInput out = decideAiInput(v, p, rng);
@@ -47,20 +47,20 @@ TEST_CASE("ai: in range, aligned, facing, missTimeProb=0 → attack==true", "[ai
 // ── 1b. Near-edge (body-to-body) attack: wide opponent to the right ───────────
 // Mirrors the real posture makeAiView normalises: the opponent (rocket) sits to
 // the RIGHT of the robot. The attack check must use the NEAR (left) edge of a
-// normalised oppBounds, not the anchor/centre — here the anchor is out of range
+// normalised oppBounds, not the anchor/centre - here the anchor is out of range
 // but the near edge is in range, so a body-aware AI still attacks. This is the
 // oppToRight branch of nearOppEdge; a non-normalised (negative-width) oppBounds
 // would pick the far edge and wrongly decline the attack.
 
-TEST_CASE("ai: near-edge attack — wide opponent to the right, anchor out but edge in", "[ai]") {
+TEST_CASE("ai: near-edge attack - wide opponent to the right, anchor out but edge in", "[ai]") {
     AiParams p = paramsFor(AiDifficulty::Hard); // attackRange=320, attackAlignY=80
     p.missTimeProb = 0.f;
     p.mistakeProb = 0.f;
 
     std::mt19937 rng(1);
-    // Robot at x=960; opponent anchor at x=1410 (dx=+450 > attackRange → anchor out of range).
+    // Robot at x=960; opponent anchor at x=1410 (dx=+450 > attackRange -> anchor out of range).
     AiView v = makeView(960.f, 400.f, 1410.f, 400.f, /*facingLeft=*/false);
-    // Wide opponent: near (left) edge at 1260 → edge distance 300 < attackRange=320.
+    // Wide opponent: near (left) edge at 1260 -> edge distance 300 < attackRange=320.
     v.oppBounds = sf::FloatRect{1260.f, 310.f, 300.f, 180.f};
 
     PlayerInput out = decideAiInput(v, p, rng);
@@ -69,9 +69,9 @@ TEST_CASE("ai: near-edge attack — wide opponent to the right, anchor out but e
     REQUIRE(out.left == false);
 }
 
-// ── 2. Beyond attackRange → no attack, moves toward opponent ─────────────────
+// ── 2. Beyond attackRange -> no attack, moves toward opponent ─────────────────
 
-TEST_CASE("ai: beyond attackRange → no attack, moves toward opponent", "[ai]") {
+TEST_CASE("ai: beyond attackRange -> no attack, moves toward opponent", "[ai]") {
     AiParams p = paramsFor(AiDifficulty::Hard);
     p.mistakeProb = 0.f;
     p.aggression = 1.f;     // always close in
@@ -87,9 +87,9 @@ TEST_CASE("ai: beyond attackRange → no attack, moves toward opponent", "[ai]")
     REQUIRE(out.left == false);
 }
 
-// ── 3. Opponent behind (wrong facing) → turns toward opponent ─────────────────
+// ── 3. Opponent behind (wrong facing) -> turns toward opponent ─────────────────
 
-TEST_CASE("ai: opponent behind → turns toward opponent", "[ai]") {
+TEST_CASE("ai: opponent behind -> turns toward opponent", "[ai]") {
     AiParams p = paramsFor(AiDifficulty::Hard);
     p.missTimeProb = 0.f;
     p.mistakeProb = 0.f;
@@ -101,14 +101,14 @@ TEST_CASE("ai: opponent behind → turns toward opponent", "[ai]") {
     AiView v = makeView(960.f, 400.f, 1160.f, 400.f, /*facingLeft=*/true);
 
     PlayerInput out = decideAiInput(v, p, rng);
-    // Opponent is to the right → right=true (turning/facing toward opponent)
+    // Opponent is to the right -> right=true (turning/facing toward opponent)
     REQUIRE(out.right == true);
     REQUIRE(out.left == false);
 }
 
-// ── 4. selfBounds intersecting a hazard → moves out, overrides attack ────────
+// ── 4. selfBounds intersecting a hazard -> moves out, overrides attack ────────
 
-TEST_CASE("ai: selfBounds in hazard → moves out, no attack", "[ai]") {
+TEST_CASE("ai: selfBounds in hazard -> moves out, no attack", "[ai]") {
     AiParams p = paramsFor(AiDifficulty::Hard);
     p.hazardMargin = 80.f; // Hard preset is 0 (pure aggressor); set explicitly for this test
     p.mistakeProb = 0.f;
@@ -117,19 +117,19 @@ TEST_CASE("ai: selfBounds in hazard → moves out, no attack", "[ai]") {
     std::mt19937 rng(1);
     AiView v = makeView(960.f, 400.f, 300.f, 400.f, /*facingLeft=*/true);
     // Place a hazard overlapping the inflated selfBounds
-    // selfBounds = {900, 310, 120, 180}; inflated by 80 → {820, 230, 280, 340}
-    // Hazard at x=830, width=20 → overlaps inflated bounds
+    // selfBounds = {900, 310, 120, 180}; inflated by 80 -> {820, 230, 280, 340}
+    // Hazard at x=830, width=20 -> overlaps inflated bounds
     v.hazards[0] = sf::FloatRect{830.f, 250.f, 20.f, 300.f};
 
     PlayerInput out = decideAiInput(v, p, rng);
     REQUIRE(out.attack == false);
-    // Hazard centre x=840, self centre x=960 → hazard to the left → move right
+    // Hazard centre x=840, self centre x=960 -> hazard to the left -> move right
     REQUIRE(out.right == true);
 }
 
-// ── 5. inCooldown → all-false ─────────────────────────────────────────────────
+// ── 5. inCooldown -> all-false ─────────────────────────────────────────────────
 
-TEST_CASE("ai: inCooldown → all-false", "[ai]") {
+TEST_CASE("ai: inCooldown -> all-false", "[ai]") {
     AiParams p = paramsFor(AiDifficulty::Hard);
     std::mt19937 rng(42);
     AiView v = makeView(960.f, 400.f, 300.f, 400.f, true, /*inCooldown=*/true);
@@ -142,9 +142,9 @@ TEST_CASE("ai: inCooldown → all-false", "[ai]") {
     REQUIRE(!out.attack);
 }
 
-// ── 6. Determinism: same view seq + same seed → identical output seq ──────────
+// ── 6. Determinism: same view seq + same seed -> identical output seq ──────────
 
-TEST_CASE("ai: determinism — same seed and view seq → identical PlayerInput seq", "[ai]") {
+TEST_CASE("ai: determinism - same seed and view seq -> identical PlayerInput seq", "[ai]") {
     AiParams p = paramsFor(AiDifficulty::Easy); // mistakeProb=0.15 exercises rng path
     p.decisionEvery = 1;                        // re-decide every step for more rng draws
 
@@ -174,9 +174,9 @@ TEST_CASE("ai: determinism — same seed and view seq → identical PlayerInput 
     }
 }
 
-// ── 7. Reaction delay: teleport at step k → old pos seen until k+reactionSteps
+// ── 7. Reaction delay: teleport at step k -> old pos seen until k+reactionSteps
 
-TEST_CASE("ai: reaction delay — teleport seen after reactionSteps", "[ai]") {
+TEST_CASE("ai: reaction delay - teleport seen after reactionSteps", "[ai]") {
     AiParams p = paramsFor(AiDifficulty::Easy); // reactionSteps=18
     p.mistakeProb = 0.f;
     p.decisionEvery = 1; // re-decide every step
@@ -199,7 +199,7 @@ TEST_CASE("ai: reaction delay — teleport seen after reactionSteps", "[ai]") {
     // Should be moving right (toward opponent on the right)
     REQUIRE(last_before.right == true);
 
-    // Now teleport opponent to far left — AI should NOT react immediately
+    // Now teleport opponent to far left - AI should NOT react immediately
     v.oppPos = {100.f, 400.f};
     v.oppBounds = {40.f, 310.f, 120.f, 180.f};
     v.step = p.reactionSteps - 1;
@@ -219,11 +219,11 @@ TEST_CASE("ai: reaction delay — teleport seen after reactionSteps", "[ai]") {
 
 // ── 8. Swing pacing: no two attack==true closer than swingEverySteps ──────────
 
-TEST_CASE("ai: swing pacing — attacks spaced by at least swingEverySteps", "[ai]") {
+TEST_CASE("ai: swing pacing - attacks spaced by at least swingEverySteps", "[ai]") {
     AiParams p = paramsFor(AiDifficulty::Hard);
     p.mistakeProb = 0.f;
     p.missTimeProb = 0.f;
-    p.decisionEvery = 1; // re-decide every step → attack fires whenever in range
+    p.decisionEvery = 1; // re-decide every step -> attack fires whenever in range
 
     std::mt19937 rng(3);
     AiController ctrl(p, rng);
@@ -249,7 +249,7 @@ TEST_CASE("ai: swing pacing — attacks spaced by at least swingEverySteps", "[a
 
 // ── 9. paramsFor sanity ───────────────────────────────────────────────────────
 
-TEST_CASE("ai: paramsFor sanity — params scale with difficulty (Easy < Medium < Hard)", "[ai]") {
+TEST_CASE("ai: paramsFor sanity - params scale with difficulty (Easy < Medium < Hard)", "[ai]") {
     AiParams easy = paramsFor(AiDifficulty::Easy);
     AiParams med = paramsFor(AiDifficulty::Medium);
     AiParams hard = paramsFor(AiDifficulty::Hard);
@@ -272,7 +272,7 @@ TEST_CASE("ai: paramsFor sanity — params scale with difficulty (Easy < Medium 
 
 // ── 9b. decisionEvery hold: output changes only on boundary ───────────────────
 
-TEST_CASE("ai: decisionEvery hold — output constant within hold window", "[ai]") {
+TEST_CASE("ai: decisionEvery hold - output constant within hold window", "[ai]") {
     AiParams p = paramsFor(AiDifficulty::Hard);
     p.decisionEvery = 6;
     p.reactionSteps = 0; // zero reaction delay so ring.front() = current view immediately
@@ -284,9 +284,9 @@ TEST_CASE("ai: decisionEvery hold — output constant within hold window", "[ai]
     std::mt19937 rng(5);
     AiController ctrl(p, rng);
 
-    // View A: opponent to the left → expect left movement
+    // View A: opponent to the left -> expect left movement
     AiView vA = makeView(960.f, 400.f, 400.f, 400.f, true);
-    // View B: opponent far above and to the right (beyond range) → expect up + right positioning
+    // View B: opponent far above and to the right (beyond range) -> expect up + right positioning
     AiView vB = makeView(960.f, 700.f, 1800.f, 100.f, false);
     vB.hazards = vA.hazards;
 
@@ -306,10 +306,10 @@ TEST_CASE("ai: decisionEvery hold — output constant within hold window", "[ai]
         REQUIRE(window1[static_cast<std::size_t>(i)].down == window1[0].down);
     }
 
-    // Step decisionEvery: re-decide with vB — output should differ
+    // Step decisionEvery: re-decide with vB - output should differ
     vB.step = p.decisionEvery;
     PlayerInput newDecision = ctrl.step(vB);
-    // vB has opponent far to the right and no attack → should move right (not left)
+    // vB has opponent far to the right and no attack -> should move right (not left)
     REQUIRE(newDecision.right == true);
     REQUIRE(newDecision.left == false);
 
