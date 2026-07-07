@@ -27,6 +27,12 @@ public:
     // Accessor for step count (useful for post-run reporting).
     long long steps() const { return m_steps; }
 
+    // Public snapshot of game state (for tests and network round-trip verification).
+    GameState snapshot() const;
+
+    // Apply a received network state (public so integration tests can verify round-trip).
+    void      applyNetworkState(const GameState& state);
+
     // run the game
     std::tuple<int, int, float, int, bool, bool> run();
 
@@ -121,13 +127,14 @@ private:
     DebugConfig              m_debug;
     std::vector<PlayerInput> m_replay;
     std::size_t              m_replayIdx = 0;
+    std::vector<PlayerInput> m_replayP1;
+    std::size_t              m_replayP1Idx = 0;
     long long                m_nextShot  = 0; // next step at which to auto-screenshot
 
     // Network support
     NetworkMode                      m_networkMode = NetworkMode::LOCAL;
     std::shared_ptr<NetworkManager>  m_networkManager;
     void      handleNetworkCommunication(sf::Time deltaT);
-    void      applyNetworkState(const GameState& state);
     GameState captureGameState() const;
 
     bool      m_peerLeft   = false;

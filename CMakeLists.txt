@@ -72,6 +72,14 @@ add_custom_command(TARGET dungeon_game POST_BUILD
     COMMENT "Copying elements/ assets to output directory"
 )
 
+# ── Coverage instrumentation (clang only; propagated PUBLIC so test binaries
+#    that link dungeon_lib also get the flags) ─────────────────────────────────
+option(DUNGEON_COVERAGE "Enable LLVM source-based coverage instrumentation" OFF)
+if(DUNGEON_COVERAGE)
+    target_compile_options(dungeon_lib PUBLIC -fprofile-instr-generate -fcoverage-mapping)
+    target_link_options(dungeon_lib    PUBLIC -fprofile-instr-generate)
+endif()
+
 # ── Tests (guarded: only if tests/ subdir exists and option is ON) ───────────
 enable_testing()
 option(DUNGEON_BUILD_TESTS "Build the dungeon_game test suite" ON)

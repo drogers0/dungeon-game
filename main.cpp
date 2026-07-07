@@ -242,6 +242,8 @@ int main(int argc, char** argv)
                 config.frames = std::stoi(needValue(arg, i));
             } else if (arg == "--replay") {
                 config.replayPath = needValue(arg, i);
+            } else if (arg == "--replay-p1") {
+                config.replayPathP1 = needValue(arg, i);
             } else if (arg == "--screenshot-every") {
                 config.screenshotEvery = std::stoi(needValue(arg, i));
             } else if (arg == "--screenshot-dir") {
@@ -253,7 +255,8 @@ int main(int argc, char** argv)
                 std::cout
                     << "Usage: dungeon_game [options]\n"
                     << "  --frames N             Run N sim steps then exit\n"
-                    << "  --replay <file>        Drive P2 from replay file\n"
+                    << "  --replay <file>        Drive P2 (robot) from replay file\n"
+                    << "  --replay-p1 <file>     Drive P1 (rocket) from replay file\n"
                     << "  --screenshot-every N   Save screenshot every N steps\n"
                     << "  --screenshot-dir <d>   Directory for screenshots (default: .)\n"
                     << "  --seed <n>             Seed the RNG\n"

@@ -6,21 +6,18 @@ on:
   pull_request:
 
 jobs:
-  build:
-    name: Build (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
+  # ── Linux: full suite under xvfb + LLVM coverage ──────────────────────────
+  build-linux:
+    name: Build + Coverage (ubuntu-latest)
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install SFML system dependencies (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
+      - name: Install dependencies
         run: |
           sudo apt-get update && sudo apt-get install -y \
+            clang llvm xvfb \
             libx11-dev libxrandr-dev libxcursor-dev libxi-dev \
             libudev-dev libgl-dev libopenal-dev \
             libfreetype-dev libflac-dev libvorbis-dev libogg-dev
@@ -33,7 +30,53 @@ jobs:
           restore-keys: ${{ runner.os }}-sfmldeps-v1-
 
       - name: Configure
-        run: cmake -B build -DDUNGEON_BUILD_TESTS=OFF
+        run: |
+          cmake -B build \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DDUNGEON_BUILD_TESTS=ON \
+            -DDUNGEON_COVERAGE=ON
 
       - name: Build
         run: cmake --build build -j
+
+      - name: Run tests (xvfb for integration cases)
+        run: |
+          mkdir -p build/cov
+          LLVM_PROFILE_FILE=$PWD/build/cov/%p-%m.profraw \
+            xvfb-run -a ctest --test-dir build --output-on-failure
+
+      - name: Coverage report
+        run: |
+          llvm-profdata merge build/cov/*.profraw -o build/cov/merged.profdata
+          llvm-cov report \
+            build/tests/dungeon_tests \
+            -object build/tests/dungeon_integration_tests \
+            -object build/dungeon_game \
+            -instr-profile=build/cov/merged.profdata \
+            -ignore-filename-regex='main\.cpp|tests/'
+
+  # ── macOS: unit tests only (SFML windows on GH macOS runners are flaky) ───
+  build-macos:
+    name: Build + Unit Tests (macos-latest)
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache SFML build deps
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/build/_deps
+          key: ${{ runner.os }}-sfmldeps-v1-${{ hashFiles('CMakeLists.txt', '.github/workflows/ci.yml') }}
+          restore-keys: ${{ runner.os }}-sfmldeps-v1-
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DDUNGEON_BUILD_TESTS=ON
+
+      - name: Build
+        run: cmake --build build -j
+
+      - name: Run unit tests (no display required)
+        run: ctest --test-dir build -L unit --output-on-failure

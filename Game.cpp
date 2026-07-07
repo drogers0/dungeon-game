@@ -3,6 +3,7 @@
 //
 
 #include "Game.h"
+#include "geometry.h"
 #include "resource_path.h"
 #include <algorithm>
 #include <cmath>
@@ -11,6 +12,7 @@
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
+// LCOV_EXCL_START — screenshot requires a live RenderWindow; not testable headless
 static void captureScreenshot(const sf::RenderWindow& w, const std::string& path)
 {
     sf::Texture t;
@@ -18,6 +20,7 @@ static void captureScreenshot(const sf::RenderWindow& w, const std::string& path
     t.update(w);
     t.copyToImage().saveToFile(path);
 }
+// LCOV_EXCL_STOP
 
 // ── constructors ──────────────────────────────────────────────────────────────
 
@@ -237,6 +240,10 @@ void Game::setDebugConfig(const DebugConfig& cfg)
         m_replay    = loadReplay(cfg.replayPath);
         m_replayIdx = 0;
     }
+    if (!cfg.replayPathP1.empty()) {
+        m_replayP1    = loadReplay(cfg.replayPathP1);
+        m_replayP1Idx = 0;
+    }
 }
 
 // ── run ───────────────────────────────────────────────────────────────────────
@@ -317,6 +324,16 @@ void Game::simStep()
         }
     }
 
+    // Apply replay input for P1.
+    if (!m_replayP1.empty()) {
+        if (m_replayP1Idx < m_replayP1.size()) {
+            applyInputToP1(m_up, m_left, m_down, m_right, right, m_replayP1[m_replayP1Idx++]);
+        } else {
+            PlayerInput empty{};
+            applyInputToP1(m_up, m_left, m_down, m_right, right, empty);
+        }
+    }
+
     // Update or drain the cooldown wait.
     if (!wait) {
         update(sf::seconds(kFixedDt), m_animTime);
@@ -390,6 +407,7 @@ void Game::processEvents()
     sf::Event event;
     while (m_window.pollEvent(event)) {
         switch (event.type) {
+        // LCOV_EXCL_START — keyboard events are not generated in harness/headless runs
         case sf::Event::KeyPressed:
             handlePlayerInput(event.key.code, true);
             break;
@@ -399,6 +417,7 @@ void Game::processEvents()
         case sf::Event::Closed:
             m_window.close();
             break;
+        // LCOV_EXCL_STOP
         default:
             break;
         }
@@ -407,6 +426,7 @@ void Game::processEvents()
 
 // ── handlePlayerInput ─────────────────────────────────────────────────────────
 
+// LCOV_EXCL_START — keyboard glue; entirely gated off when the harness is active
 void Game::handlePlayerInput(sf::Keyboard::Key key, bool isDown)
 {
     // Gate all game-key bindings when the harness is active so that live
@@ -460,6 +480,7 @@ void Game::handlePlayerInput(sf::Keyboard::Key key, bool isDown)
         captureScreenshot(m_window,
                           m_debug.screenshotDir + "/manual_" + std::to_string(m_steps) + ".png");
 }
+// LCOV_EXCL_STOP
 
 // ── update ────────────────────────────────────────────────────────────────────
 
@@ -702,6 +723,7 @@ void Game::render()
     sf::Vector2f p1Saved, p2Saved;
     bool         didShift = false;
 
+    // LCOV_EXCL_START — CLIENT interpolation; only runs in networked CLIENT mode
     if (m_networkMode == NetworkMode::CLIENT && m_networkManager &&
         !m_networkManager->stateBuf().empty()) {
         p1Saved  = m_player->getPosition();
@@ -734,6 +756,7 @@ void Game::render()
         m_player->setPosition(rp1.x, rp1.y);
         player2->setPosition(rp2.x, rp2.y);
     }
+    // LCOV_EXCL_STOP
 
     m_window.clear();
     for (std::size_t x = 0; x < stuff.size(); ++x) {
@@ -752,31 +775,24 @@ void Game::render()
     // captured between draw and swap.
 
     // Restore authoritative positions (symmetric with the save above).
+    // LCOV_EXCL_START — only reachable when CLIENT interpolation block ran
     if (didShift) {
         m_player->setPosition(p1Saved.x, p1Saved.y);
         player2->setPosition(p2Saved.x, p2Saved.y);
     }
+    // LCOV_EXCL_STOP
 }
 
 // ── collision ─────────────────────────────────────────────────────────────────
 
 bool Game::collision(GameObject* a, GameObject* b)
 {
-    sf::Rect<float> arect = sf::Rect<float>(
-        a->getPosition(),
-        sf::Vector2f(a->getWidth() * (a->getScale().x), a->getHeight() * (a->getScale().y)));
-    sf::Rect<float> brect = sf::Rect<float>(
-        b->getPosition(),
-        sf::Vector2f(b->getWidth() * (b->getScale().x), b->getHeight() * (b->getScale().y)));
-    return arect.intersects(brect);
+    return objectBounds(*a).intersects(objectBounds(*b));
 }
 
 bool Game::collision(sf::Rect<float> a, GameObject* b)
 {
-    sf::Rect<float> brect = sf::Rect<float>(
-        b->getPosition(),
-        sf::Vector2f(b->getWidth() * (b->getScale().x), b->getHeight() * (b->getScale().y)));
-    return a.intersects(brect);
+    return a.intersects(objectBounds(*b));
 }
 
 // ── handleNetworkCommunication ────────────────────────────────────────────────
@@ -834,7 +850,9 @@ void Game::handleNetworkCommunication(sf::Time deltaT)
     }
 }
 
-// ── captureGameState / applyNetworkState ──────────────────────────────────────
+// ── snapshot / captureGameState / applyNetworkState ───────────────────────────
+
+GameState Game::snapshot() const { return captureGameState(); }
 
 GameState Game::captureGameState() const
 {

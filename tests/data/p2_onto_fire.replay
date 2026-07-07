@@ -1,0 +1,29 @@
+# p2_onto_fire.replay — P2 moves left 26 steps onto fire2 (at x~955)
+# P2 starts at x=1636.  After direction flip + 24 left steps, P2 overlaps fire2.
+# up down left right attack
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
