@@ -29,7 +29,7 @@ cmake --build build -j
 ./build/dungeon_game
 ```
 
-Assets from [../elements/](../elements/) are copied next to the executable at build time, so the
+Assets from [../assets/](../assets/) are copied next to the executable at build time, so the
 game finds them regardless of the working directory. (Historically the game only ran from the repo
 root because of a hardcoded relative asset path — that dependency has been removed.)
 

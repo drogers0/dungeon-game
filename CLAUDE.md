@@ -27,23 +27,23 @@ cmake --build build                          # build the dungeon_game executable
 ctest --test-dir build --output-on-failure   # run the test suite
 ```
 
-Assets in [elements/](elements/) are copied next to the binary at build time and resolved relative
+Assets in [assets/](assets/) are copied next to the binary at build time and resolved relative
 to the executable, so the game runs from any directory.
 
 ## Repo layout
 
-Sources currently live at the repo root (a conventional `src/`/`include/`/`tests/`/`assets/`
-layout is being introduced — see issue #8). The load-bearing pieces:
+Sources live in `src/` (`.cpp`) and `include/` (`.h`); assets in `assets/`; tests in `tests/`.
+The load-bearing pieces:
 
-- `main.cpp` — entry point + menus (start/end screens, mode selection).
-- `Game.{h,cpp}` — the game: window, fixed game loop (`processEvents` → `update` → `render`),
+- `src/main.cpp` — entry point + menus (start/end screens, mode selection).
+- `src/Game.cpp` / `include/Game.h` — the game: window, fixed game loop (`processEvents` → `update` → `render`),
   collision, scoring, audio, and network integration.
-- `GameObject.h` — abstract entity interface, implemented by `RegularGameObject`
+- `include/GameObject.h` — abstract entity interface, implemented by `RegularGameObject`
   (`RegularGameObject.{h,cpp}`, static sprite) and `AnimatedGameObject`
   (`AnimatedGameObject.{h,cpp}`, sprite-sheet animation) — each a separate file.
-- `NetworkManager.{h,cpp}` — TCP host/client transport; `PlayerInput` / `GameState` packet
+- `src/NetworkManager.cpp` / `include/NetworkManager.h` — TCP host/client transport; `PlayerInput` / `GameState` packet
   structs are the wire format and the uniform input channel across local/network/AI/replay.
-- `resource_path.h` — asset path resolution.
+- `include/resource_path.h` — asset path resolution.
 
 ## Conventions
 

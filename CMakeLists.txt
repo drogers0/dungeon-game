@@ -27,16 +27,16 @@ endif()
 
 # ── dungeon_lib (static): all game logic except main() ──────────────────────
 add_library(dungeon_lib STATIC
-    Game.cpp
-    NetworkManager.cpp
-    AnimatedGameObject.cpp
-    RegularGameObject.cpp
-    resource_path.cpp
-    replay.cpp
-    rng.cpp
+    src/Game.cpp
+    src/NetworkManager.cpp
+    src/AnimatedGameObject.cpp
+    src/RegularGameObject.cpp
+    src/resource_path.cpp
+    src/replay.cpp
+    src/rng.cpp
 )
 
-target_include_directories(dungeon_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(dungeon_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 target_link_libraries(dungeon_lib PUBLIC
     sfml-graphics
@@ -47,7 +47,7 @@ target_link_libraries(dungeon_lib PUBLIC
 )
 
 # ── dungeon_game executable ──────────────────────────────────────────────────
-add_executable(dungeon_game main.cpp)
+add_executable(dungeon_game src/main.cpp)
 target_link_libraries(dungeon_game PRIVATE dungeon_lib)
 
 # Keep console visible on Windows for log output
@@ -67,9 +67,9 @@ endif()
 # ── Copy assets next to the binary at build time ────────────────────────────
 add_custom_command(TARGET dungeon_game POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/elements
-        $<TARGET_FILE_DIR:dungeon_game>/elements
-    COMMENT "Copying elements/ assets to output directory"
+        ${CMAKE_SOURCE_DIR}/assets
+        $<TARGET_FILE_DIR:dungeon_game>/assets
+    COMMENT "Copying assets/ to output directory"
 )
 
 # ── Coverage instrumentation (clang only; propagated PUBLIC so test binaries

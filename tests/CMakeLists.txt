@@ -30,7 +30,7 @@ target_link_libraries(dungeon_integration_tests PRIVATE dungeon_lib Catch2::Catc
 target_compile_definitions(dungeon_integration_tests PRIVATE
     TESTS_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data"
 )
-# Ensure dungeon_game (and thus elements/ copy) is built before integration tests
+# Ensure dungeon_game (and thus assets/ copy) is built before integration tests
 add_dependencies(dungeon_integration_tests dungeon_game)
 
 # ── Warnings (mirror root settings) ──────────────────────────────────────────
