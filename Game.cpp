@@ -9,7 +9,8 @@
 #include <cstdio>
 
 Game::Game() :
-		m_window(sf::VideoMode(1920, 1080), "Dungeon Game")
+		m_window(sf::VideoMode(1920, 1080), "Dungeon Game"),
+		m_networkMode(NetworkMode::LOCAL)
 {
 
 	if(!background.openFromFile(resource_path + "background.wav")){
@@ -138,6 +139,111 @@ Game::Game() :
 
 }
 
+Game::Game(NetworkMode mode, std::shared_ptr<NetworkManager> netManager) :
+		m_window(sf::VideoMode(1920, 1080), "Dungeon Game - " + 
+			(mode == NetworkMode::HOST ? std::string("Host") : std::string("Client"))),
+		m_networkMode(mode),
+		m_networkManager(netManager)
+{
+	if(!background.openFromFile(resource_path + "background.wav")){
+		std::cout << "your music is broken, go fix it" << std::endl;
+	}
+
+	//load the player
+	m_player->load(resource_path + "rocket.png");
+	m_player->setScale(2.0f);
+	m_player->setPosition(m_player->getWidth(),400);
+
+	player2->load(resource_path + "robot.png");
+	player2->setScale(-1.0f,1.0f);
+	player2->setPosition(m_window.getSize().x-(m_player->getWidth()+150),400);
+
+	GameObject* wall = new RegularGameObject();
+	stuff.push_back(wall);
+	stuff[0]->load(resource_path + "brick.png");
+	stuff[0]->setScale(2.0f);
+
+	GameObject* fire = new AnimatedGameObject(216,216,5,3,10,0);
+	fire->load(resource_path + "fire.png");
+	fire->setScale(2.0f);
+	fire->setPosition(-15,400);
+	stuff.push_back(fire);
+
+	GameObject* fire2 = new AnimatedGameObject(216,216,5,3,10,0);
+	fire2->load(resource_path + "fire.png");
+	fire2->setScale(2.0f);
+	fire2->setPosition((1920/2)-5,400);
+	stuff.push_back(fire2);
+
+	GameObject* fire3 = new AnimatedGameObject(216,216,5,3,10,0);
+	fire3->load(resource_path + "fire.png");
+	fire3->setScale(2.0f);
+	fire3->setPosition(1820,400);
+	stuff.push_back(fire3);
+
+	if(!font.loadFromFile(resource_path + "oswald.ttf")){
+		std::cout << "Font did not load" << std::endl;
+	}
+	if(!tfont.loadFromFile(resource_path + "timer.ttf")){
+		std::cout << "Font did not load" << std::endl;
+	}
+	if(!block.loadFromFile(resource_path + "Blockt.ttf")){
+		std::cout << "Font did not load" << std::endl;
+	}
+
+	pause_text = sf::Text("Cooldown",block,400);
+	pause_text.setPosition(m_window.getSize().x/2 - 850,100);
+	pause_text.setFillColor(sf::Color::Black);
+
+	info = sf::Text("a short intermission",font,50);
+	info.setPosition(pause_text.getPosition().x + 150,pause_text.getPosition().y + 500);
+	info.setFillColor(sf::Color::Black);
+
+	text = sf::Text("Rocket Score: 0",font,40);
+	text2 = sf::Text("Robot Score: 0",font,40);
+	timer = sf::Text("timer",tfont,60);
+	timer.setPosition((m_window.getSize().x/2)-60,0);
+	text.setPosition(10,0);
+	text2.setPosition(m_window.getSize().x-text2.getGlobalBounds().width,0);
+	text2.setFillColor(sf::Color::Green);
+	timer.setFillColor(sf::Color::Black);
+	text.setFillColor(sf::Color::Blue);
+
+	if(!sbuffer.loadFromFile(resource_path + "sword_miss.wav")) {
+		std::cout << "sound did not load";
+	}
+	sword.setBuffer(sbuffer);
+	if(!p2hitbuffer.loadFromFile(resource_path + "skeleton.wav")) {
+		std::cout << "sound did not load";
+	}
+	p2hit.setBuffer(p2hitbuffer);
+	if(!laserbuffer.loadFromFile(resource_path + "new_laser.wav")) {
+		std::cout << "sound did not load";
+	}
+	laser.setBuffer(laserbuffer);
+	if(!metalbuffer.loadFromFile(resource_path + "metal_hit.wav")) {
+		std::cout << "sound did not load";
+	}
+	metal.setBuffer(metalbuffer);
+	if(!speedbuffer.loadFromFile(resource_path + "SpeedUp.wav")) {
+		std::cout << "sound did not load";
+	}
+	speed_up.setBuffer(speedbuffer);
+	if(!slowbuffer.loadFromFile(resource_path + "SlowDown.wav")) {
+		std::cout << "sound did not load";
+	}
+	slow_down.setBuffer(slowbuffer);
+	if(!burnbuffer.loadFromFile(resource_path + "burn.wav")) {
+		std::cout << "sound did not load";
+	}
+	burn.setBuffer(burnbuffer);
+	if(!gongbuffer.loadFromFile(resource_path + "gong.wav")) {
+		std::cout << "sound did not load";
+	}
+	gong.setBuffer(gongbuffer);
+	laser.setVolume(60);
+}
+
 std::tuple<int,int,float,int,bool> Game::run() {
 	//loop clock
 	sf::Clock clock;
@@ -162,6 +268,10 @@ std::tuple<int,int,float,int,bool> Game::run() {
 		//std::cout << "time:  " << (gTime.getElapsedTime().asSeconds()) << std::endl;
 		sf::Time deltaT = clock.restart();
 		processEvents();
+		
+		// Handle network communication
+		handleNetworkCommunication(gTime.getElapsedTime().asSeconds());
+		
 		if (!wait) {
 			update(deltaT, time);
 			temp_time = gTime.getElapsedTime().asSeconds() + 1.75;
@@ -238,26 +348,36 @@ void Game::processEvents() {
 }
 
 void Game::handlePlayerInput(sf::Keyboard::Key key, bool isDown) {
-	if (key == sf::Keyboard::Numpad4)
-		m_left = isDown;
-	if (key == sf::Keyboard::Numpad6)
-		m_right = isDown;
-	if (key == sf::Keyboard::Numpad8)
-		m_up = isDown;
-	if (key == sf::Keyboard::Numpad5)
-		m_down = isDown;
-	if (key == sf::Keyboard::Right)
-		right = isDown;
-	if (key == sf::Keyboard::W)
-		w = isDown;
-	if (key == sf::Keyboard::A)
-		a = isDown;
-	if (key == sf::Keyboard::S)
-		s = isDown;
-	if (key == sf::Keyboard::D)
-		d = isDown;
-	if (key == sf::Keyboard::Space)
-		space = !isDown;
+	// In network mode, host controls player 1, client controls player 2
+	if (m_networkMode == NetworkMode::LOCAL || m_networkMode == NetworkMode::HOST) {
+		// Player 1 controls (rocket - arrow keys)
+		if (key == sf::Keyboard::Numpad4)
+			m_left = isDown;
+		if (key == sf::Keyboard::Numpad6)
+			m_right = isDown;
+		if (key == sf::Keyboard::Numpad8)
+			m_up = isDown;
+		if (key == sf::Keyboard::Numpad5)
+			m_down = isDown;
+		if (key == sf::Keyboard::Right)
+			right = isDown;
+	}
+	
+	if (m_networkMode == NetworkMode::LOCAL || m_networkMode == NetworkMode::CLIENT) {
+		// Player 2 controls (robot - WASD)
+		if (key == sf::Keyboard::W)
+			w = isDown;
+		if (key == sf::Keyboard::A)
+			a = isDown;
+		if (key == sf::Keyboard::S)
+			s = isDown;
+		if (key == sf::Keyboard::D)
+			d = isDown;
+		if (key == sf::Keyboard::Space)
+			space = !isDown;
+	}
+	
+	// Common controls
 	if (key == sf::Keyboard::O)
 		o = !isDown;
 	if (key == sf::Keyboard::P)
@@ -523,4 +643,73 @@ bool Game::collision(GameObject* a,GameObject* b) {
 bool Game::collision(sf::Rect<float> a,GameObject* b) {
 	sf::Rect<float> brect = sf::Rect<float>(b->getPosition(),sf::Vector2f(b->getWidth()*(b->getScale().x),b->getHeight()*(b->getScale().y)));
 	return a.intersects(brect);
+}
+
+void Game::handleNetworkCommunication(float gameTime) {
+	if (!m_networkManager || !m_networkManager->isConnected()) {
+		return;
+	}
+
+	if (m_networkMode == NetworkMode::HOST) {
+		// Host: receive client input for player 2
+		PlayerInput clientInput;
+		if (m_networkManager->receiveInput(clientInput)) {
+			// Apply client input to player 2 controls
+			w = clientInput.up;
+			s = clientInput.down;
+			a = clientInput.left;
+			d = clientInput.right;
+			space = clientInput.attack;
+		}
+
+		// Send game state to client
+		GameState state = captureGameState();
+		m_networkManager->sendGameState(state);
+	}
+	else if (m_networkMode == NetworkMode::CLIENT) {
+		// Client: send player 2 input to host
+		PlayerInput myInput;
+		myInput.up = w;
+		myInput.down = s;
+		myInput.left = a;
+		myInput.right = d;
+		myInput.attack = space;
+		m_networkManager->sendInput(myInput);
+
+		// Receive and apply game state from host
+		GameState state;
+		if (m_networkManager->receiveGameState(state)) {
+			applyNetworkState(state);
+		}
+	}
+}
+
+GameState Game::captureGameState() const {
+	GameState state;
+	state.p1_x = m_player->getPosition().x;
+	state.p1_y = m_player->getPosition().y;
+	state.p2_x = player2->getPosition().x;
+	state.p2_y = player2->getPosition().y;
+	state.p1_score = p2points;
+	state.p2_score = points;
+	state.p1_left = p1left;
+	state.p2_left = p2left;
+	state.p1_scale_x = m_player->getScale().x;
+	state.p1_scale_y = m_player->getScale().y;
+	state.p2_scale_x = player2->getScale().x;
+	state.p2_scale_y = player2->getScale().y;
+	state.wait = wait;
+	return state;
+}
+
+void Game::applyNetworkState(const GameState& state) {
+	m_player->setPosition(state.p1_x, state.p1_y);
+	player2->setPosition(state.p2_x, state.p2_y);
+	p2points = state.p1_score;
+	points = state.p2_score;
+	p1left = state.p1_left;
+	p2left = state.p2_left;
+	m_player->setScale(state.p1_scale_x, state.p1_scale_y);
+	player2->setScale(state.p2_scale_x, state.p2_scale_y);
+	wait = state.wait;
 }

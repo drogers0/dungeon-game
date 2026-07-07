@@ -1,0 +1,78 @@
+cmake_minimum_required(VERSION 3.16)
+project(dungeon_game CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Default to Debug for single-config generators
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
+endif()
+
+# ── SFML: fast-path via find_package, fallback to FetchContent ──────────────
+find_package(SFML 2.5 COMPONENTS graphics window system audio network QUIET)
+if(NOT SFML_FOUND)
+    include(FetchContent)
+    set(SFML_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+    set(SFML_BUILD_DOC      OFF CACHE BOOL "" FORCE)
+    FetchContent_Declare(
+        SFML
+        GIT_REPOSITORY https://github.com/SFML/SFML.git
+        GIT_TAG        2.6.2
+        GIT_SHALLOW    TRUE
+    )
+    FetchContent_MakeAvailable(SFML)
+endif()
+
+# ── dungeon_lib (static): all game logic except main() ──────────────────────
+add_library(dungeon_lib STATIC
+    Game.cpp
+    NetworkManager.cpp
+    AnimatedGameObject.cpp
+    RegularGameObject.cpp
+    resource_path.cpp
+)
+
+target_include_directories(dungeon_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+target_link_libraries(dungeon_lib PUBLIC
+    sfml-graphics
+    sfml-window
+    sfml-system
+    sfml-audio
+    sfml-network
+)
+
+# ── dungeon_game executable ──────────────────────────────────────────────────
+add_executable(dungeon_game main.cpp)
+target_link_libraries(dungeon_game PRIVATE dungeon_lib)
+
+# Keep console visible on Windows for log output
+if(MSVC)
+    set_target_properties(dungeon_game PROPERTIES WIN32_EXECUTABLE FALSE)
+endif()
+
+# ── Warnings (on our targets only, not SFML) ────────────────────────────────
+if(MSVC)
+    target_compile_options(dungeon_lib    PRIVATE /W4)
+    target_compile_options(dungeon_game   PRIVATE /W4)
+else()
+    target_compile_options(dungeon_lib    PRIVATE -Wall -Wextra -Wpedantic)
+    target_compile_options(dungeon_game   PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+
+# ── Copy assets next to the binary at build time ────────────────────────────
+add_custom_command(TARGET dungeon_game POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/elements
+        $<TARGET_FILE_DIR:dungeon_game>/elements
+    COMMENT "Copying elements/ assets to output directory"
+)
+
+# ── Tests (guarded: only if tests/ subdir exists and option is ON) ───────────
+enable_testing()
+option(DUNGEON_BUILD_TESTS "Build the dungeon_game test suite" ON)
+if(DUNGEON_BUILD_TESTS AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests/CMakeLists.txt)
+    add_subdirectory(tests)
+endif()

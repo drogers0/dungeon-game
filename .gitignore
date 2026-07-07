@@ -503,3 +503,6 @@ FodyWeavers.xsd
 dist/
 dungeon_game
 *.zip
+
+# CMake build tree
+build/
