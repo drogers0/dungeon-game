@@ -39,7 +39,7 @@ Game::Game(NetworkMode mode, std::shared_ptr<NetworkManager> netManager)
 
     loadOrThrow(*m_robot, resource_path + "robot.png");
     m_robot->setScale(-1.0f, 1.0f);
-    m_robot->setPosition(m_window.getSize().x - (m_rocket->getWidth() + 150), 400);
+    m_robot->setPosition(kLogicalW - (m_rocket->getWidth() + 150), 400);
 
     m_arena.push_back(std::make_unique<RegularGameObject>());
     loadOrThrow(*m_arena[0], resource_path + "brick.png");
@@ -56,14 +56,14 @@ Game::Game(NetworkMode mode, std::shared_ptr<NetworkManager> netManager)
         auto fire2 = std::make_unique<AnimatedGameObject>(216, 216, 5, 3, 10, 0);
         loadOrThrow(*fire2, resource_path + "fire.png");
         fire2->setScale(2.0f);
-        fire2->setPosition((1920 / 2) - 5, 400);
+        fire2->setPosition(kLogicalW / 2 - 5, 400);
         m_arena.push_back(std::move(fire2));
     }
     {
         auto fire3 = std::make_unique<AnimatedGameObject>(216, 216, 5, 3, 10, 0);
         loadOrThrow(*fire3, resource_path + "fire.png");
         fire3->setScale(2.0f);
-        fire3->setPosition(1820, 400);
+        fire3->setPosition(kLogicalW - 100, 400);
         m_arena.push_back(std::move(fire3));
     }
 
@@ -72,7 +72,7 @@ Game::Game(NetworkMode mode, std::shared_ptr<NetworkManager> netManager)
     loadOrThrow(block, resource_path + "Blockt.ttf");
 
     pause_text = sf::Text("Cooldown", block, 400);
-    pause_text.setPosition(m_window.getSize().x / 2 - 850, 100);
+    pause_text.setPosition(kLogicalW / 2 - 850, 100);
     pause_text.setFillColor(sf::Color::Black);
 
     info = sf::Text("a short intermission", font, 50);
@@ -82,10 +82,9 @@ Game::Game(NetworkMode mode, std::shared_ptr<NetworkManager> netManager)
     m_rocketScoreText = sf::Text("Rocket Score: 0", font, 40);
     m_robotScoreText = sf::Text("Robot Score: 0", font, 40);
     timer = sf::Text("timer", tfont, 60);
-    timer.setPosition((m_window.getSize().x / 2) - 60, 0);
+    timer.setPosition(kLogicalW / 2 - 60, 0);
     m_rocketScoreText.setPosition(10, 0);
-    m_robotScoreText.setPosition(m_window.getSize().x - m_robotScoreText.getGlobalBounds().width,
-                                 0);
+    m_robotScoreText.setPosition(kLogicalW - m_robotScoreText.getGlobalBounds().width, 0);
     m_robotScoreText.setFillColor(sf::Color::Green);
     timer.setFillColor(sf::Color::Black);
     m_rocketScoreText.setFillColor(sf::Color::Blue);
@@ -367,8 +366,7 @@ void Game::update(sf::Time deltaT, float time) {
 
     if (m_p1Up) {
         if (m_rocket->getPosition().y < -(m_rocket->getHeight())) {
-            m_rocket->setPosition(m_rocket->getPosition().x,
-                                  (m_window.getSize().y) - m_rocket->getHeight());
+            m_rocket->setPosition(m_rocket->getPosition().x, kLogicalH - m_rocket->getHeight());
         }
 
         if (collision(*m_rocket, *m_robot)) {
@@ -379,7 +377,7 @@ void Game::update(sf::Time deltaT, float time) {
     }
 
     if (m_p1Down) {
-        if (m_rocket->getPosition().y > (m_window.getSize().y) - (m_rocket->getHeight())) {
+        if (m_rocket->getPosition().y > kLogicalH - m_rocket->getHeight()) {
             m_rocket->setPosition(m_rocket->getPosition().x, -(m_rocket->getHeight()));
         }
 
@@ -391,7 +389,7 @@ void Game::update(sf::Time deltaT, float time) {
     }
     if (m_p1Left) {
         if (m_rocket->getPosition().x < -(m_rocket->getWidth())) {
-            m_rocket->setPosition(m_window.getSize().x, m_rocket->getPosition().y);
+            m_rocket->setPosition(kLogicalW, m_rocket->getPosition().y);
         }
         if (!m_p1FacingLeft) {
             m_rocket->setScale(-2.0f, 2);
@@ -410,7 +408,7 @@ void Game::update(sf::Time deltaT, float time) {
     if (m_p1Right) {
         m_rocket->setScale(2.0f, 2);
 
-        if (m_rocket->getPosition().x > m_window.getSize().x) {
+        if (m_rocket->getPosition().x > kLogicalW) {
             m_rocket->setPosition(-(m_rocket->getWidth()), m_rocket->getPosition().y);
         }
 
@@ -429,8 +427,7 @@ void Game::update(sf::Time deltaT, float time) {
     }
     if (m_p2Up) {
         if (m_robot->getPosition().y < -(m_robot->getHeight())) {
-            m_robot->setPosition(m_robot->getPosition().x,
-                                 (m_window.getSize().y) - m_robot->getHeight());
+            m_robot->setPosition(m_robot->getPosition().x, kLogicalH - m_robot->getHeight());
         }
 
         if (collision(*m_rocket, *m_robot)) {
@@ -440,7 +437,7 @@ void Game::update(sf::Time deltaT, float time) {
         }
     }
     if (m_p2Down) {
-        if (m_robot->getPosition().y > (m_window.getSize().y) - (m_robot->getHeight())) {
+        if (m_robot->getPosition().y > kLogicalH - m_robot->getHeight()) {
             m_robot->setPosition(m_robot->getPosition().x, -(m_robot->getHeight()));
         }
 
@@ -452,7 +449,7 @@ void Game::update(sf::Time deltaT, float time) {
     }
     if (m_p2Left) {
         if (m_robot->getPosition().x < -(m_robot->getWidth())) {
-            m_robot->setPosition(m_window.getSize().x, m_robot->getPosition().y);
+            m_robot->setPosition(kLogicalW, m_robot->getPosition().y);
         }
         m_robot->setScale(-1.0f, 1.0f);
         if (!m_p2FacingLeft) {
@@ -470,7 +467,7 @@ void Game::update(sf::Time deltaT, float time) {
     }
     if (m_p2Right) {
         m_robot->setScale(1.0f, 1.0f);
-        if (m_robot->getPosition().x > m_window.getSize().x) {
+        if (m_robot->getPosition().x > kLogicalW) {
             m_robot->setPosition(-(m_robot->getWidth()), m_robot->getPosition().y);
         }
         if (m_p2FacingLeft) {
@@ -563,7 +560,7 @@ void Game::update(sf::Time deltaT, float time) {
     if (reset) {
         m_rocket->setScale(2.0f, 2);
         m_robot->setScale(-1.0f, 1.0f);
-        m_robot->setPosition(m_window.getSize().x - (m_rocket->getWidth() + 150), 400);
+        m_robot->setPosition(kLogicalW - (m_rocket->getWidth() + 150), 400);
         m_rocket->setPosition(m_rocket->getWidth() + 20, 400);
         m_p1FacingLeft = false;
         m_p2FacingLeft = true;
@@ -572,8 +569,7 @@ void Game::update(sf::Time deltaT, float time) {
 
     m_rocketScoreText.setString("Rocket Score: " + std::to_string(m_rocketScore));
     m_robotScoreText.setString("Robot Score: " + std::to_string(m_robotScore));
-    m_robotScoreText.setPosition(
-        m_window.getSize().x - m_robotScoreText.getGlobalBounds().width - 20, 0);
+    m_robotScoreText.setPosition(kLogicalW - m_robotScoreText.getGlobalBounds().width - 20, 0);
 }
 
 // ── render ────────────────────────────────────────────────────────────────────
