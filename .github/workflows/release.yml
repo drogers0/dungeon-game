@@ -1,0 +1,124 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch: # dry-run: builds + uploads per-OS zips as workflow artifacts (no release)
+
+permissions:
+  contents: write
+
+jobs:
+  # ── Create the GitHub Release once (tag-triggered only) ───────────────────
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+
+  # ── Build + package per platform ─────────────────────────────────────────
+  build:
+    name: Build (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    needs: create-release
+    if: always() && (github.event_name == 'workflow_dispatch' || needs.create-release.result == 'success')
+
+    strategy:
+      fail-fast: false # one platform failing must not cancel the others (release would lose their assets)
+      matrix:
+        include:
+          - os: windows-latest
+            name: windows
+          - os: macos-latest
+            name: macos
+          - os: ubuntu-latest
+            name: linux
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux SFML dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update && sudo apt-get install -y \
+            libx11-dev libxrandr-dev libxcursor-dev libxi-dev \
+            libudev-dev libgl-dev libopenal-dev \
+            libfreetype-dev libflac-dev libvorbis-dev libogg-dev
+
+      - name: Cache SFML build deps
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/build/_deps
+          key: ${{ runner.os }}-sfmldeps-release-v1-${{ hashFiles('CMakeLists.txt', '.github/workflows/release.yml') }}
+          restore-keys: ${{ runner.os }}-sfmldeps-release-v1-
+
+      - name: Configure (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          cmake -B build -A x64 `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DBUILD_SHARED_LIBS=OFF `
+            -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded `
+            -DDUNGEON_BUILD_TESTS=OFF
+
+      - name: Configure (macOS / Linux)
+        if: matrix.os != 'windows-latest'
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DDUNGEON_BUILD_TESTS=OFF
+
+      - name: Build
+        run: cmake --build build --config Release -j
+
+      - name: Stage (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dungeon-game-windows
+          Copy-Item build/Release/dungeon_game.exe dungeon-game-windows/
+          Copy-Item build/Release/openal32.dll     dungeon-game-windows/
+          Copy-Item -Recurse build/Release/assets  dungeon-game-windows/
+
+      - name: Stage (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          mkdir dungeon-game-macos
+          cp build/dungeon_game   dungeon-game-macos/
+          cp -r build/assets      dungeon-game-macos/
+
+      - name: Stage (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          mkdir dungeon-game-linux
+          cp build/dungeon_game   dungeon-game-linux/
+          cp -r build/assets      dungeon-game-linux/
+
+      - name: Zip (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: Compress-Archive -Path dungeon-game-windows -DestinationPath dungeon-game-windows.zip
+
+      - name: Zip (macOS / Linux)
+        if: matrix.os != 'windows-latest'
+        run: zip -r dungeon-game-${{ matrix.name }}.zip dungeon-game-${{ matrix.name }}
+
+      - name: Upload to GitHub Release (tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dungeon-game-${{ matrix.name }}.zip
+
+      - name: Upload workflow artifact (dispatch dry-run)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dungeon-game-${{ matrix.name }}
+          path: dungeon-game-${{ matrix.name }}.zip

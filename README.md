@@ -64,7 +64,6 @@ main.cpp                Start/end screen menus; mode selection (local/host/join)
 resource_path.{h,cpp}   Executable-relative asset root (initResourcePath)
 assets/                 Asset root — images, audio, fonts
 CMakeLists.txt          CMake build (SFML 2.6.2 via FetchContent)
-SkeletonCode.vcxproj*   Legacy Visual Studio project (kept for reference; see issue #1)
 ```
 
 ---
@@ -91,10 +90,43 @@ sudo apt-get install -y \
 
 ---
 
-## Windows
+## Download & Play
 
-Full Windows/MSVC verification and DLL packaging are tracked in issue #1. The legacy
-`SkeletonCode.vcxproj` is kept until CMake is confirmed working on Windows.
+Grab the latest zip for your OS from the [Releases](../../releases) page, unzip, and run the binary.
+Assets sit alongside it in the `assets/` folder.
+
+- **Windows:** the zip contains `dungeon_game.exe`, `openal32.dll`, and `assets/` — no install required.
+- **macOS:** unzip and run `dungeon_game` directly.
+- **Linux:** unzip and run `dungeon_game`. The binary is statically linked against SFML but still
+  resolves system runtime libraries — install the following if they are not already present:
+  ```bash
+  sudo apt-get install libopenal1 libgl1 libx11-6 libxrandr2 libxcursor1 libxi6 \
+    libudev1 libfreetype6 libflac8 libvorbis0a libogg0
+  ```
+
+Releases are cut by pushing a `vX.Y.Z` tag; the CI release workflow builds and packages all three platforms automatically.
+
+---
+
+## Build on Windows
+
+CMake with MSVC (Visual Studio 2019 or later):
+
+```bat
+cmake -B build
+cmake --build build --config Release
+build\Release\dungeon_game.exe
+```
+
+For a fully redistributable executable (no Visual C++ runtime dependency):
+
+```bat
+cmake -B build -A x64 -DBUILD_SHARED_LIBS=OFF -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
+cmake --build build --config Release
+```
+
+SFML 2.6.2 is fetched automatically on the first configure. `openal32.dll` is copied next to the
+executable at build time. See [`docs/building.md`](docs/building.md) for full details.
 
 ---
 

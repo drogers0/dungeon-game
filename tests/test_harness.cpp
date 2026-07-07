@@ -3,6 +3,7 @@
 
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <filesystem>
 #include <fstream>
 
 #include "NetworkManager.h"
@@ -13,7 +14,7 @@ static constexpr float kFixedDt = 1.f / 60.f;
 // ── loadReplay: valid lines + field mapping ────────────────────────────────────
 
 TEST_CASE("loadReplay parses valid lines", "[harness][unit]") {
-    const char* path = "/tmp/dg_test_valid.replay";
+    auto path = (std::filesystem::temp_directory_path() / "dg_test_valid.replay").string();
     {
         std::ofstream f(path);
         f << "# header comment\n";
@@ -21,7 +22,7 @@ TEST_CASE("loadReplay parses valid lines", "[harness][unit]") {
         f << "1 0 0 1 0\n";
         f << "0 1 1 0 1\n";
     }
-    auto result = loadReplay(path);
+    auto result = loadReplay(path.c_str());
     REQUIRE(result.size() == 2);
     // Line 1: up=1 down=0 left=0 right=1 attack=0
     REQUIRE(result[0].up == true);
@@ -38,7 +39,7 @@ TEST_CASE("loadReplay parses valid lines", "[harness][unit]") {
 }
 
 TEST_CASE("loadReplay strips comments and blank lines", "[harness][unit]") {
-    const char* path = "/tmp/dg_test_comments.replay";
+    auto path = (std::filesystem::temp_directory_path() / "dg_test_comments.replay").string();
     {
         std::ofstream f(path);
         f << "# full-line comment\n";
@@ -46,52 +47,52 @@ TEST_CASE("loadReplay strips comments and blank lines", "[harness][unit]") {
         f << "0 0 0 0 0  # inline comment\n";
         f << "\n";
     }
-    auto result = loadReplay(path);
+    auto result = loadReplay(path.c_str());
     REQUIRE(result.size() == 1);
     REQUIRE(result[0].up == false);
     REQUIRE(result[0].attack == false);
 }
 
 TEST_CASE("loadReplay skips malformed line with too few fields", "[harness][unit]") {
-    const char* path = "/tmp/dg_test_few.replay";
+    auto path = (std::filesystem::temp_directory_path() / "dg_test_few.replay").string();
     {
         std::ofstream f(path);
         f << "1 0 0 1\n";   // only 4 fields
         f << "0 0 0 0 0\n"; // valid
     }
-    auto result = loadReplay(path);
+    auto result = loadReplay(path.c_str());
     REQUIRE(result.size() == 1);
     REQUIRE(result[0].up == false);
 }
 
 TEST_CASE("loadReplay skips malformed line with too many fields", "[harness][unit]") {
-    const char* path = "/tmp/dg_test_many.replay";
+    auto path = (std::filesystem::temp_directory_path() / "dg_test_many.replay").string();
     {
         std::ofstream f(path);
         f << "1 0 0 1 0 0\n"; // 6 fields
         f << "1 0 0 0 1\n";   // valid
     }
-    auto result = loadReplay(path);
+    auto result = loadReplay(path.c_str());
     REQUIRE(result.size() == 1);
     REQUIRE(result[0].up == true);
     REQUIRE(result[0].attack == true);
 }
 
 TEST_CASE("loadReplay skips malformed line with invalid value", "[harness][unit]") {
-    const char* path = "/tmp/dg_test_val.replay";
+    auto path = (std::filesystem::temp_directory_path() / "dg_test_val.replay").string();
     {
         std::ofstream f(path);
         f << "1 0 2 0 1\n"; // '2' is invalid
         f << "1 0 0 0 1\n"; // valid
     }
-    auto result = loadReplay(path);
+    auto result = loadReplay(path.c_str());
     REQUIRE(result.size() == 1);
     REQUIRE(result[0].up == true);
     REQUIRE(result[0].attack == true);
 }
 
 TEST_CASE("loadReplay field order: each field in isolation", "[harness][unit]") {
-    const char* path = "/tmp/dg_test_fields.replay";
+    auto path = (std::filesystem::temp_directory_path() / "dg_test_fields.replay").string();
     {
         std::ofstream f(path);
         f << "1 0 0 0 0\n"; // up only
@@ -100,7 +101,7 @@ TEST_CASE("loadReplay field order: each field in isolation", "[harness][unit]") 
         f << "0 0 0 1 0\n"; // right only
         f << "0 0 0 0 1\n"; // attack only
     }
-    auto result = loadReplay(path);
+    auto result = loadReplay(path.c_str());
     REQUIRE(result.size() == 5);
     REQUIRE(result[0].up);
     REQUIRE(!result[0].down);
@@ -130,7 +131,9 @@ TEST_CASE("loadReplay field order: each field in isolation", "[harness][unit]") 
 }
 
 TEST_CASE("loadReplay nonexistent file returns empty without throw", "[harness][unit]") {
-    auto result = loadReplay("/tmp/dg_test_does_not_exist_98765.replay");
+    auto path =
+        (std::filesystem::temp_directory_path() / "dg_test_does_not_exist_98765.replay").string();
+    auto result = loadReplay(path.c_str());
     REQUIRE(result.empty());
 }
 

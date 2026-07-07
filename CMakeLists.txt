@@ -79,6 +79,14 @@ add_custom_command(TARGET dungeon_game POST_BUILD
     COMMENT "Copying assets/ to output directory"
 )
 
+if(WIN32 AND DEFINED sfml_SOURCE_DIR)
+    add_custom_command(TARGET dungeon_game POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${sfml_SOURCE_DIR}/extlibs/bin/x64/openal32.dll
+            $<TARGET_FILE_DIR:dungeon_game>
+        COMMENT "Copying openal32.dll next to dungeon_game.exe")
+endif()
+
 # ── Coverage instrumentation (clang only; propagated PUBLIC so test binaries
 #    that link dungeon_lib also get the flags) ─────────────────────────────────
 option(DUNGEON_COVERAGE "Enable LLVM source-based coverage instrumentation" OFF)

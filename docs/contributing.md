@@ -162,12 +162,15 @@ This behaviour-level coverage is the real safety net for the refactors planned i
 
 ## CI
 
-The GitHub Actions workflow has two jobs:
+The GitHub Actions workflow has three jobs:
 
 - **Linux** (`ubuntu-latest`): installs `clang llvm xvfb`, builds with
   `-DCMAKE_CXX_COMPILER=clang++ -DDUNGEON_BUILD_TESTS=ON -DDUNGEON_COVERAGE=ON`, runs the
   full test suite under `xvfb-run -a`, then reports LLVM coverage.
 - **macOS** (`macos-latest`): standard build with `-DDUNGEON_BUILD_TESTS=ON`, then
   `ctest -L unit` only (SFML windows on GH macOS runners are flaky).
+- **Windows** (`windows-latest`): MSVC build with `-DBUILD_SHARED_LIBS=OFF
+  -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded` (static CRT + static SFML), then
+  `ctest -C Release -L unit` only (headless runner; unit tests only).
 
 PRs must be green before merge.

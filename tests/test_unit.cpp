@@ -1,9 +1,9 @@
 // Unit tests for extracted free functions:
-//   objectBounds — rectangle construction from a GameObject
-//   advanceFrameRect — sprite-sheet frame stepping
-//   applyInputToP1 — P1 input mapping (bool attack parameter)
-//   makeLetterboxView — aspect-preserving viewport math
-//   loadBindings / keyFromName / nameFromKey — config parser (step 6)
+//   objectBounds - rectangle construction from a GameObject
+//   advanceFrameRect - sprite-sheet frame stepping
+//   applyInputToP1 - P1 input mapping (bool attack parameter)
+//   makeLetterboxView - aspect-preserving viewport math
+//   loadBindings / keyFromName / nameFromKey - config parser (step 6)
 // Also: RegularGameObject method coverage.
 
 #include <catch2/catch_approx.hpp>
@@ -72,7 +72,7 @@ TEST_CASE("objectBounds: positive scale produces correct rect", "[geometry][unit
 TEST_CASE("objectBounds: negative scale.x produces negative-width rect (pinned quirk)",
           "[geometry][unit]") {
     // P2 default: scale.x = -1.  The resulting rect has negative width.
-    // SFML intersects() normalises it — this is load-bearing for hit detection.
+    // SFML intersects() normalises it - this is load-bearing for hit detection.
     StubGameObject obj;
     obj.px = 500;
     obj.py = 400;
@@ -84,7 +84,7 @@ TEST_CASE("objectBounds: negative scale.x produces negative-width rect (pinned q
     sf::FloatRect r = objectBounds(obj);
     REQUIRE(r.left == Catch::Approx(500.f));
     REQUIRE(r.top == Catch::Approx(400.f));
-    REQUIRE(r.width == Catch::Approx(-119.f)); // negative — NOT normalised here
+    REQUIRE(r.width == Catch::Approx(-119.f)); // negative - NOT normalised here
     REQUIRE(r.height == Catch::Approx(180.f));
 }
 
@@ -101,7 +101,7 @@ TEST_CASE("normalizedBounds: normalises every scale-sign combination", "[geometr
     obj.w = 119;
     obj.h = 180;
 
-    SECTION("positive scale — unchanged") {
+    SECTION("positive scale - unchanged") {
         obj.sx = 2;
         obj.sy = 2;
         sf::FloatRect r = normalizedBounds(obj);
@@ -110,7 +110,7 @@ TEST_CASE("normalizedBounds: normalises every scale-sign combination", "[geometr
         REQUIRE(r.width == Catch::Approx(238.f));
         REQUIRE(r.height == Catch::Approx(360.f));
     }
-    SECTION("negative scale.x — left shifts, width positive") {
+    SECTION("negative scale.x - left shifts, width positive") {
         obj.sx = -1;
         obj.sy = 1;
         sf::FloatRect r = normalizedBounds(obj);
@@ -119,7 +119,7 @@ TEST_CASE("normalizedBounds: normalises every scale-sign combination", "[geometr
         REQUIRE(r.width == Catch::Approx(119.f));
         REQUIRE(r.height == Catch::Approx(180.f));
     }
-    SECTION("negative scale.y — top shifts, height positive") {
+    SECTION("negative scale.y - top shifts, height positive") {
         obj.sx = 1;
         obj.sy = -1;
         sf::FloatRect r = normalizedBounds(obj);
@@ -128,7 +128,7 @@ TEST_CASE("normalizedBounds: normalises every scale-sign combination", "[geometr
         REQUIRE(r.width == Catch::Approx(119.f));
         REQUIRE(r.height == Catch::Approx(180.f));
     }
-    SECTION("both negative — both axes corrected") {
+    SECTION("both negative - both axes corrected") {
         obj.sx = -1;
         obj.sy = -1;
         sf::FloatRect r = normalizedBounds(obj);
@@ -149,7 +149,7 @@ TEST_CASE("objectBounds: touching rects with negative-width rect do not crash",
     a.h = 50;
     a.sx = 2;
     a.sy = 2;
-    // b with negative scale: pos(300,100), width=-100 → normalised (200,100,100,100)
+    // b with negative scale: pos(300,100), width=-100 -> normalised (200,100,100,100)
     b.px = 300;
     b.py = 100;
     b.w = 50;
@@ -158,8 +158,8 @@ TEST_CASE("objectBounds: touching rects with negative-width rect do not crash",
     b.sy = 2;
 
     // a covers [100,200] x [100,200]
-    // b raw rect: left=300, width=-100 → SFML normalises to [200,300] x [100,200]
-    // Overlap on x: [200,200] → touching (not overlapping); intersects() returns false.
+    // b raw rect: left=300, width=-100 -> SFML normalises to [200,300] x [100,200]
+    // Overlap on x: [200,200] -> touching (not overlapping); intersects() returns false.
     sf::FloatRect ra = objectBounds(a);
     sf::FloatRect rb = objectBounds(b);
     bool result = ra.intersects(rb);
@@ -233,7 +233,7 @@ TEST_CASE("advanceFrameRect: fire sheet - full cycle resets to frame 1", "[anim]
 }
 
 TEST_CASE("advanceFrameRect: fire sheet - row wrap at curr%nx==0", "[anim][unit]") {
-    // curr=5 (last in row 0, 0-indexed), check==0 → new row
+    // curr=5 (last in row 0, 0-indexed), check==0 -> new row
     sf::IntRect rect(4 * 43, 0, 43, 72); // curr=5, check = 5%5 = 0
     int curr = 5;
 
@@ -244,7 +244,7 @@ TEST_CASE("advanceFrameRect: fire sheet - row wrap at curr%nx==0", "[anim][unit]
 }
 
 TEST_CASE("advanceFrameRect: fire sheet - int-ceil quirk pinned", "[anim][unit]") {
-    // curr=3, check = 3%5 = 3 ≠ 0 → else branch
+    // curr=3, check = 3%5 = 3 ≠ 0 -> else branch
     // ((int)ceil(3/5)) = ((int)ceil(0)) = 0   ← int division BEFORE ceil
     // So top = 0 * 72 = 0
     sf::IntRect rect(43, 0, 43, 72); // curr=2, but we'll test curr=3
@@ -252,7 +252,7 @@ TEST_CASE("advanceFrameRect: fire sheet - int-ceil quirk pinned", "[anim][unit]"
     int curr = 3;
 
     auto res = advanceFrameRect(rect, curr, 5, 3, 10, 216.0, 216.0);
-    // check = 3%5 = 3 ≠ 0 → else branch
+    // check = 3%5 = 3 ≠ 0 -> else branch
     // h = floor(216/3) = 72
     // top = ceil(3/5) * 72 = ceil(0) * 72 = 0  (int division first)
     REQUIRE(res.rect.top == 0);
@@ -280,7 +280,7 @@ TEST_CASE("advanceFrameRect: robot sheet - walk first frame", "[anim][unit]") {
     int curr = 1;
 
     auto res = advanceFrameRect(rect, curr, 8, 1, 8, 959.0, 180.0);
-    // curr=1, check=1%8=1 ≠ 0 → else branch
+    // curr=1, check=1%8=1 ≠ 0 -> else branch
     // h = floor(180/1) = 180
     // top = ceil(1/8)*180 = ceil(0)*180 = 0  (int division: 1/8=0)
     REQUIRE(res.rect.left == 119);
@@ -302,11 +302,11 @@ TEST_CASE("applyInputToP1 maps all five fields; attack is bool", "[harness][unit
     bool attack = false;
     applyInputToP1(w, a, s, d, attack, in);
 
-    REQUIRE(w == true);      // in.up    → m_up
-    REQUIRE(a == true);      // in.left  → m_left
-    REQUIRE(s == false);     // in.down  → m_down
-    REQUIRE(d == false);     // in.right → m_right
-    REQUIRE(attack == true); // in.attack → right (bool)
+    REQUIRE(w == true);      // in.up    -> m_up
+    REQUIRE(a == true);      // in.left  -> m_left
+    REQUIRE(s == false);     // in.down  -> m_down
+    REQUIRE(d == false);     // in.right -> m_right
+    REQUIRE(attack == true); // in.attack -> right (bool)
 }
 
 TEST_CASE("applyInputToP1 attack=false maps to false", "[harness][unit]") {
@@ -389,9 +389,9 @@ TEST_CASE("RegularGameObject: setOrigin does not crash", "[unit]") {
 
 // ── makeLetterboxView ──────────────────────────────────────────────────────────
 
-TEST_CASE("makeLetterboxView: wider window → pillarbox viewport", "[letterbox][unit]") {
+TEST_CASE("makeLetterboxView: wider window -> pillarbox viewport", "[letterbox][unit]") {
     // 2560×1080 window, 1920×1080 logical (16:9)
-    // logicalAspect=1.777, windowAspect=2.370 → pillarbox
+    // logicalAspect=1.777, windowAspect=2.370 -> pillarbox
     // vpW = 1.777/2.370 = 0.75, vpX = 0.125
     auto view = makeLetterboxView({1920.f, 1080.f}, {2560u, 1080u});
     auto vp = view.getViewport();
@@ -401,9 +401,9 @@ TEST_CASE("makeLetterboxView: wider window → pillarbox viewport", "[letterbox]
     REQUIRE(vp.height == Catch::Approx(1.f).margin(0.001f));
 }
 
-TEST_CASE("makeLetterboxView: taller window → letterbox viewport", "[letterbox][unit]") {
+TEST_CASE("makeLetterboxView: taller window -> letterbox viewport", "[letterbox][unit]") {
     // 1920×1440 window (4:3), 1920×1080 logical (16:9)
-    // logicalAspect=1.777, windowAspect=1.333 → letterbox
+    // logicalAspect=1.777, windowAspect=1.333 -> letterbox
     // vpH = 1.333/1.777 = 0.75, vpY = 0.125
     auto view = makeLetterboxView({1920.f, 1080.f}, {1920u, 1440u});
     auto vp = view.getViewport();
@@ -413,7 +413,7 @@ TEST_CASE("makeLetterboxView: taller window → letterbox viewport", "[letterbox
     REQUIRE(vp.height == Catch::Approx(0.75f).margin(0.001f));
 }
 
-TEST_CASE("makeLetterboxView: exact aspect → full viewport", "[letterbox][unit]") {
+TEST_CASE("makeLetterboxView: exact aspect -> full viewport", "[letterbox][unit]") {
     auto view = makeLetterboxView({1920.f, 1080.f}, {1920u, 1080u});
     auto vp = view.getViewport();
     REQUIRE(vp.left == Catch::Approx(0.f).margin(0.001f));
@@ -499,7 +499,7 @@ TEST_CASE("loadBindings: strips comments and blank lines", "[key_bindings][unit]
 TEST_CASE("loadBindings: unknown key name warns and keeps default", "[key_bindings][unit]") {
     std::istringstream cfg("p1_up = NOTAKEY\n");
     auto b = loadBindings(cfg);
-    // Unknown key → default kept
+    // Unknown key -> default kept
     REQUIRE(b.p1.up == defaultBindings().p1.up);
 }
 

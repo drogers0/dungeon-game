@@ -1,7 +1,7 @@
 // Integration tests: construct a real Game, drive it via replay scripts, assert
 // on the returned tuple and snapshot().
 //
-// CRITICAL — score field naming is inverted in captureGameState():
+// CRITICAL - score field naming is inverted in captureGameState():
 //   p1_score = p2points  (rocket/P1 score; incremented by P1 laser kills)
 //   p2_score = points    (robot/P2 score; incremented by P2 sword kills)
 //
@@ -49,7 +49,7 @@ runGame(DebugConfig cfg, NetworkMode mode = NetworkMode::LOCAL,
 
 // ── 1. Idle run ───────────────────────────────────────────────────────────────
 
-TEST_CASE("integration: idle run — scores 0/0, initial positions", "[integration]") {
+TEST_CASE("integration: idle run - scores 0/0, initial positions", "[integration]") {
     DebugConfig cfg;
     cfg.frames = 60;
     auto [t, s] = runGame(cfg);
@@ -66,13 +66,13 @@ TEST_CASE("integration: idle run — scores 0/0, initial positions", "[integrati
 
 // ── 2. P2 sword kill ─────────────────────────────────────────────────────────
 
-TEST_CASE("integration: P2 sword kill — p2_score becomes 1, wait set", "[integration]") {
+TEST_CASE("integration: P2 sword kill - p2_score becomes 1, wait set", "[integration]") {
     DebugConfig cfg;
     cfg.frames = 75;
     cfg.replayPath = dataPath("p2_kill.replay");
     auto [t, s] = runGame(cfg);
 
-    // points == 1 → p2_score == 1
+    // points == 1 -> p2_score == 1
     REQUIRE(s.p2_score == 1);
     REQUIRE(s.p1_score == 0);
     REQUIRE(s.wait == true);
@@ -85,21 +85,21 @@ TEST_CASE("integration: P2 sword kill — p2_score becomes 1, wait set", "[integ
 
 // ── 3. P1 laser kill ─────────────────────────────────────────────────────────
 
-TEST_CASE("integration: P1 laser kill via --replay-p1 — p1_score becomes 1", "[integration]") {
+TEST_CASE("integration: P1 laser kill via --replay-p1 - p1_score becomes 1", "[integration]") {
     DebugConfig cfg;
     cfg.frames = 75;
     cfg.replayPathP1 = dataPath("p1_laser.replay");
     auto [t, s] = runGame(cfg);
 
-    // p2points == 1 → p1_score == 1
+    // p2points == 1 -> p1_score == 1
     REQUIRE(s.p1_score == 1);
     REQUIRE(s.p2_score == 0);
     REQUIRE(s.wait == true);
 }
 
-// ── 4. Whiff — score unchanged ────────────────────────────────────────────────
+// ── 4. Whiff - score unchanged ────────────────────────────────────────────────
 
-TEST_CASE("integration: P2 whiff — scores unchanged", "[integration]") {
+TEST_CASE("integration: P2 whiff - scores unchanged", "[integration]") {
     DebugConfig cfg;
     cfg.frames = 5;
     cfg.replayPath = dataPath("p2_whiff.replay");
@@ -156,7 +156,7 @@ TEST_CASE("integration: P1 hazard decrements p2points", "[integration]") {
     g.run();
 
     GameState s = g.snapshot();
-    REQUIRE(s.p1_score == 2); // p2points: 3 → 2 (one hazard hit; 2.2s timeout = 132 steps)
+    REQUIRE(s.p1_score == 2); // p2points: 3 -> 2 (one hazard hit; 2.2s timeout = 132 steps)
 }
 
 TEST_CASE("integration: P1 hazard clamps p2points at 0", "[integration]") {
@@ -215,7 +215,7 @@ TEST_CASE("integration: P2 hazard decrements points", "[integration]") {
     g.setDebugConfig(cfg);
     g.run();
 
-    REQUIRE(g.snapshot().p2_score == 2); // points: 3 → 2
+    REQUIRE(g.snapshot().p2_score == 2); // points: 3 -> 2
 }
 
 TEST_CASE("integration: P2 hazard clamps points at 0", "[integration]") {
@@ -253,7 +253,7 @@ TEST_CASE("integration: P2 wraps around right edge", "[integration]") {
 }
 
 // ── 10. Direction-flip reposition ─────────────────────────────────────────────
-// P1 first move left: p1left flips false→true; position adjusted by -(width*old_scale.x).
+// P1 first move left: p1left flips false->true; position adjusted by -(width*old_scale.x).
 // P1 starts at x=134, scale=(2,2). After flip: x = 134 - (134*2) = 134+268 = 402.
 // After 1 left step + move: x ≈ 382.
 
@@ -282,12 +282,12 @@ TEST_CASE("integration: P2 pinned against P1 does not pass through", "[integrati
 
     // P1 starts at x≈134 with scale (2,2): right edge ≈ 402.
     // P2 stopped near P1; P2 normalised left edge (p2_x - 119) must be near P1.
-    float p2NormLeft = s.p2_x - 119.f;   // scale.x=-1 → normalised left = p2_x - width
+    float p2NormLeft = s.p2_x - 119.f;   // scale.x=-1 -> normalised left = p2_x - width
     REQUIRE(p2NormLeft >= s.p1_x - 5.f); // P2 didn't pass through P1 (±5 tolerance)
 }
 
 // ── 12. Capture / apply round-trip ────────────────────────────────────────────
-// snapshot() → applyNetworkState on a second Game → snapshot() fields equal.
+// snapshot() -> applyNetworkState on a second Game -> snapshot() fields equal.
 
 TEST_CASE("integration: capture/apply round-trip", "[integration]") {
     // Run game1 long enough to get a non-trivial state (P2 kill)
@@ -317,9 +317,9 @@ TEST_CASE("integration: capture/apply round-trip", "[integration]") {
 }
 
 // ── 13. Determinism ───────────────────────────────────────────────────────────
-// Same replay + same frames → identical snapshot fields.
+// Same replay + same frames -> identical snapshot fields.
 
-TEST_CASE("integration: determinism — same replay twice gives identical snapshot",
+TEST_CASE("integration: determinism - same replay twice gives identical snapshot",
           "[integration]") {
     DebugConfig cfg;
     cfg.frames = 75;
@@ -340,10 +340,10 @@ TEST_CASE("integration: determinism — same replay twice gives identical snapsh
 }
 
 // ── 14. P1 moves down ────────────────────────────────────────────────────────
-// P1 moves down 30 steps.  m_speed=1200, dt=1/60 → 20 px/step.
+// P1 moves down 30 steps.  m_speed=1200, dt=1/60 -> 20 px/step.
 // Starting y=400; wrap triggers at y>(1080-68)=1012, not reached in 30 steps.
 
-TEST_CASE("integration: P1 moves down — p1_y increases 20 px per step", "[integration]") {
+TEST_CASE("integration: P1 moves down - p1_y increases 20 px per step", "[integration]") {
     DebugConfig cfg;
     cfg.frames = 30;
     cfg.replayPathP1 = dataPath("p1_down.replay");
@@ -354,10 +354,10 @@ TEST_CASE("integration: P1 moves down — p1_y increases 20 px per step", "[inte
 }
 
 // ── 15. P2 moves up ───────────────────────────────────────────────────────────
-// P2 moves up 30 steps.  m_speed=1200, dt=1/60 → 20 px/step.
+// P2 moves up 30 steps.  m_speed=1200, dt=1/60 -> 20 px/step.
 // Starting y=400; wrap triggers at y<-180 at start of step 31, not reached here.
 
-TEST_CASE("integration: P2 moves up — p2_y decreases 20 px per step", "[integration]") {
+TEST_CASE("integration: P2 moves up - p2_y decreases 20 px per step", "[integration]") {
     DebugConfig cfg;
     cfg.frames = 30;
     cfg.replayPath = dataPath("p2_up.replay");
@@ -368,10 +368,10 @@ TEST_CASE("integration: P2 moves up — p2_y decreases 20 px per step", "[integr
 }
 
 // ── 16. P2 moves down ─────────────────────────────────────────────────────────
-// P2 moves down 26 steps.  m_speed=1200, dt=1/60 → 20 px/step.
+// P2 moves down 26 steps.  m_speed=1200, dt=1/60 -> 20 px/step.
 // Starting y=400; wrap triggers at y>(1080-180)=900 at start of step 27, not reached here.
 
-TEST_CASE("integration: P2 moves down — p2_y increases 20 px per step", "[integration]") {
+TEST_CASE("integration: P2 moves down - p2_y increases 20 px per step", "[integration]") {
     DebugConfig cfg;
     cfg.frames = 26;
     cfg.replayPath = dataPath("p2_down.replay");
@@ -383,8 +383,8 @@ TEST_CASE("integration: P2 moves down — p2_y increases 20 px per step", "[inte
 
 // ── 17. P2 left-direction flip ────────────────────────────────────────────────
 // P2 starts facing left (p2left=true, scale.x=-1).
-// Step 1 (d=1): flips to right → p2left=false, scale.x=1.
-// Step 2 (a=1): triggers if(!p2left) branch → p2left=true, scale.x=-1 (pinned here).
+// Step 1 (d=1): flips to right -> p2left=false, scale.x=1.
+// Step 2 (a=1): triggers if(!p2left) branch -> p2left=true, scale.x=-1 (pinned here).
 // Steps 3-5: continue left; p2left stays true (no re-flip).
 
 TEST_CASE("integration: P2 left-direction flip branch sets p2left and scale", "[integration]") {
@@ -415,7 +415,7 @@ TEST_CASE("integration: quitAtStep closes game and sets quitToMenu", "[integrati
 
 // ── 19. HOST Game + loopback NetworkManager ───────────────────────────────────
 // Client connects, sends one input, disconnects.  Host detects peerLost via
-// poll(); Game's handleNetworkCommunication() then sets m_peerLeft → run()
+// poll(); Game's handleNetworkCommunication() then sets m_peerLeft -> run()
 // tuple element 5 == true.
 
 TEST_CASE("integration: HOST game detects peer loss", "[integration]") {
@@ -456,7 +456,7 @@ TEST_CASE("integration: HOST game detects peer loss", "[integration]") {
 }
 
 // ── 20. AI Hard scores on idle P1 ────────────────────────────────────────────
-// rng::seed(42), Hard AI, 900 frames, P1 idle → robot (P2) scores at least once.
+// rng::seed(42), Hard AI, 900 frames, P1 idle -> robot (P2) scores at least once.
 
 TEST_CASE("integration: AI Hard scores on idle P1 within 900 frames", "[integration]") {
     rng::seed(42);
@@ -470,9 +470,9 @@ TEST_CASE("integration: AI Hard scores on idle P1 within 900 frames", "[integrat
 }
 
 // ── 21. AI reproducibility ────────────────────────────────────────────────────
-// Two runs with identical seed → identical snapshot fields.
+// Two runs with identical seed -> identical snapshot fields.
 
-TEST_CASE("integration: AI reproducibility — reseed 42 between runs gives identical snapshot",
+TEST_CASE("integration: AI reproducibility - reseed 42 between runs gives identical snapshot",
           "[integration]") {
     DebugConfig cfg;
     cfg.frames = 300;
@@ -510,7 +510,7 @@ TEST_CASE("integration: AI Easy runs 600 frames without crash", "[integration]")
 // With both ai=Hard and replayPath set, the replay takes precedence (else-if
 // ordering).  The scripted P2 kill should happen, not AI behaviour.
 
-TEST_CASE("integration: replay overrides AI — replay kill wins over Hard AI", "[integration]") {
+TEST_CASE("integration: replay overrides AI - replay kill wins over Hard AI", "[integration]") {
     rng::seed(42);
     DebugConfig cfg;
     cfg.frames = 75;

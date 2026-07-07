@@ -1,8 +1,8 @@
 // Loopback unit tests: exercises real socket paths in a single process.
 // HOST and CLIENT NetworkManagers communicate over 127.0.0.1 on an ephemeral
-// port (port 0 → OS picks one), so the test never conflicts with a running game.
+// port (port 0 -> OS picks one), so the test never conflicts with a running game.
 //
-// Classified as "unit" because they require no display — only real sockets.
+// Classified as "unit" because they require no display - only real sockets.
 
 #include <catch2/catch_test_macros.hpp>
 #include <cmath>
@@ -40,7 +40,7 @@ struct LoopbackPair {
     }
 };
 
-// ── client sendInput → host poll / nextInput ──────────────────────────────────
+// ── client sendInput -> host poll / nextInput ──────────────────────────────────
 
 TEST_CASE("loopback: client sendInput reaches host", "[loopback][unit]") {
     LoopbackPair lb;
@@ -59,7 +59,7 @@ TEST_CASE("loopback: client sendInput reaches host", "[loopback][unit]") {
     REQUIRE(recv.left == false);
 }
 
-// ── host sendGameState → client poll / stateBuf ───────────────────────────────
+// ── host sendGameState -> client poll / stateBuf ───────────────────────────────
 
 TEST_CASE("loopback: host sendGameState reaches client stateBuf", "[loopback][unit]") {
     LoopbackPair lb;
@@ -107,7 +107,7 @@ TEST_CASE("loopback: unknown message type is discarded", "[loopback][unit]") {
 // ── send-slot: rapid sends do not crash ──────────────────────────────────────
 // The send slot is one-deep; a second sendInput call while the slot is occupied
 // drops the new message.  On fast loopback the slot often flushes between calls,
-// so we cannot reliably assert the drop count — we verify the channel works
+// so we cannot reliably assert the drop count - we verify the channel works
 // (first message delivered) and multiple rapid calls don't crash.
 
 TEST_CASE("loopback: rapid sendInput calls do not crash", "[loopback][unit]") {
