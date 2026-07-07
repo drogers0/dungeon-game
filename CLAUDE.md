@@ -11,8 +11,9 @@ the other before the clock runs out wins. It runs as a native desktop window (ma
 Windows) — there is no server component beyond optional peer-to-peer online play.
 
 The game supports several **control sources** that all feed the same movement/attack logic:
-local shared-keyboard (player 1 numpad, player 2 WASD), online host/client over TCP, and
-(planned) a single-player AI opponent. See [docs/architecture.md](docs/architecture.md).
+local shared-keyboard (player 1 numpad, player 2 WASD), online host/client over TCP, a
+single-player AI opponent (Easy/Medium/Hard), and a scripted replay/debug harness. See
+[docs/architecture.md](docs/architecture.md).
 
 ## Build, run, test
 
