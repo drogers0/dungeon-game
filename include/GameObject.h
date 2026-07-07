@@ -4,11 +4,7 @@
 #pragma once
 
 #include <SFML/Graphics.hpp>
-#include <SFML/Audio/Music.hpp>
 #include <SFML/Audio.hpp>
-#include <SFML/Audio/Music.hpp>
-#include <SFML/Audio/SoundSource.hpp>
-#include <SFML/Audio/Sound.hpp>
 
 class GameObject {
 public:

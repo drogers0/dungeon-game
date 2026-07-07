@@ -107,8 +107,6 @@ private:
     int   right            = false;
     bool  p1left           = false;
     bool  p2left           = true;
-    bool  p1move           = true;
-    bool  p2move           = true;
     bool  p                = false;
     bool  o                = false;
     bool  wait             = false;

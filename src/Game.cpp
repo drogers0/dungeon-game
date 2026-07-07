@@ -400,9 +400,7 @@ void Game::update(sf::Time deltaT, float time)
 
         if (collision(m_player, player2)) {
             m_player->setPosition(m_player->getPosition().x, m_player->getPosition().y + 40);
-            p2move = false;
         } else {
-            p2move = true;
             p1movement.y -= m_speed;
         }
     }
@@ -414,9 +412,7 @@ void Game::update(sf::Time deltaT, float time)
 
         if (collision(m_player, player2)) {
             m_player->setPosition(m_player->getPosition().x, m_player->getPosition().y - 40);
-            p2move = false;
         } else {
-            p2move = true;
             p1movement.y += m_speed;
         }
     }
@@ -435,9 +431,7 @@ void Game::update(sf::Time deltaT, float time)
 
         if (collision(m_player, player2)) {
             m_player->setPosition(m_player->getPosition().x + 40, m_player->getPosition().y);
-            p2move = false;
         } else {
-            p2move = true;
             p1movement.x -= m_speed;
         }
     }
@@ -458,9 +452,7 @@ void Game::update(sf::Time deltaT, float time)
 
         if (collision(m_player, player2)) {
             m_player->setPosition(m_player->getPosition().x - 40, m_player->getPosition().y);
-            p2move = false;
         } else {
-            p2move = true;
             p1movement.x += m_speed;
         }
     }
@@ -518,7 +510,6 @@ void Game::update(sf::Time deltaT, float time)
                     (player2->getWidth() * player2->getScale().x),
                 player2->getPosition().y);
         }
-        p2left = false;
 
         if (collision(m_player, player2)) {
             player2->setPosition(player2->getPosition().x - 40, player2->getPosition().y);

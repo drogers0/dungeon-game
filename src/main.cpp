@@ -1,4 +1,3 @@
-//#pragma once
 #include <SFML/Graphics.hpp>
 #include "Game.h"
 #include "NetworkManager.h"
@@ -28,7 +27,6 @@ void startgame(int& highscore, NetworkMode mode = NetworkMode::LOCAL, std::share
     float tempM = std::get<2>(tuple);
     int tempS = std::get<3>(tuple);
     bool peerLeft = std::get<5>(tuple);
-    //bool p1win = std::get<4>(tuple);
     char gTime [10];
     std::snprintf(gTime, sizeof(gTime), "%02.0f:%02d", tempM, tempS);
     std::string clack = gTime;
@@ -58,7 +56,6 @@ void startgame(int& highscore, NetworkMode mode = NetworkMode::LOCAL, std::share
     }
 
     sf::RenderWindow endscreen(sf::VideoMode(1024, 576), "end game");
-    sf::Event event;
 
     sf::Text peerDisconnectedText("", pfont, 36);
     if (peerLeft) {
@@ -97,7 +94,6 @@ void startgame(int& highscore, NetworkMode mode = NetworkMode::LOCAL, std::share
 
     background.play();
     background.setVolume(60);
-    //background.setLoop(true);
 
     sf::SoundBuffer down_buffer;
     sf::SoundBuffer up_buffer;
@@ -143,9 +139,7 @@ void startgame(int& highscore, NetworkMode mode = NetworkMode::LOCAL, std::share
         endscreen.display();
 
         sf::Event event;
-        sf::Mouse mouse;
         sf::Rect<float> srect;
-        // m_start->setOrigin();
         srect = sf::Rect<float>(sf::Vector2f(m_start->getPosition().x - (m_start->getWidth() / 4),
                                              m_start->getPosition().y - (m_start->getHeight() / 4)),
                                 sf::Vector2f(m_start->getWidth() * m_start->getScale().x,
@@ -166,7 +160,6 @@ void startgame(int& highscore, NetworkMode mode = NetworkMode::LOCAL, std::share
                                                 sf::Vector2f(m_quit->getWidth() * m_quit->getScale().x,
                                                              m_quit->getHeight() * m_quit->getScale().y));
 
-        //std::cout << (qrect.contains(endscreen.mapPixelToCoords(sf::Mouse::getPosition(endscreen)))) << std::endl;
         if (qrect.contains(endscreen.mapPixelToCoords(sf::Mouse::getPosition(endscreen))) && !quit_updated) {
             m_quit->update(0.0f);
             quit_updated = true;

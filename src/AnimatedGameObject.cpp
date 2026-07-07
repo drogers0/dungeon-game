@@ -28,7 +28,6 @@ bool AnimatedGameObject::load(const std::string& filename) {
     if (m_texture.loadFromFile(filename)) {
         m_filename = filename;
         m_sprite.setTexture(m_texture);
-        //std::cout << floor(xsize/(double)howmanyx) << "   " << floor(ysize/(double)howmanyy) << std::endl;
         rect = sf::IntRect(0,0,floor(xsize/(double)howmanyx),floor(ysize/(double)howmanyy));
         m_sprite.setTextureRect(rect);
         m_valid = true;
@@ -55,7 +54,6 @@ void AnimatedGameObject::update(float Tsec) {
 void AnimatedGameObject::draw(sf::RenderWindow& window) {
     if (m_valid) {
         window.draw(m_sprite);
-        //std::cout << "i am drawn  " << m_filename << std::endl;
     }
 }
 
