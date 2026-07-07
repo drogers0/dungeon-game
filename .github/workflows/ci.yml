@@ -51,7 +51,9 @@ jobs:
         run: |
           llvm-profdata merge build/cov/*.profraw -o build/cov/merged.profdata
           llvm-cov report \
-            build/dungeon_tests build/dungeon_integration_tests build/dungeon_game \
+            build/tests/dungeon_tests \
+            -object build/tests/dungeon_integration_tests \
+            -object build/dungeon_game \
             -instr-profile=build/cov/merged.profdata \
             -ignore-filename-regex='main\.cpp|tests/'
 
