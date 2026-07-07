@@ -19,7 +19,7 @@ public:
 	Game();
 	Game(NetworkMode mode, std::shared_ptr<NetworkManager> netManager);
 	//run the game
-	std::tuple<int,int,float,int,bool> run();
+	std::tuple<int,int,float,int,bool,bool> run();
 
 private:
 	void processEvents();
@@ -97,9 +97,14 @@ private:
 	// Network support
 	NetworkMode m_networkMode = NetworkMode::LOCAL;
 	std::shared_ptr<NetworkManager> m_networkManager;
-	void handleNetworkCommunication(float gameTime);
+	void handleNetworkCommunication(sf::Time deltaT);
 	void applyNetworkState(const GameState& state);
 	GameState captureGameState() const;
+
+	bool      m_peerLeft   = false;
+	GameState m_latestState;
+	float     m_stateAccum = 0.f;
+	static constexpr float kStateSendInterval = 1.f / 25.f; // ~25 Hz
 
 };
 

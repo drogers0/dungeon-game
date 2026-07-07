@@ -244,7 +244,7 @@ Game::Game(NetworkMode mode, std::shared_ptr<NetworkManager> netManager) :
 	laser.setVolume(60);
 }
 
-std::tuple<int,int,float,int,bool> Game::run() {
+std::tuple<int,int,float,int,bool,bool> Game::run() {
 	//loop clock
 	sf::Clock clock;
 	//game time
@@ -270,7 +270,7 @@ std::tuple<int,int,float,int,bool> Game::run() {
 		processEvents();
 		
 		// Handle network communication
-		handleNetworkCommunication(gTime.getElapsedTime().asSeconds());
+		handleNetworkCommunication(deltaT);
 		
 		if (!wait) {
 			update(deltaT, time);
@@ -322,7 +322,7 @@ std::tuple<int,int,float,int,bool> Game::run() {
 	background.stop();
 	if (p2points > points)
 		p1win = true;
-	return {p2points,points,apieceofcrap,seconds,p1win};
+	return {p2points, points, apieceofcrap, seconds, p1win, m_peerLeft};
 }
 
 void Game::processEvents() {
@@ -617,8 +617,51 @@ void Game::update(sf::Time deltaT,float time) {
 }
 
 void Game::render() {
+	// CLIENT: temporarily shift sprites to interpolated positions for drawing.
+	// Positions are saved and restored so update()/collision use authoritative coords.
+	sf::Vector2f p1Saved, p2Saved;
+	bool didShift = false;
+
+	if (m_networkMode == NetworkMode::CLIENT && m_networkManager &&
+	    !m_networkManager->stateBuf().empty())
+	{
+		p1Saved = m_player->getPosition();
+		p2Saved = player2->getPosition();
+		didShift = true;
+
+		const auto& buf = m_networkManager->stateBuf();
+		constexpr float kInterpDelay = 0.04f; // 40 ms behind
+		sf::Time target = m_networkManager->elapsed() - sf::seconds(kInterpDelay);
+
+		sf::Vector2f rp1, rp2;
+		if (buf.size() >= 2) {
+			// Find the last snapshot pair bracketing target (or use the last pair
+			// if target is past all entries).
+			std::size_t ai = 0;
+			for (std::size_t i = 0; i + 1 < buf.size(); ++i) {
+				if (buf[i].arrival <= target) ai = i;
+			}
+			std::size_t bi = std::min(ai + 1, buf.size() - 1);
+			const auto& sa = buf[ai];
+			const auto& sb = buf[bi];
+			float span = (sb.arrival - sa.arrival).asSeconds();
+			float t = (span > 0.f)
+			              ? (target - sa.arrival).asSeconds() / span
+			              : 1.f;
+			rp1 = lerpPos({sa.state.p1_x, sa.state.p1_y},
+			              {sb.state.p1_x, sb.state.p1_y}, t);
+			rp2 = lerpPos({sa.state.p2_x, sa.state.p2_y},
+			              {sb.state.p2_x, sb.state.p2_y}, t);
+		} else {
+			rp1 = {buf[0].state.p1_x, buf[0].state.p1_y};
+			rp2 = {buf[0].state.p2_x, buf[0].state.p2_y};
+		}
+		m_player->setPosition(rp1.x, rp1.y);
+		player2->setPosition(rp2.x, rp2.y);
+	}
+
 	m_window.clear();
-	for (int x = 0; x < stuff.size(); x++) {
+	for (std::size_t x = 0; x < stuff.size(); ++x) {
 		stuff[x]->draw(m_window);
 	}
 	m_window.draw(timer);
@@ -631,6 +674,12 @@ void Game::render() {
 		m_window.draw(info);
 	}
 	m_window.display();
+
+	// Restore authoritative positions (symmetric with the save above).
+	if (didShift) {
+		m_player->setPosition(p1Saved.x, p1Saved.y);
+		player2->setPosition(p2Saved.x, p2Saved.y);
+	}
 }
 
 bool Game::collision(GameObject* a,GameObject* b) {
@@ -645,42 +694,59 @@ bool Game::collision(sf::Rect<float> a,GameObject* b) {
 	return a.intersects(brect);
 }
 
-void Game::handleNetworkCommunication(float gameTime) {
-	if (!m_networkManager || !m_networkManager->isConnected()) {
-		return;
-	}
+void Game::handleNetworkCommunication(sf::Time deltaT) {
+	if (!m_networkManager) return;
 
-	if (m_networkMode == NetworkMode::HOST) {
-		// Host: receive client input for player 2
+	if (m_networkMode == NetworkMode::HOST && m_networkManager->isConnected()) {
+		m_networkManager->poll();
+
+		// Consume all queued inputs; keep only the most recent.
 		PlayerInput clientInput;
-		if (m_networkManager->receiveInput(clientInput)) {
-			// Apply client input to player 2 controls
-			w = clientInput.up;
-			s = clientInput.down;
-			a = clientInput.left;
-			d = clientInput.right;
+		PlayerInput tmp;
+		bool got = false;
+		while (m_networkManager->nextInput(tmp)) {
+			clientInput = tmp;
+			got = true;
+		}
+		if (got) {
+			w     = clientInput.up;
+			s     = clientInput.down;
+			a     = clientInput.left;
+			d     = clientInput.right;
 			space = clientInput.attack;
 		}
 
-		// Send game state to client
-		GameState state = captureGameState();
-		m_networkManager->sendGameState(state);
+		// Fixed-rate state send (~25 Hz).
+		m_stateAccum += deltaT.asSeconds();
+		if (m_stateAccum >= kStateSendInterval) {
+			m_stateAccum -= kStateSendInterval;
+			m_networkManager->sendGameState(captureGameState());
+		}
 	}
-	else if (m_networkMode == NetworkMode::CLIENT) {
-		// Client: send player 2 input to host
+	else if (m_networkMode == NetworkMode::CLIENT && m_networkManager->isConnected()) {
+		// Send local input every frame.
 		PlayerInput myInput;
-		myInput.up = w;
-		myInput.down = s;
-		myInput.left = a;
-		myInput.right = d;
+		myInput.up     = w;
+		myInput.down   = s;
+		myInput.left   = a;
+		myInput.right  = d;
 		myInput.attack = space;
 		m_networkManager->sendInput(myInput);
 
-		// Receive and apply game state from host
-		GameState state;
-		if (m_networkManager->receiveGameState(state)) {
-			applyNetworkState(state);
+		// Drain incoming state packets.
+		m_networkManager->poll();
+
+		// Apply the latest snapshot for update()/collision (authoritative).
+		if (!m_networkManager->stateBuf().empty()) {
+			m_latestState = m_networkManager->stateBuf().back().state;
+			applyNetworkState(m_latestState);
 		}
+	}
+
+	// Peer-loss check (runs after poll/send on either side).
+	if (!m_peerLeft && m_networkManager->peerLost()) {
+		m_peerLeft = true;
+		m_window.close();
 	}
 }
 

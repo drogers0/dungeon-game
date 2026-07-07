@@ -14,10 +14,8 @@ int p1score = 0;
 int p2score = 0;
 std::string clack = "";
 
-void endscreen(NetworkMode mode, std::shared_ptr<NetworkManager> netManager);
-
 void startgame(NetworkMode mode = NetworkMode::LOCAL, std::shared_ptr<NetworkManager> netManager = nullptr) {
-    std::tuple<int,int,float,int,bool> tuple;
+    std::tuple<int,int,float,int,bool,bool> tuple;
     if (mode != NetworkMode::LOCAL && netManager) {
         Game game(mode, netManager);
         tuple = game.run();
@@ -29,6 +27,7 @@ void startgame(NetworkMode mode = NetworkMode::LOCAL, std::shared_ptr<NetworkMan
     p2score = std::get<1>(tuple);
     float tempM = std::get<2>(tuple);
     int tempS = std::get<3>(tuple);
+    bool peerLeft = std::get<5>(tuple);
     //bool p1win = std::get<4>(tuple);
     char gTime [10];
     std::snprintf(gTime, sizeof(gTime), "%02.0f:%02d", tempM, tempS);
@@ -60,6 +59,16 @@ void startgame(NetworkMode mode = NetworkMode::LOCAL, std::shared_ptr<NetworkMan
 
     sf::RenderWindow endscreen(sf::VideoMode(1024, 576), "end game");
     sf::Event event;
+
+    sf::Text peerDisconnectedText("", pfont, 36);
+    if (peerLeft) {
+        peerDisconnectedText.setString("Peer disconnected");
+        peerDisconnectedText.setFillColor(sf::Color::Red);
+        peerDisconnectedText.setStyle(sf::Text::Bold);
+        // Use getLocalBounds for centering — unaffected by world transform.
+        peerDisconnectedText.setOrigin(peerDisconnectedText.getLocalBounds().width / 2.f, 0);
+        peerDisconnectedText.setPosition(endscreen.getSize().x / 2.f, 460.f);
+    }
 
     sf::Music background;
     if (!background.openFromFile(resource_path + "m_start_background.wav")) {
@@ -130,6 +139,7 @@ void startgame(NetworkMode mode = NetworkMode::LOCAL, std::shared_ptr<NetworkMan
         endscreen.draw(highscoret);
         m_start->draw(endscreen);
         m_quit->draw(endscreen);
+        if (peerLeft) endscreen.draw(peerDisconnectedText);
         endscreen.display();
 
         sf::Event event;
@@ -328,7 +338,7 @@ int main(int argc, char** argv)
                         menuState = READY_TO_START;
                         statusMessage = "Connected! Click START to begin";
                     } else {
-                        statusMessage = "Failed to connect. Check IP and try again (Enter to retry)";
+                        statusMessage = "Failed to connect (invalid IP or host unreachable)";
                         netManager = nullptr;
                     }
                 } else if (event.text.unicode < 128 && event.text.unicode != '\b' && ipInput.length() < 30) {
