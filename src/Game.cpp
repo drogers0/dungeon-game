@@ -7,6 +7,7 @@
 #include "geometry.h"
 #include "letterbox.h"
 #include "resource_path.h"
+#include "rng.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -144,6 +145,50 @@ void Game::setDebugConfig(const DebugConfig& cfg) {
         m_replayP1 = loadReplay(cfg.replayPathP1);
         m_replayP1Idx = 0;
     }
+    if (cfg.ai != AiDifficulty::None)
+        setAiOpponent(cfg.ai);
+}
+
+// ── AI opponent ──────────────────────────────────────────────────────────────
+
+void Game::setAiOpponent(AiDifficulty d) {
+    if (d != AiDifficulty::None)
+        m_ai = std::make_unique<AiController>(paramsFor(d), rng::engine());
+    else
+        m_ai.reset();
+}
+
+AiView Game::makeAiView() const {
+    AiView view;
+    view.selfPos = m_robot->getPosition();
+
+    // selfBounds must be normalised: robot faces left by default (scale.x=-1),
+    // so objectBounds returns a negative-width rect — fix it.
+    sf::FloatRect sb = objectBounds(*m_robot);
+    if (sb.width < 0.f) {
+        sb.left += sb.width;
+        sb.width = -sb.width;
+    }
+    if (sb.height < 0.f) {
+        sb.top += sb.height;
+        sb.height = -sb.height;
+    }
+    view.selfBounds = sb;
+
+    view.selfFacingLeft = m_p2FacingLeft;
+    view.oppPos = m_rocket->getPosition();
+    view.oppBounds = objectBounds(*m_rocket);
+
+    // arena[0] is the brick floor; arena[1..3] are the three fire hazards.
+    for (int i = 0; i < 3; ++i)
+        view.hazards[static_cast<std::size_t>(i)] =
+            objectBounds(*m_arena[static_cast<std::size_t>(i + 1)]);
+
+    view.inCooldown = m_inCooldown;
+    view.selfScore = m_robotScore;
+    view.oppScore = m_rocketScore;
+    view.step = m_steps;
+    return view;
 }
 
 // ── run ───────────────────────────────────────────────────────────────────────
@@ -229,6 +274,8 @@ void Game::simStep() {
         } else {
             applyPlayerInput(PlayerInput{}); // EOF → all-false
         }
+    } else if (m_ai) {
+        applyPlayerInput(m_ai->step(makeAiView()));
     }
 
     // Apply replay input for P1.
@@ -386,7 +433,9 @@ void Game::handlePlayerInput(sf::Keyboard::Key key, bool isDown) {
         }
 
         // Player 2 controls (robot — configurable, default WASD+Space)
-        if (m_networkMode == NetworkMode::LOCAL || m_networkMode == NetworkMode::CLIENT) {
+        // Gated off when AI is driving P2.
+        if ((m_networkMode == NetworkMode::LOCAL || m_networkMode == NetworkMode::CLIENT) &&
+            !m_ai) {
             if (key == m_bindings.p2.up)
                 m_p2Up = isDown;
             if (key == m_bindings.p2.left)

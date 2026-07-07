@@ -7,6 +7,7 @@
 #include "GameObject.h"
 #include "NetworkManager.h"
 #include "RegularGameObject.h"
+#include "ai.h"
 #include "debug.h"
 #include "key_bindings.h"
 #include "replay.h"
@@ -24,6 +25,10 @@ public:
 
     // Configure debug/harness options; call before run().
     void setDebugConfig(const DebugConfig& cfg);
+
+    // Attach an AI driver for P2 (robot).  Call before run().
+    // Passing None tears down any existing AI.
+    void setAiOpponent(AiDifficulty d);
 
     // Override key bindings (defaults loaded from controls.cfg or hard-coded defaults).
     void setBindings(const KeyBindings& b) { m_bindings = b; }
@@ -61,6 +66,8 @@ private:
     void applyPlayerInput(const PlayerInput& in);
     // Capture a screenshot if the debug config says it is due this step.
     void captureIfDue();
+    // Build the AiView snapshot for the current frame.
+    AiView makeAiView() const;
 
     sf::RenderWindow m_window;
 
@@ -151,6 +158,9 @@ private:
     GameState m_latestState;
     float m_stateAccum = 0.f;
     static constexpr float kStateSendInterval = 1.f / 25.f; // ~25 Hz
+
+    // AI opponent for P2 (null when human or network drives P2)
+    std::unique_ptr<AiController> m_ai;
 
     // Pause / quit-to-menu state
     bool m_paused = false;
