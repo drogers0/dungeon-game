@@ -371,10 +371,15 @@ void Game::applyPlayerInput(const PlayerInput& in)
 
 void Game::captureIfDue()
 {
-    if (m_debug.screenshotEvery > 0 && m_steps > 0 &&
-        m_steps % static_cast<long long>(m_debug.screenshotEvery) == 0) {
+    if (m_debug.screenshotEvery <= 0) return;
+    if (m_nextShot == 0) m_nextShot = m_debug.screenshotEvery; // lazy init
+    // Threshold (not modulo) so a multi-step accumulator drain that jumps past a
+    // boundary still captures once; --frames mode (1 step/iter) lands exactly on
+    // each multiple, keeping frame_60/120/... filenames stable for determinism.
+    if (m_steps >= m_nextShot) {
         captureScreenshot(m_window,
                           m_debug.screenshotDir + "/frame_" + std::to_string(m_steps) + ".png");
+        while (m_nextShot <= m_steps) m_nextShot += m_debug.screenshotEvery;
     }
 }
 

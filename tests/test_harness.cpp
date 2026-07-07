@@ -172,6 +172,15 @@ static void test_gameseconds_derivation()
     }
 }
 
+// ── loadReplay: nonexistent file → empty, no throw ────────────────────────────
+
+static void test_loadreplay_missing_file()
+{
+    // The most common --replay misuse (wrong path): must return empty, not throw.
+    auto result = loadReplay("/tmp/dg_test_does_not_exist_98765.replay");
+    assert(result.empty());
+}
+
 // ── main ──────────────────────────────────────────────────────────────────────
 
 int main()
@@ -182,6 +191,7 @@ int main()
     test_loadreplay_malformed_count_many();
     test_loadreplay_malformed_value();
     test_loadreplay_field_mapping();
+    test_loadreplay_missing_file();
     test_applyinputto_mapping();
     test_gameseconds_derivation();
 

@@ -121,6 +121,7 @@ private:
     DebugConfig              m_debug;
     std::vector<PlayerInput> m_replay;
     std::size_t              m_replayIdx = 0;
+    long long                m_nextShot  = 0; // next step at which to auto-screenshot
 
     // Network support
     NetworkMode                      m_networkMode = NetworkMode::LOCAL;
