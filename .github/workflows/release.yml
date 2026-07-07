@@ -21,6 +21,10 @@ jobs:
 
       - name: Create release
         uses: softprops/action-gh-release@v2
+        with:
+          # Mark pre-release-style tags (v1.0.0-rc1, v1.2.0-beta, …) as pre-releases
+          # so they don't show as "Latest"; a plain vX.Y.Z tag is a full release.
+          prerelease: ${{ contains(github.ref_name, '-') }}
 
   # ── Build + package per platform ─────────────────────────────────────────
   build:
