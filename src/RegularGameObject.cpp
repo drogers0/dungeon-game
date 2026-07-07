@@ -16,7 +16,7 @@ bool RegularGameObject::load(const std::string& filename) {
     return false;
 }
 
-void RegularGameObject::update(float deltaT) {}
+void RegularGameObject::update(float /*deltaT*/) {}
 
 void RegularGameObject::draw(sf::RenderWindow& window) {
     if (m_valid)

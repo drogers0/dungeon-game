@@ -62,8 +62,8 @@ if(MSVC)
     target_compile_options(dungeon_lib    PRIVATE /W4)
     target_compile_options(dungeon_game   PRIVATE /W4)
 else()
-    target_compile_options(dungeon_lib    PRIVATE -Wall -Wextra -Wpedantic)
-    target_compile_options(dungeon_game   PRIVATE -Wall -Wextra -Wpedantic)
+    target_compile_options(dungeon_lib    PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    target_compile_options(dungeon_game   PRIVATE -Wall -Wextra -Wpedantic -Werror)
 endif()
 
 # ── Copy assets next to the binary at build time ────────────────────────────
