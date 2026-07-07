@@ -3,6 +3,7 @@
 #include "NetworkManager.h"
 #include <iostream>
 #include "AnimatedGameObject.h"
+#include "asset_load.h"
 #include "resource_path.h"
 #include "debug.h"
 #include "rng.h"
@@ -44,16 +45,11 @@ void startgame(int& highscore, NetworkMode mode = NetworkMode::LOCAL, std::share
     sf::Text highscoret;
 
     RegularGameObject wall = RegularGameObject();
-    wall.load(resource_path + "david_background.png");
+    loadOrThrow(wall, resource_path + "david_background.png");
     wall.setScale(.7f);
 
-    if(!pfont.loadFromFile(resource_path + "Joyful_Theatre.otf")){
-        std::cout << "Font did not load" << std::endl;
-    }
-
-    if(!tfont.loadFromFile(resource_path + "timer.ttf")){
-        std::cout << "Font did not load" << std::endl;
-    }
+    loadOrThrow(pfont, resource_path + "Joyful_Theatre.otf");
+    loadOrThrow(tfont, resource_path + "timer.ttf");
 
     sf::RenderWindow endscreen(sf::VideoMode(1024, 576), "end game");
 
@@ -68,9 +64,7 @@ void startgame(int& highscore, NetworkMode mode = NetworkMode::LOCAL, std::share
     }
 
     sf::Music background;
-    if (!background.openFromFile(resource_path + "m_start_background.wav")) {
-        std::cout << "your music is broken, go fix it" << std::endl;
-    }
+    loadOrThrow(background, resource_path + "m_start_background.wav");
 
     p1scoret = sf::Text(std::to_string(p1score), pfont, 50);
     p1scoret.setFillColor(sf::Color::Blue);
@@ -97,12 +91,8 @@ void startgame(int& highscore, NetworkMode mode = NetworkMode::LOCAL, std::share
 
     sf::SoundBuffer down_buffer;
     sf::SoundBuffer up_buffer;
-    if (!down_buffer.loadFromFile(resource_path + "ButtonOn.wav")) {
-        std::cout << "sound did not load";
-    }
-    if (!up_buffer.loadFromFile(resource_path + "ButtonOff.wav")) {
-        std::cout << "sound did not load";
-    }
+    loadOrThrow(down_buffer, resource_path + "ButtonOn.wav");
+    loadOrThrow(up_buffer,   resource_path + "ButtonOff.wav");
 
     sf::Sound press;
     sf::Sound up;
@@ -113,13 +103,13 @@ void startgame(int& highscore, NetworkMode mode = NetworkMode::LOCAL, std::share
     bool quit_updated = false;
 
     auto m_start = std::make_unique<AnimatedGameObject>(1331, 300, 2, 1, 2, 0);
-    m_start->load(resource_path + "start.png");
+    loadOrThrow(*m_start, resource_path + "start.png");
     m_start->setOrigin();
     m_start->setPosition((endscreen.getSize().x / 2),(endscreen.getSize().y / 3));
     m_start->setScale(.5f);
 
     auto m_quit = std::make_unique<AnimatedGameObject>(1332, 300, 2, 1, 2, 0);
-    m_quit->load(resource_path + "quit.png");
+    loadOrThrow(*m_quit, resource_path + "quit.png");
     m_quit->setOrigin();
     m_quit->setPosition((endscreen.getSize().x / 2), 2 * (endscreen.getSize().y / 3));
     m_quit->setScale(.5f);
@@ -211,6 +201,7 @@ enum MenuState {
 
 int main(int argc, char** argv)
 {
+  try {
     initResourcePath(argv[0]);
 
     int highscore = 0;
@@ -290,12 +281,10 @@ int main(int argc, char** argv)
 
     // Load resources
     RegularGameObject david = RegularGameObject();
-    david.load(resource_path + "david_background.png");
+    loadOrThrow(david, resource_path + "david_background.png");
 
     sf::Music background;
-    if(!background.openFromFile(resource_path + "m_start_background.wav")){
-        std::cout << "your music is broken, go fix it" << std::endl;
-    }
+    loadOrThrow(background, resource_path + "m_start_background.wav");
 
     background.play();
     background.setVolume(60);
@@ -303,12 +292,8 @@ int main(int argc, char** argv)
 
     sf::SoundBuffer down_buffer;
     sf::SoundBuffer up_buffer;
-    if(!down_buffer.loadFromFile(resource_path + "ButtonOn.wav")) {
-        std::cout << "sound did not load";
-    }
-    if(!up_buffer.loadFromFile(resource_path + "ButtonOff.wav")) {
-        std::cout << "sound did not load";
-    }
+    loadOrThrow(down_buffer, resource_path + "ButtonOn.wav");
+    loadOrThrow(up_buffer,   resource_path + "ButtonOff.wav");
 
     sf::Sound press;
     sf::Sound up;
@@ -317,9 +302,7 @@ int main(int argc, char** argv)
 
     // Load font for UI text
     sf::Font font;
-    if(!font.loadFromFile(resource_path + "oswald.ttf")){
-        std::cout << "Font did not load" << std::endl;
-    }
+    loadOrThrow(font, resource_path + "oswald.ttf");
 
     bool start_updated = false;
     bool quit_updated = false;
@@ -330,33 +313,33 @@ int main(int argc, char** argv)
     sf::RenderWindow startscreen(sf::VideoMode(1024, 576), "Dungeon Game");
     // Create button objects for main menu
     auto m_start = std::make_unique<AnimatedGameObject>(1331, 300, 2,1,2,0);
-    m_start->load(resource_path + "start.png");
+    loadOrThrow(*m_start, resource_path + "start.png");
     m_start->setOrigin();
     m_start->setPosition(startscreen.getSize().x/2, 200);
     m_start->setScale(.4f);
 
     // Create host and join buttons (will use text labels with start button image)
     auto m_host = std::make_unique<AnimatedGameObject>(1331, 300, 2,1,2,0);
-    m_host->load(resource_path + "start.png");
+    loadOrThrow(*m_host, resource_path + "start.png");
     m_host->setOrigin();
     m_host->setPosition(startscreen.getSize().x/2, 320);
     m_host->setScale(.4f);
 
     auto m_join = std::make_unique<AnimatedGameObject>(1331, 300, 2,1,2,0);
-    m_join->load(resource_path + "start.png");
+    loadOrThrow(*m_join, resource_path + "start.png");
     m_join->setOrigin();
     m_join->setPosition(startscreen.getSize().x/2, 440);
     m_join->setScale(.4f);
 
     auto m_quit = std::make_unique<AnimatedGameObject>(1332, 300, 2,1,2,0);
-    m_quit->load(resource_path+"quit.png");
+    loadOrThrow(*m_quit, resource_path + "quit.png");
     m_quit->setOrigin();
     m_quit->setPosition((startscreen.getSize().x/2), 520);
     m_quit->setScale(.3f);
 
     // Back button (using quit button graphics)
     auto m_back = std::make_unique<AnimatedGameObject>(1332, 300, 2,1,2,0);
-    m_back->load(resource_path+"quit.png");
+    loadOrThrow(*m_back, resource_path + "quit.png");
     m_back->setOrigin();
     m_back->setPosition(100, 50);
     m_back->setScale(.25f);
@@ -694,4 +677,8 @@ int main(int argc, char** argv)
     
     background.stop();
     return 0;
+  } catch (const std::exception& e) {
+    std::cerr << e.what() << '\n';
+    return 1;
+  }
 }

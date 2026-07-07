@@ -3,6 +3,7 @@
 //
 
 #include "Game.h"
+#include "asset_load.h"
 #include "geometry.h"
 #include "resource_path.h"
 #include <algorithm>
@@ -34,53 +35,45 @@ Game::Game(NetworkMode mode, std::shared_ptr<NetworkManager> netManager)
       m_networkMode(mode),
       m_networkManager(netManager)
 {
-    if (!background.openFromFile(resource_path + "background.wav")) {
-        std::cout << "your music is broken, go fix it" << std::endl;
-    }
+    loadOrThrow(background, resource_path + "background.wav");
 
-    m_player->load(resource_path + "rocket.png");
+    loadOrThrow(*m_player, resource_path + "rocket.png");
     m_player->setScale(2.0f);
     m_player->setPosition(m_player->getWidth(), 400);
 
-    player2->load(resource_path + "robot.png");
+    loadOrThrow(*player2, resource_path + "robot.png");
     player2->setScale(-1.0f, 1.0f);
     player2->setPosition(m_window.getSize().x - (m_player->getWidth() + 150), 400);
 
     stuff.push_back(std::make_unique<RegularGameObject>());
-    stuff[0]->load(resource_path + "brick.png");
+    loadOrThrow(*stuff[0], resource_path + "brick.png");
     stuff[0]->setScale(2.0f);
 
     {
         auto fire = std::make_unique<AnimatedGameObject>(216, 216, 5, 3, 10, 0);
-        fire->load(resource_path + "fire.png");
+        loadOrThrow(*fire, resource_path + "fire.png");
         fire->setScale(2.0f);
         fire->setPosition(-15, 400);
         stuff.push_back(std::move(fire));
     }
     {
         auto fire2 = std::make_unique<AnimatedGameObject>(216, 216, 5, 3, 10, 0);
-        fire2->load(resource_path + "fire.png");
+        loadOrThrow(*fire2, resource_path + "fire.png");
         fire2->setScale(2.0f);
         fire2->setPosition((1920 / 2) - 5, 400);
         stuff.push_back(std::move(fire2));
     }
     {
         auto fire3 = std::make_unique<AnimatedGameObject>(216, 216, 5, 3, 10, 0);
-        fire3->load(resource_path + "fire.png");
+        loadOrThrow(*fire3, resource_path + "fire.png");
         fire3->setScale(2.0f);
         fire3->setPosition(1820, 400);
         stuff.push_back(std::move(fire3));
     }
 
-    if (!font.loadFromFile(resource_path + "oswald.ttf")) {
-        std::cout << "Font did not load" << std::endl;
-    }
-    if (!tfont.loadFromFile(resource_path + "timer.ttf")) {
-        std::cout << "Font did not load" << std::endl;
-    }
-    if (!block.loadFromFile(resource_path + "Blockt.ttf")) {
-        std::cout << "Font did not load" << std::endl;
-    }
+    loadOrThrow(font,  resource_path + "oswald.ttf");
+    loadOrThrow(tfont, resource_path + "timer.ttf");
+    loadOrThrow(block, resource_path + "Blockt.ttf");
 
     pause_text = sf::Text("Cooldown", block, 400);
     pause_text.setPosition(m_window.getSize().x / 2 - 850, 100);
@@ -100,37 +93,21 @@ Game::Game(NetworkMode mode, std::shared_ptr<NetworkManager> netManager)
     timer.setFillColor(sf::Color::Black);
     text.setFillColor(sf::Color::Blue);
 
-    if (!sbuffer.loadFromFile(resource_path + "sword_miss.wav")) {
-        std::cout << "sound did not load";
-    }
+    loadOrThrow(sbuffer,     resource_path + "sword_miss.wav");
     sword.setBuffer(sbuffer);
-    if (!p2hitbuffer.loadFromFile(resource_path + "skeleton.wav")) {
-        std::cout << "sound did not load";
-    }
+    loadOrThrow(p2hitbuffer, resource_path + "skeleton.wav");
     p2hit.setBuffer(p2hitbuffer);
-    if (!laserbuffer.loadFromFile(resource_path + "new_laser.wav")) {
-        std::cout << "sound did not load";
-    }
+    loadOrThrow(laserbuffer, resource_path + "new_laser.wav");
     laser.setBuffer(laserbuffer);
-    if (!metalbuffer.loadFromFile(resource_path + "metal_hit.wav")) {
-        std::cout << "sound did not load";
-    }
+    loadOrThrow(metalbuffer, resource_path + "metal_hit.wav");
     metal.setBuffer(metalbuffer);
-    if (!speedbuffer.loadFromFile(resource_path + "SpeedUp.wav")) {
-        std::cout << "sound did not load";
-    }
+    loadOrThrow(speedbuffer, resource_path + "SpeedUp.wav");
     speed_up.setBuffer(speedbuffer);
-    if (!slowbuffer.loadFromFile(resource_path + "SlowDown.wav")) {
-        std::cout << "sound did not load";
-    }
+    loadOrThrow(slowbuffer,  resource_path + "SlowDown.wav");
     slow_down.setBuffer(slowbuffer);
-    if (!burnbuffer.loadFromFile(resource_path + "burn.wav")) {
-        std::cout << "sound did not load";
-    }
+    loadOrThrow(burnbuffer,  resource_path + "burn.wav");
     burn.setBuffer(burnbuffer);
-    if (!gongbuffer.loadFromFile(resource_path + "gong.wav")) {
-        std::cout << "sound did not load";
-    }
+    loadOrThrow(gongbuffer,  resource_path + "gong.wav");
     gong.setBuffer(gongbuffer);
     laser.setVolume(60);
 }
