@@ -2,6 +2,8 @@
 //   objectBounds — rectangle construction from a GameObject
 //   advanceFrameRect — sprite-sheet frame stepping
 //   applyInputToP1 — P1 input mapping (bool attack parameter)
+//   makeLetterboxView — aspect-preserving viewport math
+//   loadBindings / keyFromName / nameFromKey — config parser (step 6)
 // Also: RegularGameObject method coverage.
 
 #include <catch2/catch_approx.hpp>
@@ -9,8 +11,11 @@
 
 #include "RegularGameObject.h"
 #include "geometry.h"
+#include "key_bindings.h"
+#include "letterbox.h"
 #include "replay.h"
 #include "sprite_anim.h"
+#include <sstream>
 
 // ── StubGameObject ─────────────────────────────────────────────────────────────
 // Minimal concrete implementation of GameObject for testing objectBounds.
@@ -329,4 +334,141 @@ TEST_CASE("RegularGameObject: position/scale/move work after changeValid", "[uni
 TEST_CASE("RegularGameObject: setOrigin does not crash", "[unit]") {
     RegularGameObject obj;
     obj.setOrigin(); // no m_valid guard; safe on untextured sprite
+}
+
+// ── makeLetterboxView ──────────────────────────────────────────────────────────
+
+TEST_CASE("makeLetterboxView: wider window → pillarbox viewport", "[letterbox][unit]") {
+    // 2560×1080 window, 1920×1080 logical (16:9)
+    // logicalAspect=1.777, windowAspect=2.370 → pillarbox
+    // vpW = 1.777/2.370 = 0.75, vpX = 0.125
+    auto view = makeLetterboxView({1920.f, 1080.f}, {2560u, 1080u});
+    auto vp = view.getViewport();
+    REQUIRE(vp.left == Catch::Approx(0.125f).margin(0.001f));
+    REQUIRE(vp.top == Catch::Approx(0.f).margin(0.001f));
+    REQUIRE(vp.width == Catch::Approx(0.75f).margin(0.001f));
+    REQUIRE(vp.height == Catch::Approx(1.f).margin(0.001f));
+}
+
+TEST_CASE("makeLetterboxView: taller window → letterbox viewport", "[letterbox][unit]") {
+    // 1920×1440 window (4:3), 1920×1080 logical (16:9)
+    // logicalAspect=1.777, windowAspect=1.333 → letterbox
+    // vpH = 1.333/1.777 = 0.75, vpY = 0.125
+    auto view = makeLetterboxView({1920.f, 1080.f}, {1920u, 1440u});
+    auto vp = view.getViewport();
+    REQUIRE(vp.left == Catch::Approx(0.f).margin(0.001f));
+    REQUIRE(vp.top == Catch::Approx(0.125f).margin(0.001f));
+    REQUIRE(vp.width == Catch::Approx(1.f).margin(0.001f));
+    REQUIRE(vp.height == Catch::Approx(0.75f).margin(0.001f));
+}
+
+TEST_CASE("makeLetterboxView: exact aspect → full viewport", "[letterbox][unit]") {
+    auto view = makeLetterboxView({1920.f, 1080.f}, {1920u, 1080u});
+    auto vp = view.getViewport();
+    REQUIRE(vp.left == Catch::Approx(0.f).margin(0.001f));
+    REQUIRE(vp.top == Catch::Approx(0.f).margin(0.001f));
+    REQUIRE(vp.width == Catch::Approx(1.f).margin(0.001f));
+    REQUIRE(vp.height == Catch::Approx(1.f).margin(0.001f));
+}
+
+TEST_CASE("makeLetterboxView: view maps logical rect [0,0,w,h]", "[letterbox][unit]") {
+    auto view = makeLetterboxView({1024.f, 576.f}, {1920u, 1080u});
+    // The view's logical rectangle should cover the full 1024×576 logical canvas
+    auto r = view.getSize();
+    REQUIRE(r.x == Catch::Approx(1024.f).margin(0.1f));
+    REQUIRE(r.y == Catch::Approx(576.f).margin(0.1f));
+    auto c = view.getCenter();
+    REQUIRE(c.x == Catch::Approx(512.f).margin(0.1f));
+    REQUIRE(c.y == Catch::Approx(288.f).margin(0.1f));
+}
+
+// ── key_bindings ───────────────────────────────────────────────────────────────
+
+TEST_CASE("keyFromName / nameFromKey round-trip", "[key_bindings][unit]") {
+    REQUIRE(keyFromName("Num8") == sf::Keyboard::Numpad8);
+    REQUIRE(nameFromKey(sf::Keyboard::Numpad8) == "Num8");
+    REQUIRE(keyFromName("Space") == sf::Keyboard::Space);
+    REQUIRE(nameFromKey(sf::Keyboard::Space) == "Space");
+    REQUIRE(keyFromName("Right") == sf::Keyboard::Right);
+    REQUIRE(nameFromKey(sf::Keyboard::Right) == "Right");
+    REQUIRE(keyFromName("W") == sf::Keyboard::W);
+    REQUIRE(nameFromKey(sf::Keyboard::W) == "W");
+}
+
+TEST_CASE("keyFromName: unknown name returns Unknown", "[key_bindings][unit]") {
+    REQUIRE(keyFromName("INVALID_KEY") == sf::Keyboard::Unknown);
+    REQUIRE(keyFromName("") == sf::Keyboard::Unknown);
+}
+
+TEST_CASE("nameFromKey: unknown key returns 'Unknown'", "[key_bindings][unit]") {
+    REQUIRE(nameFromKey(sf::Keyboard::Unknown) == "Unknown");
+}
+
+TEST_CASE("defaultBindings: hard-coded keys match original layout", "[key_bindings][unit]") {
+    auto b = defaultBindings();
+    REQUIRE(b.p1.up == sf::Keyboard::Numpad8);
+    REQUIRE(b.p1.down == sf::Keyboard::Numpad5);
+    REQUIRE(b.p1.left == sf::Keyboard::Numpad4);
+    REQUIRE(b.p1.right == sf::Keyboard::Numpad6);
+    REQUIRE(b.p1.attack == sf::Keyboard::Right);
+    REQUIRE(b.p2.up == sf::Keyboard::W);
+    REQUIRE(b.p2.down == sf::Keyboard::S);
+    REQUIRE(b.p2.left == sf::Keyboard::A);
+    REQUIRE(b.p2.right == sf::Keyboard::D);
+    REQUIRE(b.p2.attack == sf::Keyboard::Space);
+    REQUIRE(b.slowDown == sf::Keyboard::O);
+    REQUIRE(b.speedUp == sf::Keyboard::P);
+    REQUIRE(b.skipCooldown == sf::Keyboard::K);
+}
+
+TEST_CASE("loadBindings: empty stream returns defaults", "[key_bindings][unit]") {
+    std::istringstream empty("");
+    auto b = loadBindings(empty);
+    auto d = defaultBindings();
+    REQUIRE(b.p1.up == d.p1.up);
+    REQUIRE(b.p2.attack == d.p2.attack);
+    REQUIRE(b.slowDown == d.slowDown);
+}
+
+TEST_CASE("loadBindings: parses valid p1/p2 fields", "[key_bindings][unit]") {
+    std::istringstream cfg("p1_up = W\np2_attack = Enter\n");
+    auto b = loadBindings(cfg);
+    REQUIRE(b.p1.up == sf::Keyboard::W);
+    REQUIRE(b.p2.attack == sf::Keyboard::Return);
+    // Unspecified fields keep defaults
+    REQUIRE(b.p1.down == defaultBindings().p1.down);
+}
+
+TEST_CASE("loadBindings: strips comments and blank lines", "[key_bindings][unit]") {
+    std::istringstream cfg("# comment\n\np1_up = A # inline comment\n");
+    auto b = loadBindings(cfg);
+    REQUIRE(b.p1.up == sf::Keyboard::A);
+}
+
+TEST_CASE("loadBindings: unknown key name warns and keeps default", "[key_bindings][unit]") {
+    std::istringstream cfg("p1_up = NOTAKEY\n");
+    auto b = loadBindings(cfg);
+    // Unknown key → default kept
+    REQUIRE(b.p1.up == defaultBindings().p1.up);
+}
+
+TEST_CASE("loadBindings: all 13 fields parsed", "[key_bindings][unit]") {
+    std::istringstream cfg(
+        "p1_up = F1\np1_down = F2\np1_left = F3\np1_right = F4\np1_attack = F5\n"
+        "p2_up = F6\np2_down = F7\np2_left = F8\np2_right = F9\np2_attack = F10\n"
+        "slow_down = F11\nspeed_up = F12\nskip_cooldown = Tab\n");
+    auto b = loadBindings(cfg);
+    REQUIRE(b.p1.up == sf::Keyboard::F1);
+    REQUIRE(b.p1.down == sf::Keyboard::F2);
+    REQUIRE(b.p1.left == sf::Keyboard::F3);
+    REQUIRE(b.p1.right == sf::Keyboard::F4);
+    REQUIRE(b.p1.attack == sf::Keyboard::F5);
+    REQUIRE(b.p2.up == sf::Keyboard::F6);
+    REQUIRE(b.p2.down == sf::Keyboard::F7);
+    REQUIRE(b.p2.left == sf::Keyboard::F8);
+    REQUIRE(b.p2.right == sf::Keyboard::F9);
+    REQUIRE(b.p2.attack == sf::Keyboard::F10);
+    REQUIRE(b.slowDown == sf::Keyboard::F11);
+    REQUIRE(b.speedUp == sf::Keyboard::F12);
+    REQUIRE(b.skipCooldown == sf::Keyboard::Tab);
 }

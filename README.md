@@ -33,14 +33,22 @@ Launch the game and use the main menu:
 
 ## Controls
 
-| Action         | Player 1 (Robot)       | Player 2 (Rocket) |
+| Action         | Player 1 (Rocket)      | Player 2 (Robot)  |
 |----------------|------------------------|-------------------|
-| Move           | Numpad 8/5/4/6         | W/S/A/D           |
+| Move           | Numpad 8/5/4/6         | W/A/S/D           |
 | Attack         | Right arrow            | Space             |
-| Slow down      | O                      | O                 |
-| Speed up       | P                      | P                 |
-| Skip cooldown  | K                      | K                 |
-| Quit           | Escape                 | Escape            |
+
+| Global         | Key                    |
+|----------------|------------------------|
+| Slow down      | O                      |
+| Speed up       | P                      |
+| Skip cooldown  | K                      |
+| Pause / resume | Esc                    |
+| Quit to menu   | Q (while paused)       |
+| Fullscreen     | F11                    |
+
+The window is resizable and scales with a letterbox (aspect preserved). Key bindings can be customised
+via a `controls.cfg` file next to the binary — run `dungeon_game --help` for the format.
 
 ---
 

@@ -42,6 +42,9 @@ jobs:
         run: cmake --build build -j
 
       - name: Run tests (xvfb for integration cases)
+        env:
+          ALSOFT_DRIVERS: 'null'   # headless runner has no audio device; OpenAL-soft null driver
+                                   # so SoundBuffer/Sound calls are safe no-ops (else burn.play() segfaults)
         run: |
           mkdir -p build/cov
           LLVM_PROFILE_FILE=$PWD/build/cov/%p-%m.profraw \

@@ -36,6 +36,7 @@ add_library(dungeon_lib STATIC
     src/resource_path.cpp
     src/replay.cpp
     src/rng.cpp
+    src/key_bindings.cpp
 )
 
 target_include_directories(dungeon_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -62,8 +63,11 @@ if(MSVC)
     target_compile_options(dungeon_lib    PRIVATE /W4)
     target_compile_options(dungeon_game   PRIVATE /W4)
 else()
-    target_compile_options(dungeon_lib    PRIVATE -Wall -Wextra -Wpedantic -Werror)
-    target_compile_options(dungeon_game   PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    # -Wno-deprecated-declarations: don't let toolchain/SDK deprecations (e.g. newer
+    # libc++ deprecating char_traits<unsigned> on bleeding-edge Xcode) fail our -Werror;
+    # they're outside our control and vary by compiler version.
+    target_compile_options(dungeon_lib    PRIVATE -Wall -Wextra -Wpedantic -Werror -Wno-deprecated-declarations)
+    target_compile_options(dungeon_game   PRIVATE -Wall -Wextra -Wpedantic -Werror -Wno-deprecated-declarations)
 endif()
 
 # ── Copy assets next to the binary at build time ────────────────────────────
