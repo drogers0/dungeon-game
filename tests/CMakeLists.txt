@@ -34,6 +34,14 @@ target_compile_definitions(dungeon_integration_tests PRIVATE
 # Ensure dungeon_game (and thus assets/ copy) is built before integration tests
 add_dependencies(dungeon_integration_tests dungeon_game)
 
+if(WIN32 AND DEFINED sfml_SOURCE_DIR)
+    add_custom_command(TARGET dungeon_tests POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${sfml_SOURCE_DIR}/extlibs/bin/x64/openal32.dll
+            $<TARGET_FILE_DIR:dungeon_tests>
+        COMMENT "Copying openal32.dll next to dungeon_tests.exe")
+endif()
+
 # ── Warnings (mirror root settings) ──────────────────────────────────────────
 foreach(t dungeon_tests dungeon_integration_tests)
     if(MSVC)

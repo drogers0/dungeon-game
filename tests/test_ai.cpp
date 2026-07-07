@@ -1,6 +1,7 @@
 // Unit tests for the AI decider + controller.
 // Pure functions only — no window, no display, no audio.
 
+#include <algorithm>
 #include <catch2/catch_test_macros.hpp>
 
 #include "ai.h"

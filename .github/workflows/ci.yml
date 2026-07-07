@@ -93,3 +93,34 @@ jobs:
 
       - name: Run unit tests (no display required)
         run: ctest --test-dir build -L unit --output-on-failure
+
+  # ── Windows: MSVC static build + unit tests ───────────────────────────────
+  build-windows:
+    name: Build + Unit Tests (windows-latest)
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache SFML build deps
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/build/_deps
+          key: ${{ runner.os }}-sfmldeps-v1-${{ hashFiles('CMakeLists.txt', '.github/workflows/ci.yml') }}
+          restore-keys: ${{ runner.os }}-sfmldeps-v1-
+
+      - name: Configure
+        run: |
+          cmake -B build -A x64 `
+            -DDUNGEON_BUILD_TESTS=ON `
+            -DBUILD_SHARED_LIBS=OFF `
+            -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
+
+      - name: Build
+        run: cmake --build build --config Release -j
+
+      - name: Run unit tests
+        shell: pwsh
+        run: |
+          $env:PATH = "$env:GITHUB_WORKSPACE/build/Release;$env:PATH"
+          ctest --test-dir build -C Release -L unit --output-on-failure

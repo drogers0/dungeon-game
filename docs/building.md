@@ -9,7 +9,8 @@
   - **macOS:** Xcode command-line tools. Homebrew optional.
   - **Linux:** X11/OpenGL/udev/FLAC/OpenAL/etc. dev packages (see the SFML docs; on Debian/Ubuntu
     the `libsfml-dev` build-deps cover it). CI installs these explicitly.
-  - **Windows:** Visual Studio 2019+ (MSVC) — see issue #1 for the release path.
+  - **Windows:** Visual Studio 2019+ (MSVC). CMake ships with Visual Studio or can be installed
+    separately. No extra SFML install is needed — it is fetched automatically.
 
 ## SFML
 
@@ -32,6 +33,28 @@ cmake --build build -j
 Assets from [../assets/](../assets/) are copied next to the executable at build time, so the
 game finds them regardless of the working directory. (Historically the game only ran from the repo
 root because of a hardcoded relative asset path — that dependency has been removed.)
+
+## Building on Windows
+
+Open a **Developer Command Prompt for VS** (or any shell that has `cmake` and `cl.exe` on `PATH`):
+
+```bat
+cmake -B build
+cmake --build build --config Release
+build\Release\dungeon_game.exe
+```
+
+For a fully redistributable binary (no Visual C++ Redistributable needed on the target machine):
+
+```bat
+cmake -B build -A x64 -DBUILD_SHARED_LIBS=OFF -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
+cmake --build build --config Release
+build\Release\dungeon_game.exe
+```
+
+SFML 2.6.2 is fetched automatically on the first configure. The build system copies `openal32.dll`
+from the fetched SFML tree next to `dungeon_game.exe`, so the game runs without a separate OpenAL
+install. Assets are also copied next to the binary.
 
 ## Tests
 
