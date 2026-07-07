@@ -27,19 +27,21 @@ AiParams paramsFor(AiDifficulty d);
 
 // ── AiView ───────────────────────────────────────────────────────────────────
 // Snapshot of game state fed to the decider each step.
-// selfBounds MUST be a normalised (positive-width) rect — see Game::makeAiView.
+// selfBounds AND oppBounds MUST be normalised (positive-width) rects — the
+// decider's nearest-edge math assumes a canonical left/width. See
+// Game::makeAiView (both go through normalizedBounds()).
 
 struct AiView {
     sf::Vector2f selfPos;
     sf::FloatRect selfBounds; // normalised (positive width/height)
-    bool selfFacingLeft;
+    bool selfFacingLeft;      // reserved: decider derives facing from dx; currently unread
     sf::Vector2f oppPos;
-    sf::FloatRect oppBounds;
+    sf::FloatRect oppBounds;              // normalised (positive width/height)
     std::array<sf::FloatRect, 3> hazards; // fire hazards (arena[1..3])
     bool inCooldown;
     int selfScore;
     int oppScore;
-    long long step;
+    long long step; // reserved: currently unread by the decider/controller
 };
 
 // ── Pure decider ─────────────────────────────────────────────────────────────

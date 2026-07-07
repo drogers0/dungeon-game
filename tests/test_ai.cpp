@@ -43,6 +43,31 @@ TEST_CASE("ai: in range, aligned, facing, missTimeProb=0 → attack==true", "[ai
     REQUIRE(out.attack == true);
 }
 
+// ── 1b. Near-edge (body-to-body) attack: wide opponent to the right ───────────
+// Mirrors the real posture makeAiView normalises: the opponent (rocket) sits to
+// the RIGHT of the robot. The attack check must use the NEAR (left) edge of a
+// normalised oppBounds, not the anchor/centre — here the anchor is out of range
+// but the near edge is in range, so a body-aware AI still attacks. This is the
+// oppToRight branch of nearOppEdge; a non-normalised (negative-width) oppBounds
+// would pick the far edge and wrongly decline the attack.
+
+TEST_CASE("ai: near-edge attack — wide opponent to the right, anchor out but edge in", "[ai]") {
+    AiParams p = paramsFor(AiDifficulty::Hard); // attackRange=320, attackAlignY=80
+    p.missTimeProb = 0.f;
+    p.mistakeProb = 0.f;
+
+    std::mt19937 rng(1);
+    // Robot at x=960; opponent anchor at x=1410 (dx=+450 > attackRange → anchor out of range).
+    AiView v = makeView(960.f, 400.f, 1410.f, 400.f, /*facingLeft=*/false);
+    // Wide opponent: near (left) edge at 1260 → edge distance 300 < attackRange=320.
+    v.oppBounds = sf::FloatRect{1260.f, 310.f, 300.f, 180.f};
+
+    PlayerInput out = decideAiInput(v, p, rng);
+    REQUIRE(out.attack == true); // fires on near-edge distance, not the far anchor
+    REQUIRE(out.right == true);  // faces toward opponent (to the right)
+    REQUIRE(out.left == false);
+}
+
 // ── 2. Beyond attackRange → no attack, moves toward opponent ─────────────────
 
 TEST_CASE("ai: beyond attackRange → no attack, moves toward opponent", "[ai]") {
@@ -223,7 +248,7 @@ TEST_CASE("ai: swing pacing — attacks spaced by at least swingEverySteps", "[a
 
 // ── 9. paramsFor sanity ───────────────────────────────────────────────────────
 
-TEST_CASE("ai: paramsFor sanity — Easy harder than Medium harder than Hard", "[ai]") {
+TEST_CASE("ai: paramsFor sanity — params scale with difficulty (Easy < Medium < Hard)", "[ai]") {
     AiParams easy = paramsFor(AiDifficulty::Easy);
     AiParams med = paramsFor(AiDifficulty::Medium);
     AiParams hard = paramsFor(AiDifficulty::Hard);

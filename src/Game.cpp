@@ -162,22 +162,17 @@ AiView Game::makeAiView() const {
     AiView view;
     view.selfPos = m_robot->getPosition();
 
-    // selfBounds must be normalised: robot faces left by default (scale.x=-1),
-    // so objectBounds returns a negative-width rect — fix it.
-    sf::FloatRect sb = objectBounds(*m_robot);
-    if (sb.width < 0.f) {
-        sb.left += sb.width;
-        sb.width = -sb.width;
-    }
-    if (sb.height < 0.f) {
-        sb.top += sb.height;
-        sb.height = -sb.height;
-    }
-    view.selfBounds = sb;
+    // Both bounds must be normalised to positive width/height: either fighter
+    // may face left (scale.x = -1), which makes objectBounds negative-width.
+    // The decider's nearest-edge math needs a canonical left/width, so use
+    // normalizedBounds for self AND opponent (opp normalisation matters when
+    // P1 faces left while the robot is to its left — otherwise nearOppEdge
+    // picks the far edge and the AI thinks it is a full body-width too far).
+    view.selfBounds = normalizedBounds(*m_robot);
 
     view.selfFacingLeft = m_p2FacingLeft;
     view.oppPos = m_rocket->getPosition();
-    view.oppBounds = objectBounds(*m_rocket);
+    view.oppBounds = normalizedBounds(*m_rocket);
 
     // arena[0] is the brick floor; arena[1..3] are the three fire hazards.
     for (int i = 0; i < 3; ++i)
