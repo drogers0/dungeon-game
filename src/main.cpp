@@ -30,7 +30,7 @@ void startgame(int& highscore, NetworkMode mode = NetworkMode::LOCAL, std::share
     bool peerLeft = std::get<5>(tuple);
     char gTime [10];
     std::snprintf(gTime, sizeof(gTime), "%02.0f:%02d", tempM, tempS);
-    std::string clack = gTime;
+    std::string finalTime = gTime;
 
     if (p1score > highscore )
         highscore = p1score;
@@ -41,7 +41,7 @@ void startgame(int& highscore, NetworkMode mode = NetworkMode::LOCAL, std::share
     sf::Font pfont;
     sf::Text p1scoret;
     sf::Text p2scoret;
-    sf::Text clackt;
+    sf::Text finalTimet;
     sf::Text highscoret;
 
     RegularGameObject wall = RegularGameObject();
@@ -70,15 +70,15 @@ void startgame(int& highscore, NetworkMode mode = NetworkMode::LOCAL, std::share
     p1scoret.setFillColor(sf::Color::Blue);
     p2scoret = sf::Text(std::to_string(p2score), pfont, 50);
     p2scoret.setFillColor(sf::Color::Green);
-    clackt = sf::Text(clack, tfont, 50);
-    clackt.setFillColor(sf::Color::Blue);
+    finalTimet = sf::Text(finalTime, tfont, 50);
+    finalTimet.setFillColor(sf::Color::Blue);
 
     highscoret = sf::Text(std::to_string(highscore), pfont,70);
 
 
     p1scoret.setPosition(5,endscreen.getSize().y/2);
     p2scoret.setPosition(endscreen.getSize().x-(p1scoret.getGlobalBounds().width)-5,endscreen.getSize().y/2);
-    clackt.setPosition(endscreen.getSize().x/2 - clackt.getGlobalBounds().width+20,-10);
+    finalTimet.setPosition(endscreen.getSize().x/2 - finalTimet.getGlobalBounds().width+20,-10);
     highscoret.setPosition(endscreen.getSize().x/2 - highscoret.getGlobalBounds().width,25);
 
     if (p1score == highscore )
@@ -120,7 +120,7 @@ void startgame(int& highscore, NetworkMode mode = NetworkMode::LOCAL, std::share
         wall.draw(endscreen);
         endscreen.draw(p1scoret);
         endscreen.draw(p2scoret);
-        endscreen.draw(clackt);
+        endscreen.draw(finalTimet);
         endscreen.draw(highscoret);
         m_start->draw(endscreen);
         m_quit->draw(endscreen);

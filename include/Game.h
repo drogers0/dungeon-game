@@ -76,42 +76,42 @@ private:
 
     sf::Music background;
 
-    std::unique_ptr<GameObject> m_player = std::make_unique<AnimatedGameObject>(404, 206, 3, 3, 9, 0);
-    std::unique_ptr<GameObject> player2  = std::make_unique<AnimatedGameObject>(959, 180, 8, 1, 8, 0);
-    std::vector<std::unique_ptr<GameObject>> stuff;
+    std::unique_ptr<GameObject> m_rocket = std::make_unique<AnimatedGameObject>(404, 206, 3, 3, 9, 0);
+    std::unique_ptr<GameObject> m_robot  = std::make_unique<AnimatedGameObject>(959, 180, 8, 1, 8, 0);
+    std::vector<std::unique_ptr<GameObject>> m_arena;
 
     sf::Font font;
     sf::Font tfont;
     sf::Font block;
-    sf::Text text;
-    sf::Text text2;
+    sf::Text m_rocketScoreText;
+    sf::Text m_robotScoreText;
     sf::Text timer;
     sf::Text pause_text;
     sf::Text info;
 
     float m_speed          = 1200.0f;
-    float temp_time        = 0;
-    float p1_timeout       = 0;
-    float p2_timeout       = 0;
-    bool  m_left           = false;
-    bool  m_right          = false;
-    bool  m_up             = false;
-    bool  m_down           = false;
-    bool  w                = false;
-    bool  a                = false;
-    bool  s                = false;
-    bool  d                = false;
-    bool  space            = false;
-    int   points           = 0;
-    int   p2points         = 0;
-    bool  right            = false;
-    bool  p1left           = false;
-    bool  p2left           = true;
-    bool  p                = false;
-    bool  o                = false;
-    bool  wait             = false;
-    bool  p1_time_passed   = true;
-    bool  p2_time_passed   = true;
+    float m_cooldownEnd    = 0;
+    float m_p1HazardCooldownEnd       = 0;
+    float m_p2HazardCooldownEnd       = 0;
+    bool  m_p1Left           = false;
+    bool  m_p1Right          = false;
+    bool  m_p1Up             = false;
+    bool  m_p1Down           = false;
+    bool  m_p2Up           = false;
+    bool  m_p2Left         = false;
+    bool  m_p2Down         = false;
+    bool  m_p2Right        = false;
+    bool  m_p2Attack       = false;
+    int   m_robotScore     = 0;
+    int   m_rocketScore         = 0;
+    bool  m_p1Attack       = false;
+    bool  m_p1FacingLeft           = false;
+    bool  m_p2FacingLeft           = true;
+    bool  m_speedUpPressed   = false;
+    bool  m_slowDownPressed  = false;
+    bool  m_inCooldown     = false;
+    bool  m_p1HazardReady   = true;
+    bool  m_p2HazardReady   = true;
 
     // Fixed-timestep state
     static constexpr float kFixedDt = 1.f / 60.f;

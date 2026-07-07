@@ -37,38 +37,38 @@ Game::Game(NetworkMode mode, std::shared_ptr<NetworkManager> netManager)
 {
     loadOrThrow(background, resource_path + "background.wav");
 
-    loadOrThrow(*m_player, resource_path + "rocket.png");
-    m_player->setScale(2.0f);
-    m_player->setPosition(m_player->getWidth(), 400);
+    loadOrThrow(*m_rocket, resource_path + "rocket.png");
+    m_rocket->setScale(2.0f);
+    m_rocket->setPosition(m_rocket->getWidth(), 400);
 
-    loadOrThrow(*player2, resource_path + "robot.png");
-    player2->setScale(-1.0f, 1.0f);
-    player2->setPosition(m_window.getSize().x - (m_player->getWidth() + 150), 400);
+    loadOrThrow(*m_robot, resource_path + "robot.png");
+    m_robot->setScale(-1.0f, 1.0f);
+    m_robot->setPosition(m_window.getSize().x - (m_rocket->getWidth() + 150), 400);
 
-    stuff.push_back(std::make_unique<RegularGameObject>());
-    loadOrThrow(*stuff[0], resource_path + "brick.png");
-    stuff[0]->setScale(2.0f);
+    m_arena.push_back(std::make_unique<RegularGameObject>());
+    loadOrThrow(*m_arena[0], resource_path + "brick.png");
+    m_arena[0]->setScale(2.0f);
 
     {
         auto fire = std::make_unique<AnimatedGameObject>(216, 216, 5, 3, 10, 0);
         loadOrThrow(*fire, resource_path + "fire.png");
         fire->setScale(2.0f);
         fire->setPosition(-15, 400);
-        stuff.push_back(std::move(fire));
+        m_arena.push_back(std::move(fire));
     }
     {
         auto fire2 = std::make_unique<AnimatedGameObject>(216, 216, 5, 3, 10, 0);
         loadOrThrow(*fire2, resource_path + "fire.png");
         fire2->setScale(2.0f);
         fire2->setPosition((1920 / 2) - 5, 400);
-        stuff.push_back(std::move(fire2));
+        m_arena.push_back(std::move(fire2));
     }
     {
         auto fire3 = std::make_unique<AnimatedGameObject>(216, 216, 5, 3, 10, 0);
         loadOrThrow(*fire3, resource_path + "fire.png");
         fire3->setScale(2.0f);
         fire3->setPosition(1820, 400);
-        stuff.push_back(std::move(fire3));
+        m_arena.push_back(std::move(fire3));
     }
 
     loadOrThrow(font,  resource_path + "oswald.ttf");
@@ -83,15 +83,15 @@ Game::Game(NetworkMode mode, std::shared_ptr<NetworkManager> netManager)
     info.setPosition(pause_text.getPosition().x + 150, pause_text.getPosition().y + 500);
     info.setFillColor(sf::Color::Black);
 
-    text  = sf::Text("Rocket Score: 0", font, 40);
-    text2 = sf::Text("Robot Score: 0", font, 40);
+    m_rocketScoreText  = sf::Text("Rocket Score: 0", font, 40);
+    m_robotScoreText = sf::Text("Robot Score: 0", font, 40);
     timer = sf::Text("timer", tfont, 60);
     timer.setPosition((m_window.getSize().x / 2) - 60, 0);
-    text.setPosition(10, 0);
-    text2.setPosition(m_window.getSize().x - text2.getGlobalBounds().width, 0);
-    text2.setFillColor(sf::Color::Green);
+    m_rocketScoreText.setPosition(10, 0);
+    m_robotScoreText.setPosition(m_window.getSize().x - m_robotScoreText.getGlobalBounds().width, 0);
+    m_robotScoreText.setFillColor(sf::Color::Green);
     timer.setFillColor(sf::Color::Black);
-    text.setFillColor(sf::Color::Blue);
+    m_rocketScoreText.setFillColor(sf::Color::Blue);
 
     loadOrThrow(sbuffer,     resource_path + "sword_miss.wav");
     sword.setBuffer(sbuffer);
@@ -137,7 +137,7 @@ std::tuple<int, int, float, int, bool, bool> Game::run()
     background.setVolume(40);
     gong.setVolume(50);
 
-    float     apieceofcrap = 0.f;
+    float     minutes = 0.f;
     int       seconds      = 0;
     bool      p1win        = false;
     int       framesLeft   = m_debug.frames;
@@ -147,10 +147,10 @@ std::tuple<int, int, float, int, bool, bool> Game::run()
         // ── Timer display from step counter ──────────────────────────────────
         {
             int totalSecs  = static_cast<int>(gameSeconds());
-            apieceofcrap   = static_cast<float>(totalSecs / 60);
+            minutes   = static_cast<float>(totalSecs / 60);
             seconds        = totalSecs % 60;
             char gClock[10];
-            std::snprintf(gClock, sizeof(gClock), "%02.0f:%02d", apieceofcrap, seconds);
+            std::snprintf(gClock, sizeof(gClock), "%02.0f:%02d", minutes, seconds);
             timer.setString(gClock);
         }
 
@@ -188,8 +188,8 @@ std::tuple<int, int, float, int, bool, bool> Game::run()
     }
 
     background.stop();
-    p1win = (p2points > points);
-    return {p2points, points, apieceofcrap, seconds, p1win, m_peerLeft};
+    p1win = (m_rocketScore > m_robotScore);
+    return {m_rocketScore, m_robotScore, minutes, seconds, p1win, m_peerLeft};
 }
 
 // ── simStep ───────────────────────────────────────────────────────────────────
@@ -208,19 +208,19 @@ void Game::simStep()
     // Apply replay input for P1.
     if (!m_replayP1.empty()) {
         if (m_replayP1Idx < m_replayP1.size()) {
-            applyInputToP1(m_up, m_left, m_down, m_right, right, m_replayP1[m_replayP1Idx++]);
+            applyInputToP1(m_p1Up, m_p1Left, m_p1Down, m_p1Right, m_p1Attack, m_replayP1[m_replayP1Idx++]);
         } else {
             PlayerInput empty{};
-            applyInputToP1(m_up, m_left, m_down, m_right, right, empty);
+            applyInputToP1(m_p1Up, m_p1Left, m_p1Down, m_p1Right, m_p1Attack, empty);
         }
     }
 
     // Update or drain the cooldown wait.
-    if (!wait) {
+    if (!m_inCooldown) {
         update(sf::seconds(kFixedDt), m_animTime);
-        temp_time = static_cast<float>(gameSeconds()) + 1.75f;
-    } else if (gameSeconds() > static_cast<double>(temp_time)) {
-        wait = false;
+        m_cooldownEnd = static_cast<float>(gameSeconds()) + 1.75f;
+    } else if (gameSeconds() > static_cast<double>(m_cooldownEnd)) {
+        m_inCooldown = false;
         gong.play();
     }
 
@@ -230,32 +230,32 @@ void Game::simStep()
     m_animTime += kFixedDt;
 
     // Timeout checks.
-    if (gameSeconds() > static_cast<double>(p1_timeout))
-        p1_time_passed = true;
-    if (gameSeconds() > static_cast<double>(p2_timeout))
-        p2_time_passed = true;
+    if (gameSeconds() > static_cast<double>(m_p1HazardCooldownEnd))
+        m_p1HazardReady = true;
+    if (gameSeconds() > static_cast<double>(m_p2HazardCooldownEnd))
+        m_p2HazardReady = true;
 
     // Hazard collision + scoring.
-    for (int x = 1; x < static_cast<int>(stuff.size()); x++) {
-        if (collision(*stuff[x], *m_player) && p1_time_passed) {
+    for (int x = 1; x < static_cast<int>(m_arena.size()); x++) {
+        if (collision(*m_arena[x], *m_rocket) && m_p1HazardReady) {
             burn.play();
-            p2points--;
-            p1_time_passed = false;
-            p1_timeout     = static_cast<float>(gameSeconds()) + 2.2f;
+            m_rocketScore--;
+            m_p1HazardReady = false;
+            m_p1HazardCooldownEnd     = static_cast<float>(gameSeconds()) + 2.2f;
         }
-        if (collision(*stuff[x], *player2) && p2_time_passed) {
+        if (collision(*m_arena[x], *m_robot) && m_p2HazardReady) {
             burn.play();
-            points--;
-            p2_time_passed = false;
-            p2_timeout     = static_cast<float>(gameSeconds()) + 2.2f;
+            m_robotScore--;
+            m_p2HazardReady = false;
+            m_p2HazardCooldownEnd     = static_cast<float>(gameSeconds()) + 2.2f;
         }
     }
 
     // Score clamps.
-    if (points < 0)
-        points = 0;
-    if (p2points < 0)
-        p2points = 0;
+    if (m_robotScore < 0)
+        m_robotScore = 0;
+    if (m_rocketScore < 0)
+        m_rocketScore = 0;
 
     ++m_steps;
 }
@@ -264,7 +264,7 @@ void Game::simStep()
 
 void Game::applyPlayerInput(const PlayerInput& in)
 {
-    applyInputTo(w, a, s, d, space, in);
+    applyInputTo(m_p2Up, m_p2Left, m_p2Down, m_p2Right, m_p2Attack, in);
 }
 
 void Game::captureIfDue()
@@ -316,39 +316,39 @@ void Game::handlePlayerInput(sf::Keyboard::Key key, bool isDown)
         // Player 1 controls (rocket — numpad)
         if (m_networkMode == NetworkMode::LOCAL || m_networkMode == NetworkMode::HOST) {
             if (key == sf::Keyboard::Numpad4)
-                m_left = isDown;
+                m_p1Left = isDown;
             if (key == sf::Keyboard::Numpad6)
-                m_right = isDown;
+                m_p1Right = isDown;
             if (key == sf::Keyboard::Numpad8)
-                m_up = isDown;
+                m_p1Up = isDown;
             if (key == sf::Keyboard::Numpad5)
-                m_down = isDown;
+                m_p1Down = isDown;
             if (key == sf::Keyboard::Right)
-                right = isDown;
+                m_p1Attack = isDown;
         }
 
         // Player 2 controls (robot — WASD)
         if (m_networkMode == NetworkMode::LOCAL || m_networkMode == NetworkMode::CLIENT) {
             if (key == sf::Keyboard::W)
-                w = isDown;
+                m_p2Up = isDown;
             if (key == sf::Keyboard::A)
-                a = isDown;
+                m_p2Left = isDown;
             if (key == sf::Keyboard::S)
-                s = isDown;
+                m_p2Down = isDown;
             if (key == sf::Keyboard::D)
-                d = isDown;
+                m_p2Right = isDown;
             if (key == sf::Keyboard::Space)
-                space = !isDown;
+                m_p2Attack = !isDown;
         }
 
         // Speed tweaks and wait-skip
         if (key == sf::Keyboard::O)
-            o = !isDown;
+            m_slowDownPressed = !isDown;
         if (key == sf::Keyboard::P)
-            p = !isDown;
+            m_speedUpPressed = !isDown;
         if (key == sf::Keyboard::K) {
-            if (wait) {
-                wait = false;
+            if (m_inCooldown) {
+                m_inCooldown = false;
                 gong.play();
             }
         }
@@ -372,218 +372,218 @@ void Game::update(sf::Time deltaT, float time)
     sf::Vector2f p1movement(0.0f, 0.0f);
     sf::Vector2f p2movement(0.0f, 0.0f);
 
-    if (m_up) {
-        if (m_player->getPosition().y < -(m_player->getHeight())) {
-            m_player->setPosition(m_player->getPosition().x,
-                                  (m_window.getSize().y) - m_player->getHeight());
+    if (m_p1Up) {
+        if (m_rocket->getPosition().y < -(m_rocket->getHeight())) {
+            m_rocket->setPosition(m_rocket->getPosition().x,
+                                  (m_window.getSize().y) - m_rocket->getHeight());
         }
 
-        if (collision(*m_player, *player2)) {
-            m_player->setPosition(m_player->getPosition().x, m_player->getPosition().y + 40);
+        if (collision(*m_rocket, *m_robot)) {
+            m_rocket->setPosition(m_rocket->getPosition().x, m_rocket->getPosition().y + 40);
         } else {
             p1movement.y -= m_speed;
         }
     }
 
-    if (m_down) {
-        if (m_player->getPosition().y > (m_window.getSize().y) - (m_player->getHeight())) {
-            m_player->setPosition(m_player->getPosition().x, -(m_player->getHeight()));
+    if (m_p1Down) {
+        if (m_rocket->getPosition().y > (m_window.getSize().y) - (m_rocket->getHeight())) {
+            m_rocket->setPosition(m_rocket->getPosition().x, -(m_rocket->getHeight()));
         }
 
-        if (collision(*m_player, *player2)) {
-            m_player->setPosition(m_player->getPosition().x, m_player->getPosition().y - 40);
+        if (collision(*m_rocket, *m_robot)) {
+            m_rocket->setPosition(m_rocket->getPosition().x, m_rocket->getPosition().y - 40);
         } else {
             p1movement.y += m_speed;
         }
     }
-    if (m_left) {
-        if (m_player->getPosition().x < -(m_player->getWidth())) {
-            m_player->setPosition(m_window.getSize().x, m_player->getPosition().y);
+    if (m_p1Left) {
+        if (m_rocket->getPosition().x < -(m_rocket->getWidth())) {
+            m_rocket->setPosition(m_window.getSize().x, m_rocket->getPosition().y);
         }
-        if (!p1left) {
-            m_player->setScale(-2.0f, 2);
-            p1left = true;
-            m_player->setPosition(
-                m_player->getPosition().x -
-                    (m_player->getWidth() * m_player->getScale().x),
-                m_player->getPosition().y);
+        if (!m_p1FacingLeft) {
+            m_rocket->setScale(-2.0f, 2);
+            m_p1FacingLeft = true;
+            m_rocket->setPosition(
+                m_rocket->getPosition().x -
+                    (m_rocket->getWidth() * m_rocket->getScale().x),
+                m_rocket->getPosition().y);
         }
 
-        if (collision(*m_player, *player2)) {
-            m_player->setPosition(m_player->getPosition().x + 40, m_player->getPosition().y);
+        if (collision(*m_rocket, *m_robot)) {
+            m_rocket->setPosition(m_rocket->getPosition().x + 40, m_rocket->getPosition().y);
         } else {
             p1movement.x -= m_speed;
         }
     }
-    if (m_right) {
-        m_player->setScale(2.0f, 2);
+    if (m_p1Right) {
+        m_rocket->setScale(2.0f, 2);
 
-        if (m_player->getPosition().x > m_window.getSize().x) {
-            m_player->setPosition(-(m_player->getWidth()), m_player->getPosition().y);
+        if (m_rocket->getPosition().x > m_window.getSize().x) {
+            m_rocket->setPosition(-(m_rocket->getWidth()), m_rocket->getPosition().y);
         }
 
-        if (p1left) {
-            p1left = false;
-            m_player->setPosition(
-                m_player->getPosition().x -
-                    (m_player->getWidth() * m_player->getScale().x),
-                m_player->getPosition().y);
+        if (m_p1FacingLeft) {
+            m_p1FacingLeft = false;
+            m_rocket->setPosition(
+                m_rocket->getPosition().x -
+                    (m_rocket->getWidth() * m_rocket->getScale().x),
+                m_rocket->getPosition().y);
         }
 
-        if (collision(*m_player, *player2)) {
-            m_player->setPosition(m_player->getPosition().x - 40, m_player->getPosition().y);
+        if (collision(*m_rocket, *m_robot)) {
+            m_rocket->setPosition(m_rocket->getPosition().x - 40, m_rocket->getPosition().y);
         } else {
             p1movement.x += m_speed;
         }
     }
-    if (w) {
-        if (player2->getPosition().y < -(player2->getHeight())) {
-            player2->setPosition(player2->getPosition().x,
-                                 (m_window.getSize().y) - player2->getHeight());
+    if (m_p2Up) {
+        if (m_robot->getPosition().y < -(m_robot->getHeight())) {
+            m_robot->setPosition(m_robot->getPosition().x,
+                                 (m_window.getSize().y) - m_robot->getHeight());
         }
 
-        if (collision(*m_player, *player2)) {
-            player2->setPosition(player2->getPosition().x, player2->getPosition().y + 40);
+        if (collision(*m_rocket, *m_robot)) {
+            m_robot->setPosition(m_robot->getPosition().x, m_robot->getPosition().y + 40);
         } else {
             p2movement.y -= m_speed;
         }
     }
-    if (s) {
-        if (player2->getPosition().y > (m_window.getSize().y) - (player2->getHeight())) {
-            player2->setPosition(player2->getPosition().x, -(player2->getHeight()));
+    if (m_p2Down) {
+        if (m_robot->getPosition().y > (m_window.getSize().y) - (m_robot->getHeight())) {
+            m_robot->setPosition(m_robot->getPosition().x, -(m_robot->getHeight()));
         }
 
-        if (collision(*m_player, *player2)) {
-            player2->setPosition(player2->getPosition().x, player2->getPosition().y - 40);
+        if (collision(*m_rocket, *m_robot)) {
+            m_robot->setPosition(m_robot->getPosition().x, m_robot->getPosition().y - 40);
         } else {
             p2movement.y += m_speed;
         }
     }
-    if (a) {
-        if (player2->getPosition().x < -(player2->getWidth())) {
-            player2->setPosition(m_window.getSize().x, player2->getPosition().y);
+    if (m_p2Left) {
+        if (m_robot->getPosition().x < -(m_robot->getWidth())) {
+            m_robot->setPosition(m_window.getSize().x, m_robot->getPosition().y);
         }
-        player2->setScale(-1.0f, 1.0f);
-        if (!p2left) {
-            p2left = true;
-            player2->setPosition(
-                player2->getPosition().x -
-                    (player2->getWidth() * player2->getScale().x),
-                player2->getPosition().y);
+        m_robot->setScale(-1.0f, 1.0f);
+        if (!m_p2FacingLeft) {
+            m_p2FacingLeft = true;
+            m_robot->setPosition(
+                m_robot->getPosition().x -
+                    (m_robot->getWidth() * m_robot->getScale().x),
+                m_robot->getPosition().y);
         }
 
-        if (collision(*m_player, *player2)) {
-            player2->setPosition(player2->getPosition().x + 40, player2->getPosition().y);
+        if (collision(*m_rocket, *m_robot)) {
+            m_robot->setPosition(m_robot->getPosition().x + 40, m_robot->getPosition().y);
         } else {
             p2movement.x -= m_speed;
         }
     }
-    if (d) {
-        player2->setScale(1.0f, 1.0f);
-        if (player2->getPosition().x > m_window.getSize().x) {
-            player2->setPosition(-(player2->getWidth()), player2->getPosition().y);
+    if (m_p2Right) {
+        m_robot->setScale(1.0f, 1.0f);
+        if (m_robot->getPosition().x > m_window.getSize().x) {
+            m_robot->setPosition(-(m_robot->getWidth()), m_robot->getPosition().y);
         }
-        if (p2left) {
-            p2left = false;
-            player2->setPosition(
-                player2->getPosition().x -
-                    (player2->getWidth() * player2->getScale().x),
-                player2->getPosition().y);
+        if (m_p2FacingLeft) {
+            m_p2FacingLeft = false;
+            m_robot->setPosition(
+                m_robot->getPosition().x -
+                    (m_robot->getWidth() * m_robot->getScale().x),
+                m_robot->getPosition().y);
         }
 
-        if (collision(*m_player, *player2)) {
-            player2->setPosition(player2->getPosition().x - 40, player2->getPosition().y);
+        if (collision(*m_rocket, *m_robot)) {
+            m_robot->setPosition(m_robot->getPosition().x - 40, m_robot->getPosition().y);
         } else {
             p2movement.x += m_speed;
         }
     }
-    if (space) {
+    if (m_p2Attack) {
         sf::Rect<float> hit;
-        if (!p2left) {
+        if (!m_p2FacingLeft) {
             hit = sf::Rect<float>(
-                player2->getPosition(),
-                sf::Vector2f(200 + ((player2->getWidth()) * (player2->getScale().x)),
-                             (player2->getHeight()) * (player2->getScale().y)));
+                m_robot->getPosition(),
+                sf::Vector2f(200 + ((m_robot->getWidth()) * (m_robot->getScale().x)),
+                             (m_robot->getHeight()) * (m_robot->getScale().y)));
         } else {
             hit = sf::Rect<float>(
-                player2->getPosition(),
-                sf::Vector2f(((player2->getWidth()) * (player2->getScale().x)) - 200,
-                             (player2->getHeight()) * (player2->getScale().y)));
+                m_robot->getPosition(),
+                sf::Vector2f(((m_robot->getWidth()) * (m_robot->getScale().x)) - 200,
+                             (m_robot->getHeight()) * (m_robot->getScale().y)));
         }
 
-        if (collision(hit, *m_player)) {
+        if (collision(hit, *m_rocket)) {
             metal.play();
-            points++;
+            m_robotScore++;
             reset = true;
         } else {
             sword.play();
         }
 
-        space = false;
+        m_p2Attack = false;
     }
-    if (right) {
+    if (m_p1Attack) {
         sf::Rect<float> hit;
-        if (!p1left) {
+        if (!m_p1FacingLeft) {
             hit = sf::Rect<float>(
-                m_player->getPosition(),
-                sf::Vector2f(200 + ((m_player->getWidth()) * (m_player->getScale().x)),
-                             (m_player->getHeight()) * (m_player->getScale().y)));
+                m_rocket->getPosition(),
+                sf::Vector2f(200 + ((m_rocket->getWidth()) * (m_rocket->getScale().x)),
+                             (m_rocket->getHeight()) * (m_rocket->getScale().y)));
         } else {
             hit = sf::Rect<float>(
-                m_player->getPosition(),
-                sf::Vector2f(((m_player->getWidth()) * (m_player->getScale().x)) - 200,
-                             (m_player->getHeight()) * (m_player->getScale().y)));
+                m_rocket->getPosition(),
+                sf::Vector2f(((m_rocket->getWidth()) * (m_rocket->getScale().x)) - 200,
+                             (m_rocket->getHeight()) * (m_rocket->getScale().y)));
         }
 
-        if (collision(hit, *player2)) {
-            p2points++;
+        if (collision(hit, *m_robot)) {
+            m_rocketScore++;
             reset = true;
             p2hit.play();
         } else {
             laser.play();
         }
 
-        right = false;
+        m_p1Attack = false;
     }
-    if (o) {
+    if (m_slowDownPressed) {
         m_speed = m_speed - 150.0f;
         if (m_speed < 0)
             m_speed = 1.0f;
-        o = false;
+        m_slowDownPressed = false;
         slow_down.play();
     }
-    if (p) {
+    if (m_speedUpPressed) {
         m_speed = m_speed + 150.0f;
-        p       = false;
+        m_speedUpPressed = false;
         speed_up.play();
     }
 
-    if ((m_up || m_down || m_left || m_right) && !collision(*m_player, *player2)) {
-        m_player->move(p1movement * deltaT.asSeconds());
-        m_player->update(time);
+    if ((m_p1Up || m_p1Down || m_p1Left || m_p1Right) && !collision(*m_rocket, *m_robot)) {
+        m_rocket->move(p1movement * deltaT.asSeconds());
+        m_rocket->update(time);
     }
 
-    if ((w || a || s || d) && !collision(*m_player, *player2)) {
-        player2->move(p2movement * deltaT.asSeconds());
-        player2->update(time);
+    if ((m_p2Up || m_p2Left || m_p2Down || m_p2Right) && !collision(*m_rocket, *m_robot)) {
+        m_robot->move(p2movement * deltaT.asSeconds());
+        m_robot->update(time);
     }
-    for (int x = 0; x < static_cast<int>(stuff.size()); x++) {
-        stuff[x]->update(time);
+    for (int x = 0; x < static_cast<int>(m_arena.size()); x++) {
+        m_arena[x]->update(time);
     }
 
     if (reset) {
-        m_player->setScale(2.0f, 2);
-        player2->setScale(-1.0f, 1.0f);
-        player2->setPosition(m_window.getSize().x - (m_player->getWidth() + 150), 400);
-        m_player->setPosition(m_player->getWidth() + 20, 400);
-        p1left = false;
-        p2left = true;
-        wait   = true;
+        m_rocket->setScale(2.0f, 2);
+        m_robot->setScale(-1.0f, 1.0f);
+        m_robot->setPosition(m_window.getSize().x - (m_rocket->getWidth() + 150), 400);
+        m_rocket->setPosition(m_rocket->getWidth() + 20, 400);
+        m_p1FacingLeft = false;
+        m_p2FacingLeft = true;
+        m_inCooldown   = true;
     }
 
-    text.setString("Rocket Score: " + std::to_string(p2points));
-    text2.setString("Robot Score: " + std::to_string(points));
-    text2.setPosition(m_window.getSize().x - text2.getGlobalBounds().width - 20, 0);
+    m_rocketScoreText.setString("Rocket Score: " + std::to_string(m_rocketScore));
+    m_robotScoreText.setString("Robot Score: " + std::to_string(m_robotScore));
+    m_robotScoreText.setPosition(m_window.getSize().x - m_robotScoreText.getGlobalBounds().width - 20, 0);
 }
 
 // ── render ────────────────────────────────────────────────────────────────────
@@ -598,8 +598,8 @@ void Game::render()
     // LCOV_EXCL_START — CLIENT interpolation; only runs in networked CLIENT mode
     if (m_networkMode == NetworkMode::CLIENT && m_networkManager &&
         !m_networkManager->stateBuf().empty()) {
-        p1Saved  = m_player->getPosition();
-        p2Saved  = player2->getPosition();
+        p1Saved  = m_rocket->getPosition();
+        p2Saved  = m_robot->getPosition();
         didShift = true;
 
         const auto& buf          = m_networkManager->stateBuf();
@@ -625,21 +625,21 @@ void Game::render()
             rp1 = {buf[0].state.p1_x, buf[0].state.p1_y};
             rp2 = {buf[0].state.p2_x, buf[0].state.p2_y};
         }
-        m_player->setPosition(rp1.x, rp1.y);
-        player2->setPosition(rp2.x, rp2.y);
+        m_rocket->setPosition(rp1.x, rp1.y);
+        m_robot->setPosition(rp2.x, rp2.y);
     }
     // LCOV_EXCL_STOP
 
     m_window.clear();
-    for (std::size_t x = 0; x < stuff.size(); ++x) {
-        stuff[x]->draw(m_window);
+    for (std::size_t x = 0; x < m_arena.size(); ++x) {
+        m_arena[x]->draw(m_window);
     }
     m_window.draw(timer);
-    m_window.draw(text);
-    m_window.draw(text2);
-    m_player->draw(m_window);
-    player2->draw(m_window);
-    if (wait) {
+    m_window.draw(m_rocketScoreText);
+    m_window.draw(m_robotScoreText);
+    m_rocket->draw(m_window);
+    m_robot->draw(m_window);
+    if (m_inCooldown) {
         m_window.draw(pause_text);
         m_window.draw(info);
     }
@@ -649,8 +649,8 @@ void Game::render()
     // Restore authoritative positions (symmetric with the save above).
     // LCOV_EXCL_START — only reachable when CLIENT interpolation block ran
     if (didShift) {
-        m_player->setPosition(p1Saved.x, p1Saved.y);
-        player2->setPosition(p2Saved.x, p2Saved.y);
+        m_rocket->setPosition(p1Saved.x, p1Saved.y);
+        m_robot->setPosition(p2Saved.x, p2Saved.y);
     }
     // LCOV_EXCL_STOP
 }
@@ -698,11 +698,11 @@ void Game::handleNetworkCommunication(sf::Time deltaT)
     } else if (m_networkMode == NetworkMode::CLIENT && m_networkManager->isConnected()) {
         // Send local input every frame.
         PlayerInput myInput;
-        myInput.up     = w;
-        myInput.down   = s;
-        myInput.left   = a;
-        myInput.right  = d;
-        myInput.attack = space;
+        myInput.up     = m_p2Up;
+        myInput.down   = m_p2Down;
+        myInput.left   = m_p2Left;
+        myInput.right  = m_p2Right;
+        myInput.attack = m_p2Attack;
         m_networkManager->sendInput(myInput);
 
         // Drain incoming state packets.
@@ -729,31 +729,31 @@ GameState Game::snapshot() const { return captureGameState(); }
 GameState Game::captureGameState() const
 {
     GameState state;
-    state.p1_x      = m_player->getPosition().x;
-    state.p1_y      = m_player->getPosition().y;
-    state.p2_x      = player2->getPosition().x;
-    state.p2_y      = player2->getPosition().y;
-    state.p1_score  = p2points;
-    state.p2_score  = points;
-    state.p1_left   = p1left;
-    state.p2_left   = p2left;
-    state.p1_scale_x = m_player->getScale().x;
-    state.p1_scale_y = m_player->getScale().y;
-    state.p2_scale_x = player2->getScale().x;
-    state.p2_scale_y = player2->getScale().y;
-    state.wait       = wait;
+    state.p1_x      = m_rocket->getPosition().x;
+    state.p1_y      = m_rocket->getPosition().y;
+    state.p2_x      = m_robot->getPosition().x;
+    state.p2_y      = m_robot->getPosition().y;
+    state.p1_score  = m_rocketScore;
+    state.p2_score  = m_robotScore;
+    state.p1_left   = m_p1FacingLeft;
+    state.p2_left   = m_p2FacingLeft;
+    state.p1_scale_x = m_rocket->getScale().x;
+    state.p1_scale_y = m_rocket->getScale().y;
+    state.p2_scale_x = m_robot->getScale().x;
+    state.p2_scale_y = m_robot->getScale().y;
+    state.wait       = m_inCooldown;
     return state;
 }
 
 void Game::applyNetworkState(const GameState& state)
 {
-    m_player->setPosition(state.p1_x, state.p1_y);
-    player2->setPosition(state.p2_x, state.p2_y);
-    p2points = state.p1_score;
-    points   = state.p2_score;
-    p1left   = state.p1_left;
-    p2left   = state.p2_left;
-    m_player->setScale(state.p1_scale_x, state.p1_scale_y);
-    player2->setScale(state.p2_scale_x, state.p2_scale_y);
-    wait = state.wait;
+    m_rocket->setPosition(state.p1_x, state.p1_y);
+    m_robot->setPosition(state.p2_x, state.p2_y);
+    m_rocketScore = state.p1_score;
+    m_robotScore   = state.p2_score;
+    m_p1FacingLeft   = state.p1_left;
+    m_p2FacingLeft   = state.p2_left;
+    m_rocket->setScale(state.p1_scale_x, state.p1_scale_y);
+    m_robot->setScale(state.p2_scale_x, state.p2_scale_y);
+    m_inCooldown = state.wait;
 }
