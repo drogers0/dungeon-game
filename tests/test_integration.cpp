@@ -6,7 +6,7 @@
 //   p2_score = points    (robot/P2 score; incremented by P2 sword kills)
 //
 // These tests run from $<TARGET_FILE_DIR:dungeon_game> (see CMakeLists) so
-// resource_path resolves to the elements/ directory copied there at build time.
+// resource_path resolves to the assets/ directory copied there at build time.
 
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -57,7 +57,7 @@ TEST_CASE("integration: idle run — scores 0/0, initial positions", "[integrati
     REQUIRE(!s.wait);
 
     // Positions are load-dependent (asset must exist); just assert reasonable
-    // non-zero values (loaded successfully from elements/).
+    // non-zero values (loaded successfully from assets/).
     REQUIRE(s.p1_x > 0.f);
     REQUIRE(s.p2_x > s.p1_x); // P2 starts to the right of P1
 }

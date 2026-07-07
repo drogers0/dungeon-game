@@ -24,112 +24,13 @@ static void captureScreenshot(const sf::RenderWindow& w, const std::string& path
 
 // ── constructors ──────────────────────────────────────────────────────────────
 
-Game::Game() : m_window(sf::VideoMode(1920, 1080), "Dungeon Game"), m_networkMode(NetworkMode::LOCAL)
-{
-
-    if (!background.openFromFile(resource_path + "background.wav")) {
-        std::cout << "your music is broken, go fix it" << std::endl;
-    }
-
-    // load the player
-    m_player->load(resource_path + "rocket.png");
-    m_player->setScale(2.0f);
-    m_player->setPosition(m_player->getWidth(), 400);
-
-    player2->load(resource_path + "robot.png");
-    player2->setScale(-1.0f, 1.0f);
-    player2->setPosition(m_window.getSize().x - (m_player->getWidth() + 150), 400);
-
-    GameObject* wall = new RegularGameObject();
-    stuff.push_back(wall);
-    stuff[0]->load(resource_path + "brick.png");
-    stuff[0]->setScale(2.0f);
-
-    GameObject* fire = new AnimatedGameObject(216, 216, 5, 3, 10, 0);
-    fire->load(resource_path + "fire.png");
-    fire->setScale(2.0f);
-    fire->setPosition(-15, 400);
-    stuff.push_back(fire);
-
-    GameObject* fire2 = new AnimatedGameObject(216, 216, 5, 3, 10, 0);
-    fire2->load(resource_path + "fire.png");
-    fire2->setScale(2.0f);
-    fire2->setPosition((1920 / 2) - 5, 400);
-    stuff.push_back(fire2);
-
-    GameObject* fire3 = new AnimatedGameObject(216, 216, 5, 3, 10, 0);
-    fire3->load(resource_path + "fire.png");
-    fire3->setScale(2.0f);
-    fire3->setPosition(1820, 400);
-    stuff.push_back(fire3);
-
-    if (!font.loadFromFile(resource_path + "oswald.ttf")) {
-        std::cout << "Font did not load" << std::endl;
-    }
-    if (!tfont.loadFromFile(resource_path + "timer.ttf")) {
-        std::cout << "Font did not load" << std::endl;
-    }
-    if (!block.loadFromFile(resource_path + "Blockt.ttf")) {
-        std::cout << "Font did not load" << std::endl;
-    }
-
-    pause_text = sf::Text("Cooldown", block, 400);
-    pause_text.setPosition(m_window.getSize().x / 2 - 850, 100);
-    pause_text.setFillColor(sf::Color::Black);
-
-    info = sf::Text("a short intermission", font, 50);
-    info.setPosition(pause_text.getPosition().x + 150, pause_text.getPosition().y + 500);
-    info.setFillColor(sf::Color::Black);
-
-    text  = sf::Text("Rocket Score: 0", font, 40);
-    text2 = sf::Text("Robot Score: 0", font, 40);
-    timer = sf::Text("timer", tfont, 60);
-    timer.setPosition((m_window.getSize().x / 2) - 60, 0);
-    text.setPosition(10, 0);
-    text2.setPosition(m_window.getSize().x - text2.getGlobalBounds().width, 0);
-    text2.setFillColor(sf::Color::Green);
-    timer.setFillColor(sf::Color::Black);
-    text.setFillColor(sf::Color::Blue);
-
-    if (!sbuffer.loadFromFile(resource_path + "sword_miss.wav")) {
-        std::cout << "sound did not load";
-    }
-    sword.setBuffer(sbuffer);
-    if (!p2hitbuffer.loadFromFile(resource_path + "skeleton.wav")) {
-        std::cout << "sound did not load";
-    }
-    p2hit.setBuffer(p2hitbuffer);
-    if (!laserbuffer.loadFromFile(resource_path + "new_laser.wav")) {
-        std::cout << "sound did not load";
-    }
-    laser.setBuffer(laserbuffer);
-    if (!metalbuffer.loadFromFile(resource_path + "metal_hit.wav")) {
-        std::cout << "sound did not load";
-    }
-    metal.setBuffer(metalbuffer);
-    if (!speedbuffer.loadFromFile(resource_path + "SpeedUp.wav")) {
-        std::cout << "sound did not load";
-    }
-    speed_up.setBuffer(speedbuffer);
-    if (!slowbuffer.loadFromFile(resource_path + "SlowDown.wav")) {
-        std::cout << "sound did not load";
-    }
-    slow_down.setBuffer(slowbuffer);
-    if (!burnbuffer.loadFromFile(resource_path + "burn.wav")) {
-        std::cout << "sound did not load";
-    }
-    burn.setBuffer(burnbuffer);
-    if (!gongbuffer.loadFromFile(resource_path + "gong.wav")) {
-        std::cout << "sound did not load";
-    }
-    gong.setBuffer(gongbuffer);
-    laser.setVolume(60);
-}
+Game::Game() : Game(NetworkMode::LOCAL, nullptr) {}
 
 Game::Game(NetworkMode mode, std::shared_ptr<NetworkManager> netManager)
     : m_window(sf::VideoMode(1920, 1080),
-               "Dungeon Game - " +
-                   (mode == NetworkMode::HOST ? std::string("Host") : std::string("Client"))),
+               mode == NetworkMode::LOCAL ? "Dungeon Game"
+               : mode == NetworkMode::HOST ? "Dungeon Game - Host"
+                                           : "Dungeon Game - Client"),
       m_networkMode(mode),
       m_networkManager(netManager)
 {

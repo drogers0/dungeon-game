@@ -14,12 +14,7 @@
 #include <string>
 #include <stdexcept>
 
-int highscore = 0;
-int p1score = 0;
-int p2score = 0;
-std::string clack = "";
-
-void startgame(NetworkMode mode = NetworkMode::LOCAL, std::shared_ptr<NetworkManager> netManager = nullptr) {
+void startgame(int& highscore, NetworkMode mode = NetworkMode::LOCAL, std::shared_ptr<NetworkManager> netManager = nullptr) {
     std::tuple<int,int,float,int,bool,bool> tuple;
     if (mode != NetworkMode::LOCAL && netManager) {
         Game game(mode, netManager);
@@ -28,15 +23,15 @@ void startgame(NetworkMode mode = NetworkMode::LOCAL, std::shared_ptr<NetworkMan
         Game game;
         tuple = game.run();
     }
-    p1score = std::get<0>(tuple);
-    p2score = std::get<1>(tuple);
+    int p1score = std::get<0>(tuple);
+    int p2score = std::get<1>(tuple);
     float tempM = std::get<2>(tuple);
     int tempS = std::get<3>(tuple);
     bool peerLeft = std::get<5>(tuple);
     //bool p1win = std::get<4>(tuple);
     char gTime [10];
     std::snprintf(gTime, sizeof(gTime), "%02.0f:%02d", tempM, tempS);
-    clack = gTime;
+    std::string clack = gTime;
 
     if (p1score > highscore )
         highscore = p1score;
@@ -186,7 +181,7 @@ void startgame(NetworkMode mode = NetworkMode::LOCAL, std::shared_ptr<NetworkMan
             srect.contains(endscreen.mapPixelToCoords(sf::Mouse::getPosition(endscreen)))) {
             background.stop();
             endscreen.close();
-            startgame(mode, netManager);
+            startgame(highscore, mode, netManager);
         }
         if (sf::Mouse::isButtonPressed(sf::Mouse::Left) &&
             qrect.contains(endscreen.mapPixelToCoords(sf::Mouse::getPosition(endscreen)))) {
@@ -204,7 +199,7 @@ void startgame(NetworkMode mode = NetworkMode::LOCAL, std::shared_ptr<NetworkMan
                     if (event.key.code == sf::Keyboard::Y) {
                         background.stop();
                         endscreen.close();
-                        startgame(mode, netManager);
+                        startgame(highscore, mode, netManager);
                     }
                     if (event.key.code == sf::Keyboard::N) {
                         background.stop();
@@ -225,6 +220,8 @@ enum MenuState {
 int main(int argc, char** argv)
 {
     initResourcePath(argv[0]);
+
+    int highscore = 0;
 
     // ── CLI parsing ───────────────────────────────────────────────────────────
     DebugConfig  config;
@@ -588,7 +585,7 @@ int main(int argc, char** argv)
             if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && startRect.contains(mousePos)) {
                 background.stop();
                 startscreen.close();
-                startgame(mode, netManager);
+                startgame(highscore, mode, netManager);
                 return 0;
             }
         }

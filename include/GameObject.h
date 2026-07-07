@@ -41,11 +41,5 @@ public:
 
     virtual void setOrigin() = 0;
 
-private:
-	sf::Sprite m_sprite;
-	sf::Texture m_texture;
-	std::string m_filename;
-	bool m_valid;
-
 };
 

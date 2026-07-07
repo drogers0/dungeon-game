@@ -54,7 +54,7 @@ GameObject.h            Abstract entity interface
 NetworkManager.*        TCP host/client transport; PlayerInput/GameState wire format
 main.cpp                Start/end screen menus; mode selection (local/host/join)
 resource_path.{h,cpp}   Executable-relative asset root (initResourcePath)
-elements/               Asset root — images, audio, fonts
+assets/                 Asset root — images, audio, fonts
 CMakeLists.txt          CMake build (SFML 2.6.2 via FetchContent)
 SkeletonCode.vcxproj*   Legacy Visual Studio project (kept for reference; see issue #1)
 ```
@@ -92,5 +92,5 @@ Full Windows/MSVC verification and DLL packaging are tracked in issue #1. The le
 
 ## License
 
-Fonts and other third-party assets inside `elements/` carry their own licenses (e.g. SIL Open
+Fonts and other third-party assets inside `assets/` carry their own licenses (e.g. SIL Open
 Font License). Review and preserve any included license files when distributing.

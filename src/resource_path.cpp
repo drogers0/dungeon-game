@@ -1,15 +1,15 @@
 #include "resource_path.h"
 #include <filesystem>
 
-std::string resource_path = "elements/";
+std::string resource_path = "assets/";
 
 void initResourcePath(const char* argv0) {
     if (!argv0) return;
     namespace fs = std::filesystem;
     fs::path exeDir = fs::weakly_canonical(fs::path(argv0)).parent_path();
-    if (fs::exists(exeDir / "elements")) {
+    if (fs::exists(exeDir / "assets")) {
         // Append the separator after .string() so the trailing slash survives on
         // MSVC std::filesystem too (call sites do `resource_path + "file"`).
-        resource_path = (exeDir / "elements").string() + "/";
+        resource_path = (exeDir / "assets").string() + "/";
     }
 }
