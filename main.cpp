@@ -5,9 +5,14 @@
 #include <iostream>
 #include "AnimatedGameObject.h"
 #include "resource_path.h"
+#include "debug.h"
+#include "rng.h"
+#include <filesystem>
 #include <tuple>
 #include <cstdio>
 #include <memory>
+#include <string>
+#include <stdexcept>
 
 int highscore = 0;
 int p1score = 0;
@@ -220,6 +225,70 @@ enum MenuState {
 int main(int argc, char** argv)
 {
     initResourcePath(argv[0]);
+
+    // ── CLI parsing ───────────────────────────────────────────────────────────
+    DebugConfig  config;
+    unsigned     seed     = 0;
+    bool         haveSeed = false;
+
+    auto needValue = [&](const std::string& flag, int& i) -> const char* {
+        if (i + 1 >= argc) throw std::runtime_error(flag + " requires a value");
+        return argv[++i];
+    };
+    for (int i = 1; i < argc; ++i) {
+        std::string arg(argv[i]);
+        try {
+            if (arg == "--frames") {
+                config.frames = std::stoi(needValue(arg, i));
+            } else if (arg == "--replay") {
+                config.replayPath = needValue(arg, i);
+            } else if (arg == "--screenshot-every") {
+                config.screenshotEvery = std::stoi(needValue(arg, i));
+            } else if (arg == "--screenshot-dir") {
+                config.screenshotDir = needValue(arg, i);
+            } else if (arg == "--seed") {
+                seed     = static_cast<unsigned>(std::stoul(needValue(arg, i)));
+                haveSeed = true;
+            } else if (arg == "--help") {
+                std::cout
+                    << "Usage: dungeon_game [options]\n"
+                    << "  --frames N             Run N sim steps then exit\n"
+                    << "  --replay <file>        Drive P2 from replay file\n"
+                    << "  --screenshot-every N   Save screenshot every N steps\n"
+                    << "  --screenshot-dir <d>   Directory for screenshots (default: .)\n"
+                    << "  --seed <n>             Seed the RNG\n"
+                    << "\n"
+                    << "Replay format: one line per step — 'up down left right attack' (0 or 1)\n"
+                    << "  Everything from '#' to end-of-line is ignored; blank lines skipped.\n";
+                return 0;
+            } else {
+                std::cerr << "Error: unknown option '" << arg << "' (try --help)\n";
+                return 1;
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "Error: " << e.what() << " (option '" << arg << "')\n";
+            return 1;
+        }
+    }
+
+    // ── Debug / harness bypass ────────────────────────────────────────────────
+    if (config.active()) {
+        if (haveSeed)
+            rng::seed(seed);
+        if (config.screenshotEvery > 0)
+            std::filesystem::create_directories(config.screenshotDir);
+
+        Game game;
+        game.setDebugConfig(config);
+        auto result = game.run();
+
+        std::cout << "P1 score: " << std::get<0>(result) << "\n"
+                  << "P2 score: " << std::get<1>(result) << "\n"
+                  << "Steps:    " << game.steps() << "\n";
+        return 0;
+    }
+
+    // ── Normal menu flow (unchanged) ──────────────────────────────────────────
     MenuState menuState = MAIN_MENU;
     NetworkMode mode = NetworkMode::LOCAL;
     std::shared_ptr<NetworkManager> netManager = nullptr;
