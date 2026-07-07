@@ -136,7 +136,7 @@ LLVM_PROFILE_FILE=$PWD/covbuild/cov/%p-%m.profraw \
 # Merge profiles and report
 llvm-profdata merge covbuild/cov/*.profraw -o covbuild/cov/merged.profdata
 llvm-cov report \
-  covbuild/dungeon_tests covbuild/dungeon_integration_tests \
+  covbuild/dungeon_tests covbuild/dungeon_integration_tests covbuild/dungeon_game \
   -instr-profile=covbuild/cov/merged.profdata \
   -ignore-filename-regex='main\.cpp|tests/'
 ```
@@ -146,8 +146,19 @@ flags on `dungeon_lib`, so both test binaries automatically receive the instrume
 The `mkdir -p covbuild/cov` step is required — LLVM's profiling runtime does not create
 missing directories and will silently drop `.profraw` files otherwise.
 
-Coverage target for `dungeon_lib` is **≥80%** with honest exclusions (`main.cpp` menus,
-`render()` draw calls, `processEvents`/`handlePlayerInput` keyboard glue). Reported in CI.
+**What the number means:** `dungeon_lib` measures **~75–78% line coverage** as reported by
+`llvm-cov` (native Apple LLVM on macOS; open-source LLVM on Linux CI). Logic modules
+(`NetworkManager`, `replay`, `geometry`, `sprite_anim`) are near 100%. `Game.cpp` is lower
+because it contains a duplicate second constructor, untestable rendering/menu/audio glue, and
+CLIENT-mode netcode paths that require a real peer connection.
+
+`// LCOV_EXCL_START` / `// LCOV_EXCL_STOP` markers annotate the untestable glue, but these
+are honoured by `lcov` (not used here) and **ignored by native `llvm-cov`** — so the reported
+number *includes* that glue. Do not rely on the markers to inflate the printed percentage.
+
+The raw % is less important than what is actually tested: every kill, hazard, movement
+direction, cooldown, direction-flip, and determinism path is pinned by integration tests.
+This behaviour-level coverage is the real safety net for the refactors planned in #8/#9.
 
 ## CI
 

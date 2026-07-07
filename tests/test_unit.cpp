@@ -83,7 +83,8 @@ TEST_CASE("objectBounds: negative scale.x produces negative-width rect (pinned q
     REQUIRE(r.height == Catch::Approx(180.f));
 }
 
-TEST_CASE("objectBounds: two overlapping objects intersect via SFML", "[geometry][unit]") {
+TEST_CASE("objectBounds: touching rects with negative-width rect do not crash",
+          "[geometry][unit]") {
     StubGameObject a, b;
     // a at (100,100), size 100x100 (positive scale)
     a.px = 100;
@@ -92,7 +93,7 @@ TEST_CASE("objectBounds: two overlapping objects intersect via SFML", "[geometry
     a.h = 50;
     a.sx = 2;
     a.sy = 2;
-    // b at (150,150) with negative scale: pos(300,100), width=-100 → normalised (200,100,100,100)
+    // b with negative scale: pos(300,100), width=-100 → normalised (200,100,100,100)
     b.px = 300;
     b.py = 100;
     b.w = 50;
@@ -102,13 +103,12 @@ TEST_CASE("objectBounds: two overlapping objects intersect via SFML", "[geometry
 
     // a covers [100,200] x [100,200]
     // b raw rect: left=300, width=-100 → SFML normalises to [200,300] x [100,200]
-    // Overlap on x: [200,200] → touching (not overlapping)
+    // Overlap on x: [200,200] → touching (not overlapping); intersects() returns false.
     sf::FloatRect ra = objectBounds(a);
     sf::FloatRect rb = objectBounds(b);
-    // Just verify the intersection function doesn't crash on negative width
     bool result = ra.intersects(rb);
-    (void)result;  // result may be false for touching rects; key point is no crash
-    REQUIRE(true); // reached here = no crash
+    (void)result; // touching rects; key point is no crash, not the bool result
+    SUCCEED("negative-width intersects() did not crash");
 }
 
 TEST_CASE("objectBounds: disjoint objects do not intersect", "[geometry][unit]") {

@@ -1,0 +1,35 @@
+# p1_down.replay — P1 moves down 30 steps
+# P1 starts at y=400; m_speed=1200, dt=1/60 → 20 px/step.
+# After 30 steps: y=1000 (wrap triggers at y>1012, not reached here).
+# Used with --replay-p1.
+# up down left right attack
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0

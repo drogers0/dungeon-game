@@ -1,0 +1,31 @@
+# p2_down.replay — P2 moves down 26 steps
+# P2 starts at y=400; m_speed=1200, dt=1/60 → 20 px/step.
+# After 26 steps: y=920 (wrap triggers at y>900 at step 27 start, not here).
+# Used with --replay.
+# up down left right attack
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0
+0 1 0 0 0

@@ -337,7 +337,67 @@ TEST_CASE("integration: determinism — same replay twice gives identical snapsh
     REQUIRE(s1.wait == s2.wait);
 }
 
-// ── 14. HOST Game + loopback NetworkManager ───────────────────────────────────
+// ── 14. P1 moves down ────────────────────────────────────────────────────────
+// P1 moves down 30 steps.  m_speed=1200, dt=1/60 → 20 px/step.
+// Starting y=400; wrap triggers at y>(1080-68)=1012, not reached in 30 steps.
+
+TEST_CASE("integration: P1 moves down — p1_y increases 20 px per step", "[integration]") {
+    DebugConfig cfg;
+    cfg.frames = 30;
+    cfg.replayPathP1 = dataPath("p1_down.replay");
+    auto [t, s] = runGame(cfg);
+
+    // 30 steps × 20 px/step = 600; 400 + 600 = 1000.
+    REQUIRE(s.p1_y == Catch::Approx(1000.f).margin(1.f));
+}
+
+// ── 15. P2 moves up ───────────────────────────────────────────────────────────
+// P2 moves up 30 steps.  m_speed=1200, dt=1/60 → 20 px/step.
+// Starting y=400; wrap triggers at y<-180 at start of step 31, not reached here.
+
+TEST_CASE("integration: P2 moves up — p2_y decreases 20 px per step", "[integration]") {
+    DebugConfig cfg;
+    cfg.frames = 30;
+    cfg.replayPath = dataPath("p2_up.replay");
+    auto [t, s] = runGame(cfg);
+
+    // 30 steps × 20 px/step = 600; 400 - 600 = -200.
+    REQUIRE(s.p2_y == Catch::Approx(-200.f).margin(1.f));
+}
+
+// ── 16. P2 moves down ─────────────────────────────────────────────────────────
+// P2 moves down 26 steps.  m_speed=1200, dt=1/60 → 20 px/step.
+// Starting y=400; wrap triggers at y>(1080-180)=900 at start of step 27, not reached here.
+
+TEST_CASE("integration: P2 moves down — p2_y increases 20 px per step", "[integration]") {
+    DebugConfig cfg;
+    cfg.frames = 26;
+    cfg.replayPath = dataPath("p2_down.replay");
+    auto [t, s] = runGame(cfg);
+
+    // 26 steps × 20 px/step = 520; 400 + 520 = 920.
+    REQUIRE(s.p2_y == Catch::Approx(920.f).margin(1.f));
+}
+
+// ── 17. P2 left-direction flip ────────────────────────────────────────────────
+// P2 starts facing left (p2left=true, scale.x=-1).
+// Step 1 (d=1): flips to right → p2left=false, scale.x=1.
+// Step 2 (a=1): triggers if(!p2left) branch → p2left=true, scale.x=-1 (pinned here).
+// Steps 3-5: continue left; p2left stays true (no re-flip).
+
+TEST_CASE("integration: P2 left-direction flip branch sets p2left and scale",
+          "[integration]") {
+    DebugConfig cfg;
+    cfg.frames = 5;
+    cfg.replayPath = dataPath("p2_left_flip.replay"); // 1 right then 4 left steps
+    auto [t, s] = runGame(cfg);
+
+    // After step 2 the if(!p2left) branch has fired: p2left restored to true, scale.x=-1.
+    REQUIRE(s.p2_left == true);
+    REQUIRE(s.p2_scale_x == Catch::Approx(-1.f).margin(0.01f));
+}
+
+// ── 18. HOST Game + loopback NetworkManager ───────────────────────────────────
 // Client connects, sends one input, disconnects.  Host detects peerLost via
 // poll(); Game's handleNetworkCommunication() then sets m_peerLeft → run()
 // tuple element 5 == true.
