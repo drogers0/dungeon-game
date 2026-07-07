@@ -22,8 +22,10 @@ Every mode ultimately drives the same per-player movement/attack booleans consum
 - **Online** — one peer hosts, the other joins over TCP. The client samples its keyboard into a
   `PlayerInput`, sends it to the host; the host simulates authoritatively and streams `GameState`
   back. See `NetworkManager`.
-- **AI (planned, #12)** — a `state → PlayerInput` function drives player 2 from game state.
-- **Replay/debug (planned, #13)** — a scripted sequence of `PlayerInput`s feeds player 2.
+- **AI (#12)** — the pure `decideAiInput(AiView, AiParams, rng) → PlayerInput` decider drives
+  player 2 from a snapshot of game state, with Easy/Medium/Hard difficulty presets. See `ai.h`/`ai.cpp`.
+- **Replay/debug (#13)** — the debug harness feeds a scripted sequence of `PlayerInput`s (loaded via
+  `--replay`/`--replay-p1`) through the same path. See `replay.h`/`replay.cpp` and `debug.h`.
 
 `PlayerInput` (`NetworkManager.h`) is the shared abstraction. New control sources should produce
 a `PlayerInput` per frame rather than reaching into `Game` internals.
@@ -89,6 +91,6 @@ detected, full state is sent every frame with no interpolation, and join input i
 
 SFML opens a real window and audio device, so **logic that must be unit-tested should not depend
 on the window**: packet round-trips (`PlayerInput`/`GameState`), collision/overlap math, animation
-frame indexing, `GameState` capture/apply, and (planned) AI decisions are all pure functions of
+frame indexing, `GameState` capture/apply, and AI decisions are all pure functions of
 data and should be reachable without constructing a `Game`/window. CI runs the windowed paths
 headless under `xvfb` on Linux (see [contributing.md](contributing.md)).
