@@ -40,6 +40,9 @@ std::string nameFromKey(sf::Keyboard::Key key);
 // Safe to round-trip through loadBindings.
 void saveBindings(const KeyBindings& b, std::ostream& out);
 
+// F11/F12 and the current debug bindings cannot be assigned to player actions.
+bool isReservedKey(sf::Keyboard::Key key, const KeyBindings& b);
+
 // Return a copy of b with the binding at rowIdx changed to newKey.
 // rowIdx mapping: 0=p1_up 1=p1_down 2=p1_left 3=p1_right 4=p1_attack
 //                 5=p2_up 6=p2_down 7=p2_left 8=p2_right 9=p2_attack

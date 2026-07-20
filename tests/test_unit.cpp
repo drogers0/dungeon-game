@@ -719,6 +719,20 @@ TEST_CASE("saveBindings preserves non-default bindings", "[key_bindings][unit]")
     REQUIRE(reloaded.p1.down == defaultBindings().p1.down);
 }
 
+TEST_CASE("isReservedKey: rejects hard-coded and current debug keys", "[key_bindings][unit]") {
+    auto b = defaultBindings();
+    REQUIRE(isReservedKey(sf::Keyboard::F11, b));
+    REQUIRE(isReservedKey(sf::Keyboard::F12, b));
+    REQUIRE(isReservedKey(b.slowDown, b));
+    REQUIRE(isReservedKey(b.speedUp, b));
+    REQUIRE(isReservedKey(b.skipCooldown, b));
+    REQUIRE_FALSE(isReservedKey(sf::Keyboard::F3, b));
+
+    b.slowDown = sf::Keyboard::F1;
+    REQUIRE(isReservedKey(sf::Keyboard::F1, b));
+    REQUIRE_FALSE(isReservedKey(sf::Keyboard::O, b));
+}
+
 TEST_CASE("applyBindingEdit: sets new key with no conflict", "[key_bindings][unit]") {
     auto b = defaultBindings();
     // F3 is not used by any default binding

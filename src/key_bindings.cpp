@@ -121,6 +121,11 @@ KeyBindings defaultBindings() {
     return b;
 }
 
+bool isReservedKey(sf::Keyboard::Key key, const KeyBindings& b) {
+    return key == sf::Keyboard::F11 || key == sf::Keyboard::F12 || key == b.slowDown ||
+           key == b.speedUp || key == b.skipCooldown;
+}
+
 // ── loadBindings ──────────────────────────────────────────────────────────────
 
 static std::string trim(const std::string& s) {

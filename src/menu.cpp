@@ -77,6 +77,23 @@ static void centerText(sf::Text& t, float x, float y) {
     t.setPosition(x, y);
 }
 
+static void saveControls(const KeyBindings& bindings, std::string& statusMessage) {
+    std::ofstream f(std::filesystem::path(exe_dir_path) / "controls.cfg");
+    if (!f) {
+        statusMessage = "Failed to save controls.cfg";
+        return;
+    }
+
+    saveBindings(bindings, f);
+    f.flush();
+    if (!f) {
+        statusMessage = "Failed to save controls.cfg";
+        return;
+    }
+
+    statusMessage.clear();
+}
+
 // Render the current menu state into the window (shared between normal + harness loops).
 static void renderMenu(sf::RenderWindow& win, RegularGameObject& bg, const sf::Font& font,
                        MenuState menuState, const std::string& ipInput,
@@ -105,13 +122,22 @@ static void renderMenu(sf::RenderWindow& win, RegularGameObject& bg, const sf::F
         auto specs = settingsButtonSpecs(bindings);
         for (int i = 0; i < static_cast<int>(specs.size()); ++i) {
             auto btn = makeButton(specs[static_cast<std::size_t>(i)], font);
+            btn.setHovered(specs[static_cast<std::size_t>(i)].rect.contains(mousePos));
             if (i == capturingIdx) {
                 btn.label.setString("Press a key...");
                 btn.shape.setFillColor({80, 80, 0});
                 btn.label.setFillColor(sf::Color::Yellow);
+                btn.setPosition(btn.shape.getPosition());
             }
-            btn.setHovered(specs[static_cast<std::size_t>(i)].rect.contains(mousePos));
             btn.draw(win);
+        }
+        if (!statusMessage.empty()) {
+            sf::Text statusText(statusMessage, font, 22);
+            statusText.setFillColor(statusMessage.find("Failed") != std::string::npos
+                                        ? sf::Color::Red
+                                        : sf::Color::Yellow);
+            centerText(statusText, kMenuW / 2.f, 480.f);
+            win.draw(statusText);
         }
         return;
     }
@@ -294,10 +320,12 @@ MenuResult showMenu(KeyBindings& bindings, const DebugConfig& cfg) {
                         } else if (nameFromKey(event.key.code) == "Unknown") {
                             // Key not in kKeyTable (IME, multimedia, etc.) — silently cancel.
                             capturingIdx = -1;
+                        } else if (isReservedKey(event.key.code, bindings)) {
+                            capturingIdx = -1;
+                            statusMessage = "Reserved key";
                         } else {
                             bindings = applyBindingEdit(bindings, capturingIdx, event.key.code);
-                            std::ofstream f(std::filesystem::path(exe_dir_path) / "controls.cfg");
-                            saveBindings(bindings, f);
+                            saveControls(bindings, statusMessage);
                             capturingIdx = -1;
                         }
                     } else if (event.key.code == sf::Keyboard::Escape) {
@@ -361,6 +389,7 @@ MenuResult showMenu(KeyBindings& bindings, const DebugConfig& cfg) {
                     } else if (specs[4].rect.contains(mp)) {
                         menuState = MenuState::SETTINGS;
                         capturingIdx = -1;
+                        statusMessage.clear();
                         press.play();
                     } else if (specs[5].rect.contains(mp)) {
                         background.stop();
@@ -425,6 +454,7 @@ MenuResult showMenu(KeyBindings& bindings, const DebugConfig& cfg) {
                     for (int i = 0; i < 10; ++i) {
                         if (specs[static_cast<std::size_t>(i)].rect.contains(mp)) {
                             capturingIdx = i;
+                            statusMessage.clear();
                             press.play();
                             handled = true;
                             break;
@@ -433,8 +463,7 @@ MenuResult showMenu(KeyBindings& bindings, const DebugConfig& cfg) {
                     if (!handled) {
                         if (specs[10].rect.contains(mp)) {
                             bindings = defaultBindings();
-                            std::ofstream f(std::filesystem::path(exe_dir_path) / "controls.cfg");
-                            saveBindings(bindings, f);
+                            saveControls(bindings, statusMessage);
                             capturingIdx = -1;
                             press.play();
                         } else if (specs[11].rect.contains(mp)) {
