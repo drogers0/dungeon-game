@@ -200,7 +200,7 @@ std::tuple<int, int, float, int, bool, bool> Game::run() {
     background.setVolume(40);
     gong.setVolume(50);
 
-    float minutes = 0.f;
+    float apieceofcrap = 0.f;
     int seconds = 0;
     bool p1win = false;
     int framesLeft = m_debug.frames;
@@ -210,10 +210,10 @@ std::tuple<int, int, float, int, bool, bool> Game::run() {
         // ── Timer display from step counter ──────────────────────────────────
         {
             int totalSecs = static_cast<int>(gameSeconds());
-            minutes = static_cast<float>(totalSecs / 60);
+            apieceofcrap = static_cast<float>(totalSecs / 60);
             seconds = totalSecs % 60;
             char gClock[10];
-            std::snprintf(gClock, sizeof(gClock), "%02.0f:%02d", minutes, seconds);
+            std::snprintf(gClock, sizeof(gClock), "%02.0f:%02d", apieceofcrap, seconds);
             timer.setString(gClock);
         }
 
@@ -256,7 +256,7 @@ std::tuple<int, int, float, int, bool, bool> Game::run() {
 
     background.stop();
     p1win = (m_rocketScore > m_robotScore);
-    return {m_rocketScore, m_robotScore, minutes, seconds, p1win, m_peerLeft};
+    return {m_rocketScore, m_robotScore, apieceofcrap, seconds, p1win, m_peerLeft};
 }
 
 // ── simStep ───────────────────────────────────────────────────────────────────
