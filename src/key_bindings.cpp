@@ -1,6 +1,7 @@
 #include "key_bindings.h"
 #include <algorithm>
 #include <iostream>
+#include <ostream>
 #include <sstream>
 #include <string>
 
@@ -184,5 +185,44 @@ KeyBindings loadBindings(std::istream& in) {
             b.skipCooldown = k;
         // Unknown fields silently ignored (forward-compat)
     }
+    return b;
+}
+
+// ── saveBindings ──────────────────────────────────────────────────────────────
+
+void saveBindings(const KeyBindings& b, std::ostream& out) {
+    out << "# Dungeon Game key bindings\n";
+    out << "p1_up = " << nameFromKey(b.p1.up) << "\n";
+    out << "p1_down = " << nameFromKey(b.p1.down) << "\n";
+    out << "p1_left = " << nameFromKey(b.p1.left) << "\n";
+    out << "p1_right = " << nameFromKey(b.p1.right) << "\n";
+    out << "p1_attack = " << nameFromKey(b.p1.attack) << "\n";
+    out << "p2_up = " << nameFromKey(b.p2.up) << "\n";
+    out << "p2_down = " << nameFromKey(b.p2.down) << "\n";
+    out << "p2_left = " << nameFromKey(b.p2.left) << "\n";
+    out << "p2_right = " << nameFromKey(b.p2.right) << "\n";
+    out << "p2_attack = " << nameFromKey(b.p2.attack) << "\n";
+    out << "slow_down = " << nameFromKey(b.slowDown) << "\n";
+    out << "speed_up = " << nameFromKey(b.speedUp) << "\n";
+    out << "skip_cooldown = " << nameFromKey(b.skipCooldown) << "\n";
+}
+
+// ── applyBindingEdit ──────────────────────────────────────────────────────────
+
+KeyBindings applyBindingEdit(KeyBindings b, int rowIdx, sf::Keyboard::Key newKey) {
+    sf::Keyboard::Key* slots[10] = {
+        &b.p1.up, &b.p1.down, &b.p1.left, &b.p1.right, &b.p1.attack,
+        &b.p2.up, &b.p2.down, &b.p2.left, &b.p2.right, &b.p2.attack,
+    };
+    if (*slots[rowIdx] == newKey)
+        return b;
+    // Scan for conflict and swap if found.
+    for (int i = 0; i < 10; ++i) {
+        if (i != rowIdx && *slots[i] == newKey) {
+            *slots[i] = *slots[rowIdx];
+            break;
+        }
+    }
+    *slots[rowIdx] = newKey;
     return b;
 }

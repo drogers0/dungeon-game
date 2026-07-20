@@ -233,7 +233,7 @@ int main(int argc, char** argv) {
                     if (!parseMenuState(val, parsed)) {
                         std::cerr << "Error: unknown --menu-state '" << val
                                   << "' (valid: main_menu host_waiting join_input ai_difficulty "
-                                     "ready_to_start)\n";
+                                     "ready_to_start settings)\n";
                         return 1;
                     }
                     config.menuState = val;
@@ -249,7 +249,7 @@ int main(int argc, char** argv) {
                         << "  --ai <easy|medium|hard>   AI opponent for P2 (requires --frames)\n"
                         << "  --menu-state <name>    Screenshot the given menu state and exit\n"
                         << "                         (main_menu|host_waiting|join_input|"
-                           "ai_difficulty|ready_to_start)\n"
+                           "ai_difficulty|ready_to_start|settings)\n"
                         << "\n"
                         << "Key bindings can be customised by placing a controls.cfg file\n"
                         << "next to the dungeon_game binary.  Example:\n"
@@ -282,9 +282,20 @@ int main(int argc, char** argv) {
             }
         }
 
+        // ── Load key bindings (exe-relative controls.cfg, absent → defaults) ──────
+        KeyBindings bindings = defaultBindings();
+        {
+            namespace fs = std::filesystem;
+            fs::path cfgPath = fs::path(exe_dir_path) / "controls.cfg";
+            if (fs::exists(cfgPath)) {
+                std::ifstream f(cfgPath);
+                bindings = loadBindings(f);
+            }
+        }
+
         // ── Menu harness bypass ───────────────────────────────────────────────────
         if (config.menuMode()) {
-            showMenu(config);
+            showMenu(bindings, config);
             return 0;
         }
 
@@ -305,20 +316,9 @@ int main(int argc, char** argv) {
             return 0;
         }
 
-        // ── Load key bindings (exe-relative controls.cfg, absent → defaults) ──────
-        KeyBindings bindings = defaultBindings();
-        {
-            namespace fs = std::filesystem;
-            fs::path cfgPath = fs::path(exe_dir_path) / "controls.cfg";
-            if (fs::exists(cfgPath)) {
-                std::ifstream f(cfgPath);
-                bindings = loadBindings(f);
-            }
-        }
-
         // ── Normal menu / game loop ───────────────────────────────────────────────
         while (true) {
-            MenuResult menu = showMenu();
+            MenuResult menu = showMenu(bindings);
             if (menu.quit)
                 break;
 

@@ -35,3 +35,14 @@ KeyBindings loadBindings(std::istream& in);
 // nameFromKey returns "Unknown" for keys not in the table.
 sf::Keyboard::Key keyFromName(const std::string& name);
 std::string nameFromKey(sf::Keyboard::Key key);
+
+// Write all 13 bindings to out in "field = KeyName" format (same as controls.cfg).
+// Safe to round-trip through loadBindings.
+void saveBindings(const KeyBindings& b, std::ostream& out);
+
+// Return a copy of b with the binding at rowIdx changed to newKey.
+// rowIdx mapping: 0=p1_up 1=p1_down 2=p1_left 3=p1_right 4=p1_attack
+//                 5=p2_up 6=p2_down 7=p2_left 8=p2_right 9=p2_attack
+// If newKey is already bound to another slot, the two slots are swapped.
+// If rowIdx already holds newKey, b is returned unchanged.
+KeyBindings applyBindingEdit(KeyBindings b, int rowIdx, sf::Keyboard::Key newKey);

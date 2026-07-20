@@ -531,8 +531,8 @@ TEST_CASE("integration: replay overrides AI - replay kill wins over Hard AI", "[
 // and produces at least one screenshot PNG when screenshotEvery > 0.
 
 TEST_CASE("Menu harness smoke test", "[menu][integration]") {
-    for (const char* stateName :
-         {"main_menu", "ai_difficulty", "host_waiting", "join_input", "ready_to_start"}) {
+    for (const char* stateName : {"main_menu", "ai_difficulty", "host_waiting", "join_input",
+                                  "ready_to_start", "settings"}) {
         auto tmpDir = std::filesystem::temp_directory_path() /
                       ("dungeon_menu_test_" + std::string(stateName));
         std::filesystem::remove_all(tmpDir);
@@ -543,7 +543,8 @@ TEST_CASE("Menu harness smoke test", "[menu][integration]") {
         cfg.screenshotEvery = 1; // gate is `> 0`; without this no PNG is written
         cfg.frames = 3;
 
-        MenuResult r = showMenu(cfg);
+        KeyBindings bindings = defaultBindings();
+        MenuResult r = showMenu(bindings, cfg);
         REQUIRE(r.quit);
 
         bool found = false;

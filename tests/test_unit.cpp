@@ -13,6 +13,7 @@
 #include "geometry.h"
 #include "key_bindings.h"
 #include "letterbox.h"
+#include "menu.h"
 #include "menu_button.h"
 #include "menu_layout.h"
 #include "replay.h"
@@ -556,16 +557,17 @@ TEST_CASE("stackedButtonCenters: stack is centered within canvas", "[menu][unit]
 }
 
 TEST_CASE("menuButtonRects: counts per state", "[menu][unit]") {
-    REQUIRE(menuButtonRects(MenuState::MAIN_MENU).size() == 5u);
+    REQUIRE(menuButtonRects(MenuState::MAIN_MENU).size() == 6u);
     REQUIRE(menuButtonRects(MenuState::AI_DIFFICULTY).size() == 4u);
     REQUIRE(menuButtonRects(MenuState::HOST_WAITING).size() == 1u);
     REQUIRE(menuButtonRects(MenuState::JOIN_INPUT).size() == 1u);
     REQUIRE(menuButtonRects(MenuState::READY_TO_START).size() == 1u);
+    REQUIRE(menuButtonRects(MenuState::SETTINGS).size() == 0u);
 }
 
 TEST_CASE("menuButtonRects: no two buttons overlap per state", "[menu][unit]") {
     for (auto state : {MenuState::MAIN_MENU, MenuState::AI_DIFFICULTY, MenuState::HOST_WAITING,
-                       MenuState::JOIN_INPUT, MenuState::READY_TO_START}) {
+                       MenuState::JOIN_INPUT, MenuState::READY_TO_START, MenuState::SETTINGS}) {
         auto specs = menuButtonRects(state);
         for (std::size_t i = 0; i < specs.size(); ++i) {
             for (std::size_t j = i + 1; j < specs.size(); ++j) {
@@ -580,7 +582,7 @@ TEST_CASE("menuButtonRects: no two buttons overlap per state", "[menu][unit]") {
 TEST_CASE("menuButtonRects: all rects fit within canvas", "[menu][unit]") {
     sf::FloatRect canvas{0.f, 0.f, kMenuW, kMenuH};
     for (auto state : {MenuState::MAIN_MENU, MenuState::AI_DIFFICULTY, MenuState::HOST_WAITING,
-                       MenuState::JOIN_INPUT, MenuState::READY_TO_START}) {
+                       MenuState::JOIN_INPUT, MenuState::READY_TO_START, MenuState::SETTINGS}) {
         for (const auto& spec : menuButtonRects(state)) {
             REQUIRE(spec.rect.left >= 0.f);
             REQUIRE(spec.rect.top >= 0.f);
@@ -624,4 +626,145 @@ TEST_CASE("menuInfoPanelRect: covers expected text positions", "[menu][unit]") {
         INFO("panel should contain y=" << y);
         REQUIRE(panel.contains(kMenuW / 2.f, y));
     }
+}
+
+// ── settings screen unit tests ────────────────────────────────────────────────
+
+TEST_CASE("parseMenuState: 'settings' maps to SETTINGS", "[settings][unit]") {
+    MenuState out;
+    REQUIRE(parseMenuState("settings", out));
+    REQUIRE(out == MenuState::SETTINGS);
+}
+
+TEST_CASE("settingsButtonSpecs: returns 12 specs", "[settings][unit]") {
+    auto b = defaultBindings();
+    auto specs = settingsButtonSpecs(b);
+    REQUIRE(specs.size() == 12u);
+}
+
+TEST_CASE("settingsButtonSpecs: no two rects overlap", "[settings][unit]") {
+    auto b = defaultBindings();
+    auto specs = settingsButtonSpecs(b);
+    for (std::size_t i = 0; i < specs.size(); ++i) {
+        for (std::size_t j = i + 1; j < specs.size(); ++j) {
+            INFO("specs " << i << " and " << j << " overlap");
+            REQUIRE(!specs[i].rect.intersects(specs[j].rect));
+        }
+    }
+}
+
+TEST_CASE("settingsButtonSpecs: all rects fit in canvas", "[settings][unit]") {
+    auto b = defaultBindings();
+    auto specs = settingsButtonSpecs(b);
+    for (const auto& spec : specs) {
+        REQUIRE(spec.rect.left >= 0.f);
+        REQUIRE(spec.rect.top >= 0.f);
+        REQUIRE(spec.rect.left + spec.rect.width <= kMenuW);
+        REQUIRE(spec.rect.top + spec.rect.height <= kMenuH);
+    }
+}
+
+TEST_CASE("settingsButtonSpecs: labels encode correct key names", "[settings][unit]") {
+    auto b = defaultBindings();
+    auto specs = settingsButtonSpecs(b);
+    // P1 rows [0-4]
+    REQUIRE(specs[0].label.find(nameFromKey(b.p1.up)) != std::string::npos);
+    REQUIRE(specs[1].label.find(nameFromKey(b.p1.down)) != std::string::npos);
+    REQUIRE(specs[2].label.find(nameFromKey(b.p1.left)) != std::string::npos);
+    REQUIRE(specs[3].label.find(nameFromKey(b.p1.right)) != std::string::npos);
+    REQUIRE(specs[4].label.find(nameFromKey(b.p1.attack)) != std::string::npos);
+    // P2 rows [5-9]
+    REQUIRE(specs[5].label.find(nameFromKey(b.p2.up)) != std::string::npos);
+    REQUIRE(specs[6].label.find(nameFromKey(b.p2.down)) != std::string::npos);
+    REQUIRE(specs[7].label.find(nameFromKey(b.p2.left)) != std::string::npos);
+    REQUIRE(specs[8].label.find(nameFromKey(b.p2.right)) != std::string::npos);
+    REQUIRE(specs[9].label.find(nameFromKey(b.p2.attack)) != std::string::npos);
+    // RESET and BACK labels
+    REQUIRE(specs[10].label == "RESET TO DEFAULTS");
+    REQUIRE(specs[11].label == "BACK");
+}
+
+// ── saveBindings + applyBindingEdit unit tests ────────────────────────────────
+
+TEST_CASE("saveBindings round-trips with loadBindings", "[key_bindings][unit]") {
+    auto orig = defaultBindings();
+    std::ostringstream oss;
+    saveBindings(orig, oss);
+    std::istringstream iss(oss.str());
+    auto reloaded = loadBindings(iss);
+    REQUIRE(reloaded.p1.up == orig.p1.up);
+    REQUIRE(reloaded.p1.down == orig.p1.down);
+    REQUIRE(reloaded.p1.left == orig.p1.left);
+    REQUIRE(reloaded.p1.right == orig.p1.right);
+    REQUIRE(reloaded.p1.attack == orig.p1.attack);
+    REQUIRE(reloaded.p2.up == orig.p2.up);
+    REQUIRE(reloaded.p2.down == orig.p2.down);
+    REQUIRE(reloaded.p2.left == orig.p2.left);
+    REQUIRE(reloaded.p2.right == orig.p2.right);
+    REQUIRE(reloaded.p2.attack == orig.p2.attack);
+    REQUIRE(reloaded.slowDown == orig.slowDown);
+    REQUIRE(reloaded.speedUp == orig.speedUp);
+    REQUIRE(reloaded.skipCooldown == orig.skipCooldown);
+}
+
+TEST_CASE("saveBindings preserves non-default bindings", "[key_bindings][unit]") {
+    auto b = defaultBindings();
+    b.p1.up = sf::Keyboard::F1;
+    std::ostringstream oss;
+    saveBindings(b, oss);
+    std::istringstream iss(oss.str());
+    auto reloaded = loadBindings(iss);
+    REQUIRE(reloaded.p1.up == sf::Keyboard::F1);
+    // Other fields unchanged from defaults
+    REQUIRE(reloaded.p1.down == defaultBindings().p1.down);
+}
+
+TEST_CASE("applyBindingEdit: sets new key with no conflict", "[key_bindings][unit]") {
+    auto b = defaultBindings();
+    // F3 is not used by any default binding
+    auto result = applyBindingEdit(b, 0, sf::Keyboard::F3);
+    REQUIRE(result.p1.up == sf::Keyboard::F3);
+    // Other slots unchanged
+    REQUIRE(result.p1.down == b.p1.down);
+}
+
+TEST_CASE("applyBindingEdit: swap on conflict", "[key_bindings][unit]") {
+    auto b = defaultBindings();
+    // rowIdx 0 = p1.up (Numpad8); newKey = b.p2.up (W) which is rowIdx 5
+    sf::Keyboard::Key oldP1Up = b.p1.up;
+    auto result = applyBindingEdit(b, 0, b.p2.up);
+    REQUIRE(result.p1.up == sf::Keyboard::W); // p2.up moved to p1.up
+    REQUIRE(result.p2.up == oldP1Up);         // old p1.up swapped to p2.up
+}
+
+TEST_CASE("applyBindingEdit: no-op when same key", "[key_bindings][unit]") {
+    auto b = defaultBindings();
+    auto result = applyBindingEdit(b, 0, b.p1.up);
+    REQUIRE(result.p1.up == b.p1.up);
+    REQUIRE(result.p1.down == b.p1.down);
+    REQUIRE(result.p2.up == b.p2.up);
+}
+
+TEST_CASE("applyBindingEdit: swap at P1/P2 boundary (rowIdx=4 vs rowIdx=5)",
+          "[key_bindings][unit]") {
+    auto b = defaultBindings();
+    // rowIdx 4 = p1.attack (Right); rowIdx 5 = p2.up (W)
+    sf::Keyboard::Key oldP1Attack = b.p1.attack;
+    auto result = applyBindingEdit(b, 4, b.p2.up);
+    REQUIRE(result.p1.attack == sf::Keyboard::W);
+    REQUIRE(result.p2.up == oldP1Attack);
+}
+
+TEST_CASE("saveBindings: field names match loadBindings expectations", "[key_bindings][unit]") {
+    auto b = defaultBindings();
+    std::ostringstream oss;
+    saveBindings(b, oss);
+    const std::string out = oss.str();
+    REQUIRE(out.find("speed_up = ") != std::string::npos);
+    REQUIRE(out.find("slow_down = ") != std::string::npos);
+    REQUIRE(out.find("skip_cooldown = ") != std::string::npos);
+    // Confirm struct-member spelling is NOT used directly
+    REQUIRE(out.find("speedUp") == std::string::npos);
+    REQUIRE(out.find("slowDown") == std::string::npos);
+    REQUIRE(out.find("skipCooldown") == std::string::npos);
 }
