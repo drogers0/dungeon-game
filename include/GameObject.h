@@ -42,4 +42,6 @@ public:
     virtual bool isValid() = 0;
 
     virtual void setOrigin() = 0;
+
+    virtual sf::FloatRect getGlobalBounds() const = 0;
 };

@@ -19,7 +19,9 @@
 #include "NetworkManager.h"
 #include "ai.h"
 #include "debug.h"
+#include "menu.h"
 #include "rng.h"
+#include <filesystem>
 
 // Absolute path to tests/data/ is injected at build time via CMake define.
 #ifndef TESTS_DATA_DIR
@@ -522,4 +524,39 @@ TEST_CASE("integration: replay overrides AI - replay kill wins over Hard AI", "[
     REQUIRE(s.p2_score == 1);
     REQUIRE(s.p1_score == 0);
     REQUIRE(s.wait == true);
+}
+
+// ── 24. Menu harness smoke test ───────────────────────────────────────────────
+// Calls showMenu() directly for each state; verifies no crash, returns quit=true,
+// and produces at least one screenshot PNG when screenshotEvery > 0.
+
+TEST_CASE("Menu harness smoke test", "[menu][integration]") {
+    for (const char* stateName :
+         {"main_menu", "ai_difficulty", "host_waiting", "join_input", "ready_to_start"}) {
+        auto tmpDir = std::filesystem::temp_directory_path() /
+                      ("dungeon_menu_test_" + std::string(stateName));
+        std::filesystem::remove_all(tmpDir);
+
+        DebugConfig cfg;
+        cfg.menuState = stateName;
+        cfg.screenshotDir = tmpDir.string();
+        cfg.screenshotEvery = 1; // gate is `> 0`; without this no PNG is written
+        cfg.frames = 3;
+
+        MenuResult r = showMenu(cfg);
+        REQUIRE(r.quit);
+
+        bool found = false;
+        if (std::filesystem::exists(tmpDir)) {
+            for (const auto& p : std::filesystem::directory_iterator(tmpDir)) {
+                if (p.path().extension() == ".png") {
+                    found = true;
+                    break;
+                }
+            }
+        }
+        REQUIRE(found);
+
+        std::filesystem::remove_all(tmpDir);
+    }
 }

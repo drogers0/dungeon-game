@@ -13,6 +13,8 @@
 #include "geometry.h"
 #include "key_bindings.h"
 #include "letterbox.h"
+#include "menu_button.h"
+#include "menu_layout.h"
 #include "replay.h"
 #include "sprite_anim.h"
 #include <sstream>
@@ -49,6 +51,10 @@ public:
     void changeValid(bool) override {}
     bool isValid() override { return true; }
     void setOrigin() override {}
+    sf::FloatRect getGlobalBounds() const override {
+        // Centered-origin convention: matches AnimatedGameObject post-setOrigin().
+        return {px - w * sx / 2.f, py - h * sy / 2.f, w * sx, h * sy};
+    }
 };
 
 // ── objectBounds ───────────────────────────────────────────────────────────────
@@ -522,4 +528,100 @@ TEST_CASE("loadBindings: all 13 fields parsed", "[key_bindings][unit]") {
     REQUIRE(b.slowDown == sf::Keyboard::F11);
     REQUIRE(b.speedUp == sf::Keyboard::F12);
     REQUIRE(b.skipCooldown == sf::Keyboard::Tab);
+}
+
+// ── menu_layout unit tests ────────────────────────────────────────────────────
+
+TEST_CASE("stackedButtonCenters: spacing between adjacent centers", "[menu][unit]") {
+    for (int count : {1, 2, 3, 4, 5, 6}) {
+        auto ys = stackedButtonCenters(kMenuH, kBtnH, kBtnGap, count);
+        REQUIRE(static_cast<int>(ys.size()) == count);
+        for (int i = 0; i + 1 < count; ++i)
+            REQUIRE(ys[static_cast<std::size_t>(i + 1)] - ys[static_cast<std::size_t>(i)] ==
+                    Catch::Approx(kBtnH + kBtnGap));
+    }
+}
+
+TEST_CASE("stackedButtonCenters: count <= 0 returns empty", "[menu][unit]") {
+    REQUIRE(stackedButtonCenters(kMenuH, kBtnH, kBtnGap, 0).empty());
+    REQUIRE(stackedButtonCenters(kMenuH, kBtnH, kBtnGap, -1).empty());
+}
+
+TEST_CASE("stackedButtonCenters: stack is centered within canvas", "[menu][unit]") {
+    for (int count : {1, 2, 3, 4, 5, 6}) {
+        auto ys = stackedButtonCenters(kMenuH, kBtnH, kBtnGap, count);
+        float mid = (ys.front() + ys.back()) / 2.f;
+        REQUIRE(mid == Catch::Approx(kMenuH / 2.f).margin(0.5f));
+    }
+}
+
+TEST_CASE("menuButtonRects: counts per state", "[menu][unit]") {
+    REQUIRE(menuButtonRects(MenuState::MAIN_MENU).size() == 5u);
+    REQUIRE(menuButtonRects(MenuState::AI_DIFFICULTY).size() == 4u);
+    REQUIRE(menuButtonRects(MenuState::HOST_WAITING).size() == 1u);
+    REQUIRE(menuButtonRects(MenuState::JOIN_INPUT).size() == 1u);
+    REQUIRE(menuButtonRects(MenuState::READY_TO_START).size() == 1u);
+}
+
+TEST_CASE("menuButtonRects: no two buttons overlap per state", "[menu][unit]") {
+    for (auto state : {MenuState::MAIN_MENU, MenuState::AI_DIFFICULTY, MenuState::HOST_WAITING,
+                       MenuState::JOIN_INPUT, MenuState::READY_TO_START}) {
+        auto specs = menuButtonRects(state);
+        for (std::size_t i = 0; i < specs.size(); ++i) {
+            for (std::size_t j = i + 1; j < specs.size(); ++j) {
+                INFO("state " << static_cast<int>(state) << " buttons " << i << " and " << j
+                              << " overlap");
+                REQUIRE(!specs[i].rect.intersects(specs[j].rect));
+            }
+        }
+    }
+}
+
+TEST_CASE("menuButtonRects: all rects fit within canvas", "[menu][unit]") {
+    sf::FloatRect canvas{0.f, 0.f, kMenuW, kMenuH};
+    for (auto state : {MenuState::MAIN_MENU, MenuState::AI_DIFFICULTY, MenuState::HOST_WAITING,
+                       MenuState::JOIN_INPUT, MenuState::READY_TO_START}) {
+        for (const auto& spec : menuButtonRects(state)) {
+            REQUIRE(spec.rect.left >= 0.f);
+            REQUIRE(spec.rect.top >= 0.f);
+            REQUIRE(spec.rect.left + spec.rect.width <= canvas.width);
+            REQUIRE(spec.rect.top + spec.rect.height <= canvas.height);
+        }
+    }
+}
+
+TEST_CASE("MenuButton::bounds equals drawn rect", "[menu][unit]") {
+    // getGlobalBounds() includes the outline thickness (1.5px expands each edge outward).
+    // left  = 300 - 200/2 - 1.5 = 198.5
+    // top   = 200 - 50/2  - 1.5 = 173.5
+    // width = 200 + 2*1.5 = 203, height = 50 + 2*1.5 = 53
+    sf::Font f{};
+    MenuButton btn({200.f, 50.f}, f, "Test");
+    btn.setPosition({300.f, 200.f});
+    REQUIRE(btn.bounds().left == Catch::Approx(198.5f));
+    REQUIRE(btn.bounds().top == Catch::Approx(173.5f));
+    REQUIRE(btn.bounds().width == Catch::Approx(203.f));
+    REQUIRE(btn.bounds().height == Catch::Approx(53.f));
+}
+
+TEST_CASE("pauseButtonRect: non-overlap and in-canvas", "[menu][unit]") {
+    auto r0 = pauseButtonRect(0);
+    auto r1 = pauseButtonRect(1);
+    REQUIRE(!r0.intersects(r1));
+    REQUIRE(r0.left >= 0.f);
+    REQUIRE(r0.top >= 0.f);
+    REQUIRE(r0.left + r0.width <= kGameW);
+    REQUIRE(r0.top + r0.height <= kGameH);
+    REQUIRE(r1.left >= 0.f);
+    REQUIRE(r1.top >= 0.f);
+    REQUIRE(r1.left + r1.width <= kGameW);
+    REQUIRE(r1.top + r1.height <= kGameH);
+}
+
+TEST_CASE("menuInfoPanelRect: covers expected text positions", "[menu][unit]") {
+    auto panel = menuInfoPanelRect();
+    for (float y : {150.f, 250.f, 320.f, 350.f, 400.f, 460.f}) {
+        INFO("panel should contain y=" << y);
+        REQUIRE(panel.contains(kMenuW / 2.f, y));
+    }
 }

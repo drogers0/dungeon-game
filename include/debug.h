@@ -16,6 +16,11 @@ struct DebugConfig {
     // so --ai without --frames is a silent no-op for the harness bypass check.
     AiDifficulty ai = AiDifficulty::None;
 
+    // Menu screenshot harness: set to a state name to drive showMenu() directly.
+    std::string menuState;
+
+    bool menuMode() const { return !menuState.empty(); }
+
     bool active() const {
         return frames > 0 || !replayPath.empty() || !replayPathP1.empty() || screenshotEvery > 0 ||
                quitAtStep >= 0;

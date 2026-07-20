@@ -9,6 +9,7 @@
 #include "RegularGameObject.h"
 #include "ai.h"
 #include "debug.h"
+#include "game_canvas.h"
 #include "key_bindings.h"
 #include "replay.h"
 #include <SFML/Audio.hpp>
@@ -131,9 +132,6 @@ private:
 
     // Fixed-timestep state
     static constexpr float kFixedDt = 1.f / 60.f;
-    // Logical canvas size — all sim positions use these, never m_window.getSize().
-    static constexpr float kLogicalW = 1920.f;
-    static constexpr float kLogicalH = 1080.f;
     long long m_steps = 0;
     float m_accumulator = 0.f;
     float m_animTime = 0.f;
