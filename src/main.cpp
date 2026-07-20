@@ -229,15 +229,8 @@ int main(int argc, char** argv) {
                         throw std::runtime_error("--ai must be easy, medium, or hard");
                 } else if (arg == "--menu-state") {
                     std::string val(needValue(arg, i));
-                    static const char* validStates[] = {"main_menu", "host_waiting", "join_input",
-                                                        "ai_difficulty", "ready_to_start"};
-                    bool found = false;
-                    for (const char* s : validStates)
-                        if (val == s) {
-                            found = true;
-                            break;
-                        }
-                    if (!found) {
+                    MenuState parsed; // validate against the single source of truth (menu.cpp)
+                    if (!parseMenuState(val, parsed)) {
                         std::cerr << "Error: unknown --menu-state '" << val
                                   << "' (valid: main_menu host_waiting join_input ai_difficulty "
                                      "ready_to_start)\n";

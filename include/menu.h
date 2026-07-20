@@ -4,6 +4,7 @@
 #include "debug.h"
 #include "menu_layout.h"
 #include <memory>
+#include <string>
 
 struct MenuResult {
     NetworkMode mode = NetworkMode::LOCAL;
@@ -13,3 +14,7 @@ struct MenuResult {
 };
 
 MenuResult showMenu(const DebugConfig& cfg = {});
+
+// Map a --menu-state name ("main_menu", "host_waiting", …) to its enum.
+// Returns false for an unknown name. Single source of truth for valid state names.
+bool parseMenuState(const std::string& name, MenuState& out);

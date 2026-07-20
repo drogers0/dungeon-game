@@ -382,6 +382,8 @@ void Game::processEvents() {
                     m_paused = false;
                     background.play();
                 } else if (pauseButtonRect(1).contains(mp)) {
+                    if (m_networkManager) // graceful peer teardown, like the keyboard Q path
+                        m_networkManager->disconnect();
                     background.stop();
                     m_quitToMenu = true;
                     m_window.close();

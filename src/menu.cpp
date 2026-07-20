@@ -40,7 +40,7 @@ static MenuButton makeButton(const ButtonSpec& spec, const sf::Font& font) {
 }
 
 // Map a state-name string to MenuState enum.
-static bool parseMenuState(const std::string& name, MenuState& out) {
+bool parseMenuState(const std::string& name, MenuState& out) {
     if (name == "main_menu") {
         out = MenuState::MAIN_MENU;
         return true;
@@ -155,7 +155,9 @@ static void renderMenu(sf::RenderWindow& win, RegularGameObject& bg, const sf::F
     // Draw buttons on top of everything.
     for (const auto& spec : specs) {
         auto btn = makeButton(spec, font);
-        btn.setHovered(btn.bounds().contains(mousePos));
+        // Hover-test the raw layout rect (== click rect), not bounds(), which the
+        // outline inflates by 1.5px — otherwise a thin fringe highlights but doesn't click.
+        btn.setHovered(spec.rect.contains(mousePos));
         btn.draw(win);
     }
     // Note: caller is responsible for calling win.display().
@@ -195,14 +197,10 @@ MenuResult showMenu(const DebugConfig& cfg) {
     background.setLoop(true);
 
     sf::SoundBuffer down_buffer;
-    sf::SoundBuffer up_buffer;
     loadOrThrow(down_buffer, resource_path + "ButtonOn.wav");
-    loadOrThrow(up_buffer, resource_path + "ButtonOff.wav");
 
     sf::Sound press;
-    sf::Sound up;
     press.setBuffer(down_buffer);
-    up.setBuffer(up_buffer);
 
     sf::Font font;
     loadOrThrow(font, resource_path + "oswald.ttf");
@@ -216,11 +214,11 @@ MenuResult showMenu(const DebugConfig& cfg) {
         for (int frame = 0; frame < effectiveFrames; ++frame) {
             sf::Event event;
             while (startscreen.pollEvent(event)) {
-                if (event.type == sf::Event::Closed) {
+                if (event.type == sf::Event::Closed)
                     startscreen.close();
-                    goto harness_done;
-                }
             }
+            if (!startscreen.isOpen())
+                break;
             sf::Vector2f mousePos =
                 startscreen.mapPixelToCoords(sf::Mouse::getPosition(startscreen));
             renderMenu(startscreen, david, font, menuState, ipInput, statusMessage, hostIpAddress,
@@ -231,7 +229,6 @@ MenuResult showMenu(const DebugConfig& cfg) {
             }
             startscreen.display();
         }
-    harness_done:
         startscreen.close();
         result.quit = true;
         return result;
