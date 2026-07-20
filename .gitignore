@@ -504,5 +504,6 @@ dist/
 dungeon_game
 *.zip
 
-# CMake build tree
+# CMake build trees (build/, relbuild/, and other out-of-source dirs)
 build/
+relbuild/

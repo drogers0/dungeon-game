@@ -98,6 +98,8 @@ void AnimatedGameObject::changeValid(bool a) { m_valid = a; }
 
 bool AnimatedGameObject::isValid() { return m_valid; }
 
+sf::FloatRect AnimatedGameObject::getGlobalBounds() const { return m_sprite.getGlobalBounds(); }
+
 void AnimatedGameObject::setOrigin() {
     if (m_sprite.getOrigin().x == 0) {
         m_sprite.setOrigin((m_sprite.getLocalBounds().width) / 2,

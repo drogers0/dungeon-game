@@ -71,3 +71,18 @@ add_test(NAME smoke
     WORKING_DIRECTORY $<TARGET_FILE_DIR:dungeon_game>
 )
 set_tests_properties(smoke PROPERTIES LABELS "integration")
+
+# ── Menu harness CLI smoke tests ──────────────────────────────────────────────
+add_test(NAME menu_state_cli
+    COMMAND $<TARGET_FILE:dungeon_game>
+        --menu-state main_menu
+        --frames 3
+        --screenshot-dir $<TARGET_FILE_DIR:dungeon_game>/menu_smoke
+    WORKING_DIRECTORY $<TARGET_FILE_DIR:dungeon_game>
+)
+set_tests_properties(menu_state_cli PROPERTIES LABELS "integration")
+
+add_test(NAME menu_state_invalid
+    COMMAND $<TARGET_FILE:dungeon_game> --menu-state bogus
+)
+set_tests_properties(menu_state_invalid PROPERTIES WILL_FAIL TRUE LABELS "unit")

@@ -37,6 +37,8 @@ public:
 
     void setOrigin() override;
 
+    sf::FloatRect getGlobalBounds() const override;
+
 private:
     sf::Sprite m_sprite;
     sf::Texture m_texture;

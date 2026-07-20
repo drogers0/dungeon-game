@@ -6,23 +6,15 @@
 #include "asset_load.h"
 #include "geometry.h"
 #include "letterbox.h"
+#include "menu_button.h"
+#include "menu_layout.h"
 #include "resource_path.h"
 #include "rng.h"
+#include "screenshot.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <iostream>
-
-// ── helpers ──────────────────────────────────────────────────────────────────
-
-// LCOV_EXCL_START — screenshot requires a live RenderWindow; not testable headless
-static void captureScreenshot(const sf::RenderWindow& w, const std::string& path) {
-    sf::Texture t;
-    t.create(w.getSize().x, w.getSize().y);
-    t.update(w);
-    t.copyToImage().saveToFile(path);
-}
-// LCOV_EXCL_STOP
 
 // ── toggleFullscreen ──────────────────────────────────────────────────────────
 // LCOV_EXCL_START — requires a display; not reachable from harness tests
@@ -41,7 +33,7 @@ void Game::toggleFullscreen() {
     // live on the shared context and should survive, but verify visually.
     if (!m_debug.active())
         m_window.setVerticalSyncEnabled(true);
-    m_window.setView(makeLetterboxView({kLogicalW, kLogicalH}, m_window.getSize()));
+    m_window.setView(makeLetterboxView({kGameW, kGameH}, m_window.getSize()));
 }
 // LCOV_EXCL_STOP
 
@@ -64,7 +56,7 @@ Game::Game(NetworkMode mode, std::shared_ptr<NetworkManager> netManager)
 
     loadOrThrow(*m_robot, resource_path + "robot.png");
     m_robot->setScale(-1.0f, 1.0f);
-    m_robot->setPosition(kLogicalW - (m_rocket->getWidth() + 150), 400);
+    m_robot->setPosition(kGameW - (m_rocket->getWidth() + 150), 400);
 
     m_arena.push_back(std::make_unique<RegularGameObject>());
     loadOrThrow(*m_arena[0], resource_path + "brick.png");
@@ -81,14 +73,14 @@ Game::Game(NetworkMode mode, std::shared_ptr<NetworkManager> netManager)
         auto fire2 = std::make_unique<AnimatedGameObject>(216, 216, 5, 3, 10, 0);
         loadOrThrow(*fire2, resource_path + "fire.png");
         fire2->setScale(2.0f);
-        fire2->setPosition(kLogicalW / 2 - 5, 400);
+        fire2->setPosition(kGameW / 2 - 5, 400);
         m_arena.push_back(std::move(fire2));
     }
     {
         auto fire3 = std::make_unique<AnimatedGameObject>(216, 216, 5, 3, 10, 0);
         loadOrThrow(*fire3, resource_path + "fire.png");
         fire3->setScale(2.0f);
-        fire3->setPosition(kLogicalW - 100, 400);
+        fire3->setPosition(kGameW - 100, 400);
         m_arena.push_back(std::move(fire3));
     }
 
@@ -97,7 +89,7 @@ Game::Game(NetworkMode mode, std::shared_ptr<NetworkManager> netManager)
     loadOrThrow(block, resource_path + "Blockt.ttf");
 
     pause_text = sf::Text("Cooldown", block, 400);
-    pause_text.setPosition(kLogicalW / 2 - 850, 100);
+    pause_text.setPosition(kGameW / 2 - 850, 100);
     pause_text.setFillColor(sf::Color::Black);
 
     info = sf::Text("a short intermission", font, 50);
@@ -107,9 +99,9 @@ Game::Game(NetworkMode mode, std::shared_ptr<NetworkManager> netManager)
     m_rocketScoreText = sf::Text("Rocket Score: 0", font, 40);
     m_robotScoreText = sf::Text("Robot Score: 0", font, 40);
     timer = sf::Text("timer", tfont, 60);
-    timer.setPosition(kLogicalW / 2 - 60, 0);
+    timer.setPosition(kGameW / 2 - 60, 0);
     m_rocketScoreText.setPosition(10, 0);
-    m_robotScoreText.setPosition(kLogicalW - m_robotScoreText.getGlobalBounds().width, 0);
+    m_robotScoreText.setPosition(kGameW - m_robotScoreText.getGlobalBounds().width, 0);
     m_robotScoreText.setFillColor(sf::Color::Green);
     timer.setFillColor(sf::Color::Black);
     m_rocketScoreText.setFillColor(sf::Color::Blue);
@@ -192,7 +184,7 @@ std::tuple<int, int, float, int, bool, bool> Game::run() {
     // Apply display settings now that debug config is known.
     if (!m_debug.active())
         m_window.setVerticalSyncEnabled(true);
-    m_window.setView(makeLetterboxView({kLogicalW, kLogicalH}, m_window.getSize()));
+    m_window.setView(makeLetterboxView({kGameW, kGameH}, m_window.getSize()));
 
     sf::Clock clock;
     background.play();
@@ -377,10 +369,26 @@ void Game::processEvents() {
             break;
         case sf::Event::Resized:
             m_window.setView(
-                makeLetterboxView({kLogicalW, kLogicalH}, {event.size.width, event.size.height}));
+                makeLetterboxView({kGameW, kGameH}, {event.size.width, event.size.height}));
             break;
         case sf::Event::Closed:
             m_window.close();
+            break;
+        case sf::Event::MouseButtonReleased:
+            if (m_paused && event.mouseButton.button == sf::Mouse::Left) {
+                sf::Vector2f mp =
+                    m_window.mapPixelToCoords({event.mouseButton.x, event.mouseButton.y});
+                if (pauseButtonRect(0).contains(mp)) {
+                    m_paused = false;
+                    background.play();
+                } else if (pauseButtonRect(1).contains(mp)) {
+                    if (m_networkManager) // graceful peer teardown, like the keyboard Q path
+                        m_networkManager->disconnect();
+                    background.stop();
+                    m_quitToMenu = true;
+                    m_window.close();
+                }
+            }
             break;
         // LCOV_EXCL_STOP
         default:
@@ -473,7 +481,7 @@ void Game::update(sf::Time deltaT, float time) {
 
     if (m_p1Up) {
         if (m_rocket->getPosition().y < -(m_rocket->getHeight())) {
-            m_rocket->setPosition(m_rocket->getPosition().x, kLogicalH - m_rocket->getHeight());
+            m_rocket->setPosition(m_rocket->getPosition().x, kGameH - m_rocket->getHeight());
         }
 
         if (collision(*m_rocket, *m_robot)) {
@@ -484,7 +492,7 @@ void Game::update(sf::Time deltaT, float time) {
     }
 
     if (m_p1Down) {
-        if (m_rocket->getPosition().y > kLogicalH - m_rocket->getHeight()) {
+        if (m_rocket->getPosition().y > kGameH - m_rocket->getHeight()) {
             m_rocket->setPosition(m_rocket->getPosition().x, -(m_rocket->getHeight()));
         }
 
@@ -496,7 +504,7 @@ void Game::update(sf::Time deltaT, float time) {
     }
     if (m_p1Left) {
         if (m_rocket->getPosition().x < -(m_rocket->getWidth())) {
-            m_rocket->setPosition(kLogicalW, m_rocket->getPosition().y);
+            m_rocket->setPosition(kGameW, m_rocket->getPosition().y);
         }
         if (!m_p1FacingLeft) {
             m_rocket->setScale(-2.0f, 2);
@@ -515,7 +523,7 @@ void Game::update(sf::Time deltaT, float time) {
     if (m_p1Right) {
         m_rocket->setScale(2.0f, 2);
 
-        if (m_rocket->getPosition().x > kLogicalW) {
+        if (m_rocket->getPosition().x > kGameW) {
             m_rocket->setPosition(-(m_rocket->getWidth()), m_rocket->getPosition().y);
         }
 
@@ -534,7 +542,7 @@ void Game::update(sf::Time deltaT, float time) {
     }
     if (m_p2Up) {
         if (m_robot->getPosition().y < -(m_robot->getHeight())) {
-            m_robot->setPosition(m_robot->getPosition().x, kLogicalH - m_robot->getHeight());
+            m_robot->setPosition(m_robot->getPosition().x, kGameH - m_robot->getHeight());
         }
 
         if (collision(*m_rocket, *m_robot)) {
@@ -544,7 +552,7 @@ void Game::update(sf::Time deltaT, float time) {
         }
     }
     if (m_p2Down) {
-        if (m_robot->getPosition().y > kLogicalH - m_robot->getHeight()) {
+        if (m_robot->getPosition().y > kGameH - m_robot->getHeight()) {
             m_robot->setPosition(m_robot->getPosition().x, -(m_robot->getHeight()));
         }
 
@@ -556,7 +564,7 @@ void Game::update(sf::Time deltaT, float time) {
     }
     if (m_p2Left) {
         if (m_robot->getPosition().x < -(m_robot->getWidth())) {
-            m_robot->setPosition(kLogicalW, m_robot->getPosition().y);
+            m_robot->setPosition(kGameW, m_robot->getPosition().y);
         }
         m_robot->setScale(-1.0f, 1.0f);
         if (!m_p2FacingLeft) {
@@ -574,7 +582,7 @@ void Game::update(sf::Time deltaT, float time) {
     }
     if (m_p2Right) {
         m_robot->setScale(1.0f, 1.0f);
-        if (m_robot->getPosition().x > kLogicalW) {
+        if (m_robot->getPosition().x > kGameW) {
             m_robot->setPosition(-(m_robot->getWidth()), m_robot->getPosition().y);
         }
         if (m_p2FacingLeft) {
@@ -667,7 +675,7 @@ void Game::update(sf::Time deltaT, float time) {
     if (reset) {
         m_rocket->setScale(2.0f, 2);
         m_robot->setScale(-1.0f, 1.0f);
-        m_robot->setPosition(kLogicalW - (m_rocket->getWidth() + 150), 400);
+        m_robot->setPosition(kGameW - (m_rocket->getWidth() + 150), 400);
         m_rocket->setPosition(m_rocket->getWidth() + 20, 400);
         m_p1FacingLeft = false;
         m_p2FacingLeft = true;
@@ -676,7 +684,7 @@ void Game::update(sf::Time deltaT, float time) {
 
     m_rocketScoreText.setString("Rocket Score: " + std::to_string(m_rocketScore));
     m_robotScoreText.setString("Robot Score: " + std::to_string(m_robotScore));
-    m_robotScoreText.setPosition(kLogicalW - m_robotScoreText.getGlobalBounds().width - 20, 0);
+    m_robotScoreText.setPosition(kGameW - m_robotScoreText.getGlobalBounds().width - 20, 0);
 }
 
 // ── render ────────────────────────────────────────────────────────────────────
@@ -735,16 +743,30 @@ void Game::render() {
         m_window.draw(info);
     }
     if (m_paused) {
-        sf::RectangleShape overlay(sf::Vector2f(kLogicalW, kLogicalH));
+        sf::RectangleShape overlay(sf::Vector2f(kGameW, kGameH));
         overlay.setFillColor(sf::Color(0, 0, 0, 140));
         m_window.draw(overlay);
-        sf::Text txt("PAUSED\nEsc: resume   Q: quit to menu", font, 60);
+
+        auto r0 = pauseButtonRect(0);
+        auto r1 = pauseButtonRect(1);
+        sf::Vector2f mousePos = m_window.mapPixelToCoords(sf::Mouse::getPosition(m_window));
+
+        sf::Text txt("PAUSED", font, 60);
         txt.setFillColor(sf::Color::White);
         txt.setStyle(sf::Text::Bold);
-        auto bounds = txt.getLocalBounds();
-        txt.setOrigin(bounds.width / 2.f, bounds.height / 2.f);
-        txt.setPosition(kLogicalW / 2.f, kLogicalH / 2.f);
+        auto tlb = txt.getLocalBounds();
+        txt.setOrigin(tlb.left + tlb.width / 2.f, tlb.top + tlb.height / 2.f);
+        txt.setPosition(kGameW / 2.f, r0.top - 60.f);
         m_window.draw(txt);
+
+        MenuButton resumeBtn({r0.width, r0.height}, font, "Resume");
+        MenuButton quitBtn({r1.width, r1.height}, font, "Quit to Menu");
+        resumeBtn.setPosition({r0.left + r0.width / 2.f, r0.top + r0.height / 2.f});
+        quitBtn.setPosition({r1.left + r1.width / 2.f, r1.top + r1.height / 2.f});
+        resumeBtn.setHovered(r0.contains(mousePos));
+        quitBtn.setHovered(r1.contains(mousePos));
+        resumeBtn.draw(m_window);
+        quitBtn.draw(m_window);
     }
     // NOTE: m_window.display() is called by run() so screenshots can be
     // captured between draw and swap.

@@ -65,6 +65,8 @@ void RegularGameObject::changeValid(bool a) { m_valid = a; }
 
 bool RegularGameObject::isValid() { return m_valid; }
 
+sf::FloatRect RegularGameObject::getGlobalBounds() const { return m_sprite.getGlobalBounds(); }
+
 void RegularGameObject::setOrigin() {
     m_sprite.setOrigin((m_sprite.getLocalBounds().width) / 2,
                        (m_sprite.getLocalBounds().height) / 2);
