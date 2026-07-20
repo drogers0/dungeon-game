@@ -60,6 +60,23 @@ jobs:
             -instr-profile=build/cov/merged.profdata \
             -ignore-filename-regex='main\.cpp|tests/'
 
+      - name: Generate menu screenshots
+        env:
+          ALSOFT_DRIVERS: 'null'
+        run: |
+          for st in main_menu ai_difficulty host_waiting join_input ready_to_start; do
+            xvfb-run -a ./build/dungeon_game --menu-state "$st" --frames 2 \
+              --screenshot-every 1 --screenshot-dir "build/menu_shots/$st" || true
+          done
+          ls -R build/menu_shots || true
+
+      - name: Upload menu screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: menu-screenshots
+          path: build/menu_shots/
+
       - name: Check formatting (clang-format-18)
         run: |
           git ls-files 'src/*.cpp' 'include/*.h' 'tests/*.cpp' \
