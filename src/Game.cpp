@@ -152,8 +152,6 @@ void Game::setAiOpponent(AiDifficulty d) {
 
 AiView Game::makeAiView() const {
     AiView view;
-    view.selfPos = m_robot->getPosition();
-
     // Both bounds must be normalised to positive width/height: either fighter
     // may face left (scale.x = -1), which makes objectBounds negative-width.
     // The decider's nearest-edge math needs a canonical left/width, so use
@@ -161,10 +159,13 @@ AiView Game::makeAiView() const {
     // P1 faces left while the robot is to its left — otherwise nearOppEdge
     // picks the far edge and the AI thinks it is a full body-width too far).
     view.selfBounds = normalizedBounds(*m_robot);
+    view.selfPos = m_robot->getPosition();
+    view.selfPos.y += view.selfBounds.height * 0.5f; // anchor → body centre
 
     view.selfFacingLeft = m_p2FacingLeft;
-    view.oppPos = m_rocket->getPosition();
     view.oppBounds = normalizedBounds(*m_rocket);
+    view.oppPos = m_rocket->getPosition();
+    view.oppPos.y += view.oppBounds.height * 0.5f; // anchor → body centre
 
     // arena[0] is the brick floor; arena[1..3] are the three fire hazards.
     for (int i = 0; i < 3; ++i)
@@ -479,9 +480,10 @@ void Game::update(sf::Time deltaT, float time) {
     sf::Vector2f p1movement(0.0f, 0.0f);
     sf::Vector2f p2movement(0.0f, 0.0f);
 
+    const float rocketH = m_rocket->getHeight() * m_rocket->getScale().y; // rendered: 68*2=136
     if (m_p1Up) {
-        if (m_rocket->getPosition().y < -(m_rocket->getHeight())) {
-            m_rocket->setPosition(m_rocket->getPosition().x, kGameH - m_rocket->getHeight());
+        if (m_rocket->getPosition().y < -rocketH) {
+            m_rocket->setPosition(m_rocket->getPosition().x, kGameH - rocketH);
         }
 
         if (collision(*m_rocket, *m_robot)) {
@@ -492,8 +494,8 @@ void Game::update(sf::Time deltaT, float time) {
     }
 
     if (m_p1Down) {
-        if (m_rocket->getPosition().y > kGameH - m_rocket->getHeight()) {
-            m_rocket->setPosition(m_rocket->getPosition().x, -(m_rocket->getHeight()));
+        if (m_rocket->getPosition().y > kGameH - rocketH) {
+            m_rocket->setPosition(m_rocket->getPosition().x, -rocketH);
         }
 
         if (collision(*m_rocket, *m_robot)) {

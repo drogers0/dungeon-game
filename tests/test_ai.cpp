@@ -270,6 +270,51 @@ TEST_CASE("ai: paramsFor sanity - params scale with difficulty (Easy < Medium < 
     REQUIRE(med.aggression < hard.aggression);
 }
 
+// ── 10. Bottom-of-arena: OLD anchor geometry -> no attack (why fix was needed) ─
+// With the pre-fix anchor Y convention (before makeAiView centre-Y shift):
+//   robot anchor Y=900, rocket anchor Y=1012 → absDy=112 > Easy attackAlignY=40
+// → decideAiInput cannot attack even though the sprites are at the arena bottom
+//   and vertically close.  This test pins that broken geometry so it is clear
+//   why the centre-Y fix in makeAiView() was necessary.
+
+TEST_CASE("ai: bottom-of-arena old anchor geometry -> no attack (pre-fix behaviour)", "[ai]") {
+    AiParams p = paramsFor(AiDifficulty::Easy);
+    p.mistakeProb = 0.f;
+    p.missTimeProb = 0.f;
+
+    std::mt19937 rng(1);
+    // Robot anchor at bottom (y=900); rocket anchor at bottom (y=1012).
+    // makeView sets oppBounds.left = oppX-60 = 290, so nearOppEdge = 290+120 = 410;
+    // horizDist = |500 - 410| = 90 < attackRange=200, so only absDy blocks attack.
+    AiView v = makeView(500.f, 900.f, 350.f, 1012.f, /*facingLeft=*/true);
+
+    PlayerInput out = decideAiInput(v, p, rng);
+    REQUIRE(out.attack == false); // absDy=112 > attackAlignY=40 -> blocked
+    REQUIRE(out.down == true);    // dy=112 > 20 -> AI steers down trying to align
+}
+
+// ── 11. Bottom-of-arena: post-fix centre-Y geometry -> attack fires ───────────
+// With the fixed centre-Y convention (makeAiView shifts by selfBounds.height*0.5):
+//   robot centre Y=990, rocket centre Y=1012 → absDy=22 < Easy attackAlignY=40
+// → attack fires.  Together with test 10 this proves the fix is in makeAiView(),
+//   not in decideAiInput or AiParams.
+
+TEST_CASE("ai: bottom-of-arena centre-Y geometry -> attack fires (post-fix behaviour)", "[ai]") {
+    AiParams p = paramsFor(AiDifficulty::Easy);
+    p.mistakeProb = 0.f;
+    p.missTimeProb = 0.f;
+
+    std::mt19937 rng(1);
+    // Robot centre at Y=990; rocket centre at Y=1012 (post-fix makeAiView output).
+    // horizDist = |500 - ((350-60)+120)| = |500-410| = 90 < attackRange=200 ✓
+    // absDy = 22 < attackAlignY=40 ✓  dy=22 > Y-steer threshold=20.
+    AiView v = makeView(500.f, 990.f, 350.f, 1012.f, /*facingLeft=*/true);
+
+    PlayerInput out = decideAiInput(v, p, rng);
+    REQUIRE(out.attack == true); // absDy=22 < attackAlignY=40 -> fires
+    REQUIRE(out.left == true);   // opponent is to the left
+}
+
 // ── 9b. decisionEvery hold: output changes only on boundary ───────────────────
 
 TEST_CASE("ai: decisionEvery hold - output constant within hold window", "[ai]") {

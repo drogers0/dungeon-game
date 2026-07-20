@@ -342,17 +342,17 @@ TEST_CASE("integration: determinism - same replay twice gives identical snapshot
 }
 
 // ── 14. P1 moves down ────────────────────────────────────────────────────────
-// P1 moves down 30 steps.  m_speed=1200, dt=1/60 -> 20 px/step.
-// Starting y=400; wrap triggers at y>(1080-68)=1012, not reached in 30 steps.
+// P1 moves down 27 steps.  m_speed=1200, dt=1/60 -> 20 px/step.
+// Starting y=400; wrap triggers at y>(1080-136)=944, not reached in 27 steps.
 
 TEST_CASE("integration: P1 moves down - p1_y increases 20 px per step", "[integration]") {
     DebugConfig cfg;
-    cfg.frames = 30;
+    cfg.frames = 27;
     cfg.replayPathP1 = dataPath("p1_down.replay");
     auto [t, s] = runGame(cfg);
 
-    // 30 steps × 20 px/step = 600; 400 + 600 = 1000.
-    REQUIRE(s.p1_y == Catch::Approx(1000.f).margin(1.f));
+    // 27 steps × 20 px/step = 540; 400 + 540 = 940.
+    REQUIRE(s.p1_y == Catch::Approx(940.f).margin(1.f));
 }
 
 // ── 15. P2 moves up ───────────────────────────────────────────────────────────
