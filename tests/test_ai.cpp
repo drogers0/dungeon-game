@@ -284,7 +284,8 @@ TEST_CASE("ai: bottom-of-arena old anchor geometry -> no attack (pre-fix behavio
 
     std::mt19937 rng(1);
     // Robot anchor at bottom (y=900); rocket anchor at bottom (y=1012).
-    // horizDist = |500 - (350+120)| = 30 < attackRange=200, so only absDy blocks attack.
+    // makeView sets oppBounds.left = oppX-60 = 290, so nearOppEdge = 290+120 = 410;
+    // horizDist = |500 - 410| = 90 < attackRange=200, so only absDy blocks attack.
     AiView v = makeView(500.f, 900.f, 350.f, 1012.f, /*facingLeft=*/true);
 
     PlayerInput out = decideAiInput(v, p, rng);
@@ -305,7 +306,7 @@ TEST_CASE("ai: bottom-of-arena centre-Y geometry -> attack fires (post-fix behav
 
     std::mt19937 rng(1);
     // Robot centre at Y=990; rocket centre at Y=1012 (post-fix makeAiView output).
-    // horizDist = |500 - (350+120)| = 30 < attackRange=200 ✓
+    // horizDist = |500 - ((350-60)+120)| = |500-410| = 90 < attackRange=200 ✓
     // absDy = 22 < attackAlignY=40 ✓  dy=22 > Y-steer threshold=20.
     AiView v = makeView(500.f, 990.f, 350.f, 1012.f, /*facingLeft=*/true);
 
