@@ -64,7 +64,7 @@ jobs:
         env:
           ALSOFT_DRIVERS: 'null'
         run: |
-          for st in main_menu ai_difficulty host_waiting join_input ready_to_start; do
+          for st in main_menu ai_difficulty host_waiting join_input ready_to_start settings; do
             xvfb-run -a ./build/dungeon_game --menu-state "$st" --frames 2 \
               --screenshot-every 1 --screenshot-dir "build/menu_shots/$st" || true
           done

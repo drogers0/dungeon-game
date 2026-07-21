@@ -1,6 +1,7 @@
 #include "menu.h"
 #include "RegularGameObject.h"
 #include "asset_load.h"
+#include "key_bindings.h"
 #include "letterbox.h"
 #include "menu_button.h"
 #include "resource_path.h"
@@ -8,6 +9,7 @@
 #include <SFML/Audio.hpp>
 #include <SFML/Graphics.hpp>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -61,6 +63,10 @@ bool parseMenuState(const std::string& name, MenuState& out) {
         out = MenuState::READY_TO_START;
         return true;
     }
+    if (name == "settings") {
+        out = MenuState::SETTINGS;
+        return true;
+    }
     return false;
 }
 
@@ -71,13 +77,70 @@ static void centerText(sf::Text& t, float x, float y) {
     t.setPosition(x, y);
 }
 
+static void saveControls(const KeyBindings& bindings, std::string& statusMessage) {
+    std::ofstream f(std::filesystem::path(exe_dir_path) / "controls.cfg");
+    if (!f) {
+        statusMessage = "Failed to save controls.cfg";
+        return;
+    }
+
+    saveBindings(bindings, f);
+    f.flush();
+    if (!f) {
+        statusMessage = "Failed to save controls.cfg";
+        return;
+    }
+
+    statusMessage.clear();
+}
+
 // Render the current menu state into the window (shared between normal + harness loops).
 static void renderMenu(sf::RenderWindow& win, RegularGameObject& bg, const sf::Font& font,
                        MenuState menuState, const std::string& ipInput,
                        const std::string& statusMessage, const std::string& hostIpAddress,
-                       const sf::Vector2f& mousePos) {
+                       const sf::Vector2f& mousePos, const KeyBindings& bindings,
+                       int capturingIdx) {
     win.clear();
     bg.draw(win);
+
+    if (menuState == MenuState::SETTINGS) {
+        sf::Text title("CONTROLS", font, 40);
+        title.setFillColor(sf::Color::White);
+        title.setStyle(sf::Text::Bold);
+        centerText(title, kMenuW / 2.f, 30.f);
+        win.draw(title);
+
+        const char* headers[2] = {"PLAYER 1", "PLAYER 2"};
+        for (int col = 0; col < 2; ++col) {
+            sf::Text hdr(headers[col], font, 24);
+            hdr.setFillColor(sf::Color(200, 200, 200));
+            auto pos = settingsColumnHeaderPos(col);
+            centerText(hdr, pos.x, pos.y);
+            win.draw(hdr);
+        }
+
+        auto specs = settingsButtonSpecs(bindings);
+        for (int i = 0; i < static_cast<int>(specs.size()); ++i) {
+            auto btn = makeButton(specs[static_cast<std::size_t>(i)], font);
+            btn.setHovered(specs[static_cast<std::size_t>(i)].rect.contains(mousePos));
+            if (i == capturingIdx) {
+                btn.label.setString("Press a key...");
+                btn.shape.setFillColor({80, 80, 0});
+                btn.label.setFillColor(sf::Color::Yellow);
+                btn.setPosition(btn.shape.getPosition());
+            }
+            btn.draw(win);
+        }
+        if (!statusMessage.empty()) {
+            sf::Text statusText(statusMessage, font, 22);
+            statusText.setFillColor(statusMessage.find("Failed") != std::string::npos
+                                        ? sf::Color::Red
+                                        : sf::Color::Yellow);
+            centerText(statusText, kMenuW / 2.f, 480.f);
+            win.draw(statusText);
+        }
+        return;
+    }
 
     auto specs = menuButtonRects(menuState);
 
@@ -165,7 +228,7 @@ static void renderMenu(sf::RenderWindow& win, RegularGameObject& bg, const sf::F
 
 // ── showMenu ──────────────────────────────────────────────────────────────────
 
-MenuResult showMenu(const DebugConfig& cfg) {
+MenuResult showMenu(KeyBindings& bindings, const DebugConfig& cfg) {
     MenuState menuState = MenuState::MAIN_MENU;
     NetworkMode mode = NetworkMode::LOCAL;
     std::shared_ptr<NetworkManager> netManager = nullptr;
@@ -173,6 +236,7 @@ MenuResult showMenu(const DebugConfig& cfg) {
     std::string statusMessage;
     std::string hostIpAddress;
     MenuResult result;
+    int capturingIdx = -1;
 
     // Harness: parse the requested state.
     if (cfg.menuMode()) {
@@ -222,7 +286,7 @@ MenuResult showMenu(const DebugConfig& cfg) {
             sf::Vector2f mousePos =
                 startscreen.mapPixelToCoords(sf::Mouse::getPosition(startscreen));
             renderMenu(startscreen, david, font, menuState, ipInput, statusMessage, hostIpAddress,
-                       mousePos);
+                       mousePos, bindings, capturingIdx);
             if (cfg.screenshotEvery > 0 && frame % cfg.screenshotEvery == 0) {
                 captureScreenshot(startscreen,
                                   cfg.screenshotDir + "/menu_" + std::to_string(frame) + ".png");
@@ -247,6 +311,28 @@ MenuResult showMenu(const DebugConfig& cfg) {
             if (event.type == sf::Event::Resized) {
                 startscreen.setView(
                     makeLetterboxView({kMenuW, kMenuH}, {event.size.width, event.size.height}));
+            }
+            if (event.type == sf::Event::KeyPressed) {
+                if (menuState == MenuState::SETTINGS) {
+                    if (capturingIdx >= 0) {
+                        if (event.key.code == sf::Keyboard::Escape) {
+                            capturingIdx = -1;
+                        } else if (nameFromKey(event.key.code) == "Unknown") {
+                            // Key not in kKeyTable (IME, multimedia, etc.) — silently cancel.
+                            capturingIdx = -1;
+                        } else if (isReservedKey(event.key.code, bindings)) {
+                            capturingIdx = -1;
+                            statusMessage = "Reserved key";
+                        } else {
+                            bindings = applyBindingEdit(bindings, capturingIdx, event.key.code);
+                            saveControls(bindings, statusMessage);
+                            capturingIdx = -1;
+                        }
+                    } else if (event.key.code == sf::Keyboard::Escape) {
+                        capturingIdx = -1;
+                        menuState = MenuState::MAIN_MENU;
+                    }
+                }
             }
             if (menuState == MenuState::JOIN_INPUT && event.type == sf::Event::TextEntered) {
                 if (event.text.unicode == '\b' && !ipInput.empty()) {
@@ -273,10 +359,10 @@ MenuResult showMenu(const DebugConfig& cfg) {
                 event.mouseButton.button == sf::Mouse::Left) {
                 sf::Vector2f mp =
                     startscreen.mapPixelToCoords({event.mouseButton.x, event.mouseButton.y});
-                auto specs = menuButtonRects(menuState);
 
                 if (menuState == MenuState::MAIN_MENU) {
-                    // specs: [0]=1PLAYER [1]=2PLAYER [2]=HOST [3]=JOIN [4]=QUIT
+                    auto specs = menuButtonRects(menuState);
+                    // specs: [0]=1PLAYER [1]=2PLAYER [2]=HOST [3]=JOIN [4]=CONTROLS [5]=QUIT
                     if (specs[0].rect.contains(mp)) {
                         menuState = MenuState::AI_DIFFICULTY;
                         press.play();
@@ -301,12 +387,18 @@ MenuResult showMenu(const DebugConfig& cfg) {
                         statusMessage = "Enter host IP address";
                         press.play();
                     } else if (specs[4].rect.contains(mp)) {
+                        menuState = MenuState::SETTINGS;
+                        capturingIdx = -1;
+                        statusMessage.clear();
+                        press.play();
+                    } else if (specs[5].rect.contains(mp)) {
                         background.stop();
                         startscreen.close();
                         result.quit = true;
                         return result;
                     }
                 } else if (menuState == MenuState::HOST_WAITING) {
+                    auto specs = menuButtonRects(menuState);
                     // specs: [0]=BACK
                     if (specs[0].rect.contains(mp)) {
                         menuState = MenuState::MAIN_MENU;
@@ -315,6 +407,7 @@ MenuResult showMenu(const DebugConfig& cfg) {
                         press.play();
                     }
                 } else if (menuState == MenuState::JOIN_INPUT) {
+                    auto specs = menuButtonRects(menuState);
                     // specs: [0]=BACK
                     if (specs[0].rect.contains(mp)) {
                         menuState = MenuState::MAIN_MENU;
@@ -323,6 +416,7 @@ MenuResult showMenu(const DebugConfig& cfg) {
                         press.play();
                     }
                 } else if (menuState == MenuState::AI_DIFFICULTY) {
+                    auto specs = menuButtonRects(menuState);
                     // specs: [0]=EASY [1]=MEDIUM [2]=HARD [3]=BACK
                     if (specs[0].rect.contains(mp)) {
                         result.ai = AiDifficulty::Easy;
@@ -344,6 +438,7 @@ MenuResult showMenu(const DebugConfig& cfg) {
                         press.play();
                     }
                 } else if (menuState == MenuState::READY_TO_START) {
+                    auto specs = menuButtonRects(menuState);
                     // specs: [0]=START
                     if (specs[0].rect.contains(mp)) {
                         background.stop();
@@ -351,6 +446,31 @@ MenuResult showMenu(const DebugConfig& cfg) {
                         result.mode = mode;
                         result.netManager = netManager;
                         return result;
+                    }
+                } else if (menuState == MenuState::SETTINGS) {
+                    auto specs = settingsButtonSpecs(bindings);
+                    // specs: [0-9]=binding rows [10]=RESET [11]=BACK
+                    bool handled = false;
+                    for (int i = 0; i < 10; ++i) {
+                        if (specs[static_cast<std::size_t>(i)].rect.contains(mp)) {
+                            capturingIdx = i;
+                            statusMessage.clear();
+                            press.play();
+                            handled = true;
+                            break;
+                        }
+                    }
+                    if (!handled) {
+                        if (specs[10].rect.contains(mp)) {
+                            bindings = defaultBindings();
+                            saveControls(bindings, statusMessage);
+                            capturingIdx = -1;
+                            press.play();
+                        } else if (specs[11].rect.contains(mp)) {
+                            menuState = MenuState::MAIN_MENU;
+                            capturingIdx = -1;
+                            press.play();
+                        }
                     }
                 }
             }
@@ -366,7 +486,7 @@ MenuResult showMenu(const DebugConfig& cfg) {
 
         sf::Vector2f mousePos = startscreen.mapPixelToCoords(sf::Mouse::getPosition(startscreen));
         renderMenu(startscreen, david, font, menuState, ipInput, statusMessage, hostIpAddress,
-                   mousePos);
+                   mousePos, bindings, capturingIdx);
         startscreen.display();
     }
 
