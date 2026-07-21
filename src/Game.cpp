@@ -408,21 +408,22 @@ void Game::processEvents() {
                 }
             }
             break;
-        // LCOV_EXCL_STOP
+        // JoystickMoved is entirely hardware-driven (never fires in headless CI), so the
+        // whole case stays inside this LCOV exclusion block.
         case sf::Event::JoystickMoved: {
             // Event-driven movement: SFML fires JoystickMoved when any axis moves,
             // including return-to-center. We ASSIGN (not OR) so bools clear when
             // the stick centers — mirrors keyboard KeyPressed/KeyReleased exactly.
             // Mode gates mirror handlePlayerInput; debug guard keeps harness deterministic.
+            // NOTE: pollJoystick reads all axes, so under simultaneous keyboard + (drifting)
+            // gamepad on one player the gamepad state wins — acceptable per the
+            // one-control-source-at-a-time contract.
             if (!m_debug.active()) {
                 unsigned id = event.joystickMove.joystickId;
                 // P1 (rocket): joystick 0 in LOCAL or HOST.
                 if (m_networkMode == NetworkMode::LOCAL || m_networkMode == NetworkMode::HOST) {
                     if (id == 0) {
-                        // LCOV_EXCL_START — sf::Joystick hardware read; not reachable in headless
-                        // CI
                         PlayerInput mv = pollJoystick(id);
-                        // LCOV_EXCL_STOP
                         m_p1Up = mv.up;
                         m_p1Down = mv.down;
                         m_p1Left = mv.left;
@@ -435,10 +436,7 @@ void Game::processEvents() {
                     !m_ai) {
                     unsigned joyP2 = (m_networkMode == NetworkMode::CLIENT) ? 0u : 1u;
                     if (id == joyP2) {
-                        // LCOV_EXCL_START — sf::Joystick hardware read; not reachable in headless
-                        // CI
                         PlayerInput mv = pollJoystick(id);
-                        // LCOV_EXCL_STOP
                         m_p2Up = mv.up;
                         m_p2Down = mv.down;
                         m_p2Left = mv.left;
@@ -448,6 +446,7 @@ void Game::processEvents() {
             }
             break;
         }
+        // LCOV_EXCL_STOP
         default:
             break;
         }

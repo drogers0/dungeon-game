@@ -31,9 +31,9 @@ inline PlayerInput axisToInput(float x, float y, float povX, float povY, float d
 //   id — joystick index (0 or 1)
 // If id is not connected, returns all-false. No prevAttack state needed.
 inline PlayerInput pollJoystick(unsigned id, float deadzone = kJoyDeadzone) {
+    // LCOV_EXCL_START — sf::Joystick hardware calls (incl. isConnected); not reachable in headless CI
     if (!sf::Joystick::isConnected(id))
         return {};
-    // LCOV_EXCL_START — sf::Joystick hardware calls; not reachable in headless CI
     float x = sf::Joystick::getAxisPosition(id, sf::Joystick::X);
     float y = sf::Joystick::getAxisPosition(id, sf::Joystick::Y);
     float povX = sf::Joystick::getAxisPosition(id, sf::Joystick::PovX);
