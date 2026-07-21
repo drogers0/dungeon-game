@@ -19,6 +19,7 @@ add_executable(dungeon_tests
     test_loopback.cpp
     test_unit.cpp
     test_ai.cpp
+    test_gamepad.cpp
 )
 target_link_libraries(dungeon_tests PRIVATE dungeon_lib Catch2::Catch2WithMain)
 

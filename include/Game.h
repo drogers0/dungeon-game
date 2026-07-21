@@ -10,6 +10,7 @@
 #include "ai.h"
 #include "debug.h"
 #include "game_canvas.h"
+#include "gamepad.h"
 #include "key_bindings.h"
 #include "replay.h"
 #include <SFML/Audio.hpp>
@@ -170,4 +171,9 @@ private:
 
     // Key bindings (loaded from controls.cfg; defaults = original hard-coded keys).
     KeyBindings m_bindings = defaultBindings();
+
+    // Gamepad movement state. Indexed by player slot: [0]=P1, [1]=P2.
+    // Assigned each frame by pollGamepadInput(); attack is excluded (event-driven).
+    PlayerInput m_joyInput[2] = {};
+    void pollGamepadInput();
 };
