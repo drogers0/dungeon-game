@@ -10,6 +10,7 @@
 #include "ai.h"
 #include "debug.h"
 #include "game_canvas.h"
+#include "gamepad.h"
 #include "key_bindings.h"
 #include "replay.h"
 #include <SFML/Audio.hpp>
