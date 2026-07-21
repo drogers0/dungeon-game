@@ -1,11 +1,11 @@
 // Unit tests for axisToInput (pure function, no hardware, no window).
-// pollJoystick is not tested here — it calls sf::Joystick and requires hardware.
+// pollJoystick is not tested here - it calls sf::Joystick and requires hardware.
 
 #include <catch2/catch_test_macros.hpp>
 
 #include "gamepad.h"
 
-TEST_CASE("axisToInput: all zeros, deadzone 25 → all-false", "[gamepad]") {
+TEST_CASE("axisToInput: all zeros, deadzone 25 -> all-false", "[gamepad]") {
     PlayerInput in = axisToInput(0.f, 0.f, 0.f, 0.f, 25.f);
     CHECK(!in.up);
     CHECK(!in.down);
@@ -14,14 +14,14 @@ TEST_CASE("axisToInput: all zeros, deadzone 25 → all-false", "[gamepad]") {
     CHECK(!in.attack);
 }
 
-TEST_CASE("axisToInput: axis exactly at deadzone → no direction", "[gamepad]") {
-    // |x| == deadzone: condition is x > deadzone, so exactly equal → no fire
+TEST_CASE("axisToInput: axis exactly at deadzone -> no direction", "[gamepad]") {
+    // |x| == deadzone: condition is x > deadzone, so exactly equal -> no fire
     PlayerInput in = axisToInput(25.f, 0.f, 0.f, 0.f, 25.f);
     CHECK(!in.right);
     CHECK(!in.left);
 }
 
-TEST_CASE("axisToInput: axis just above deadzone → direction fires", "[gamepad]") {
+TEST_CASE("axisToInput: axis just above deadzone -> direction fires", "[gamepad]") {
     PlayerInput in = axisToInput(25.01f, 0.f, 0.f, 0.f, 25.f);
     CHECK(in.right);
     CHECK(!in.left);
@@ -88,7 +88,7 @@ TEST_CASE("axisToInput: OR-combine same direction (stick + POV both right)", "[g
 }
 
 TEST_CASE("axisToInput: OR-combine opposing directions (stick right, pov left)", "[gamepad]") {
-    // Both right and left are set; they cancel in update()'s movement code — pin the behavior.
+    // Both right and left are set; they cancel in update()'s movement code - pin the behavior.
     PlayerInput in = axisToInput(50.f, 0.f, -50.f, 0.f, 25.f);
     CHECK(in.right);
     CHECK(in.left);
@@ -102,7 +102,7 @@ TEST_CASE("axisToInput: diagonal (right + up)", "[gamepad]") {
     CHECK(!in.down);
 }
 
-TEST_CASE("axisToInput: extreme values ±100", "[gamepad]") {
+TEST_CASE("axisToInput: extreme values +/-100", "[gamepad]") {
     PlayerInput pos = axisToInput(100.f, 100.f, 100.f, 100.f, 25.f);
     CHECK(pos.right);
     CHECK(pos.down);
@@ -112,13 +112,43 @@ TEST_CASE("axisToInput: extreme values ±100", "[gamepad]") {
     CHECK(neg.up);
 }
 
-TEST_CASE("axisToInput: zero deadzone, zero value → right=false (> not >=)", "[gamepad]") {
+TEST_CASE("axisToInput: zero deadzone, zero value -> right=false (> not >=)", "[gamepad]") {
     PlayerInput in = axisToInput(0.f, 0.f, 0.f, 0.f, 0.f);
     CHECK(!in.right);
 }
 
-TEST_CASE("axisToInput: zero deadzone, small positive → right=true", "[gamepad]") {
+TEST_CASE("axisToInput: zero deadzone, small positive -> right=true", "[gamepad]") {
     // Pins > vs >=: with deadzone=0 a tiny positive value must fire.
     PlayerInput in = axisToInput(0.001f, 0.f, 0.f, 0.f, 0.f);
     CHECK(in.right);
+}
+
+TEST_CASE("axisToInput: negative boundary pin, value at -deadzone -> no direction", "[gamepad]") {
+    // Mirrors the positive boundary: -25 with deadzone 25 must NOT fire left or up.
+    PlayerInput in = axisToInput(-25.f, -25.f, -25.f, -25.f, 25.f);
+    CHECK(!in.left);
+    CHECK(!in.up);
+    CHECK(!in.right);
+    CHECK(!in.down);
+    CHECK(!in.attack);
+}
+
+TEST_CASE("axisToInput: attack is always false (movement-only function)", "[gamepad]") {
+    // axisToInput is movement-only; attack is event-driven via JoystickButtonPressed.
+    SECTION("directional input") {
+        PlayerInput in = axisToInput(80.f, -80.f, 0.f, 0.f, 25.f);
+        CHECK(in.right);
+        CHECK(in.up);
+        CHECK(!in.attack);
+    }
+    SECTION("POV input") {
+        PlayerInput in = axisToInput(0.f, 0.f, 100.f, -100.f, 25.f);
+        CHECK(in.right);
+        CHECK(in.up);
+        CHECK(!in.attack);
+    }
+    SECTION("extreme values") {
+        PlayerInput in = axisToInput(100.f, 100.f, 100.f, 100.f, 25.f);
+        CHECK(!in.attack);
+    }
 }

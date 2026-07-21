@@ -214,23 +214,6 @@ std::tuple<int, int, float, int, bool, bool> Game::run() {
 
         processEvents();
 
-        // ── Gamepad movement: fresh axis poll → OR-merge into keyboard bools ─
-        // Single guard keeps harness/debug runs deterministic (no joystick calls).
-        if (!m_debug.active()) {
-            pollGamepadInput();
-            m_p1Up |= m_joyInput[0].up;
-            m_p1Down |= m_joyInput[0].down;
-            m_p1Left |= m_joyInput[0].left;
-            m_p1Right |= m_joyInput[0].right;
-
-            if (!m_ai) {
-                m_p2Up |= m_joyInput[1].up;
-                m_p2Down |= m_joyInput[1].down;
-                m_p2Left |= m_joyInput[1].left;
-                m_p2Right |= m_joyInput[1].right;
-            }
-        }
-
         // ── Network I/O: once per iteration (not per step) ───────────────────
         if (m_networkManager) {
             handleNetworkCommunication(sf::seconds(iterDt));
@@ -352,30 +335,6 @@ void Game::applyPlayerInput(const PlayerInput& in) {
     applyInputTo(m_p2Up, m_p2Left, m_p2Down, m_p2Right, m_p2Attack, in);
 }
 
-// ── pollGamepadInput ──────────────────────────────────────────────────────────
-// Called only from run()'s !m_debug.active() gate — no inner debug guard needed.
-
-void Game::pollGamepadInput() {
-    // LCOV_EXCL_START — sf::Joystick hardware calls; not reachable in headless CI
-
-    // P1 (rocket) — joystick 0 in LOCAL and HOST modes.
-    if (m_networkMode == NetworkMode::LOCAL || m_networkMode == NetworkMode::HOST) {
-        m_joyInput[0] = pollJoystick(0);
-    } else {
-        m_joyInput[0] = {};
-    }
-
-    // P2 (robot) — joystick 1 in LOCAL, joystick 0 in CLIENT.
-    // Gated off when AI is driving P2.
-    if ((m_networkMode == NetworkMode::LOCAL || m_networkMode == NetworkMode::CLIENT) && !m_ai) {
-        unsigned joyId = (m_networkMode == NetworkMode::CLIENT) ? 0u : 1u;
-        m_joyInput[1] = pollJoystick(joyId);
-    } else {
-        m_joyInput[1] = {};
-    }
-    // LCOV_EXCL_STOP
-}
-
 void Game::captureIfDue() {
     if (m_debug.screenshotEvery <= 0)
         return;
@@ -433,6 +392,9 @@ void Game::processEvents() {
             }
             break;
         case sf::Event::JoystickButtonPressed:
+            // NOTE: gamepad attack fires on button PRESS; P2 keyboard attack fires on
+            // key RELEASE (see handlePlayerInput — m_p2Attack = !isDown). Pre-existing
+            // discrepancy tracked in issue #37.
             if (!m_debug.active() && event.joystickButton.button == kAttackButton) {
                 if (m_networkMode == NetworkMode::LOCAL || m_networkMode == NetworkMode::HOST) {
                     if (event.joystickButton.joystickId == 0)
@@ -447,6 +409,45 @@ void Game::processEvents() {
             }
             break;
         // LCOV_EXCL_STOP
+        case sf::Event::JoystickMoved: {
+            // Event-driven movement: SFML fires JoystickMoved when any axis moves,
+            // including return-to-center. We ASSIGN (not OR) so bools clear when
+            // the stick centers — mirrors keyboard KeyPressed/KeyReleased exactly.
+            // Mode gates mirror handlePlayerInput; debug guard keeps harness deterministic.
+            if (!m_debug.active()) {
+                unsigned id = event.joystickMove.joystickId;
+                // P1 (rocket): joystick 0 in LOCAL or HOST.
+                if (m_networkMode == NetworkMode::LOCAL || m_networkMode == NetworkMode::HOST) {
+                    if (id == 0) {
+                        // LCOV_EXCL_START — sf::Joystick hardware read; not reachable in headless
+                        // CI
+                        PlayerInput mv = pollJoystick(id);
+                        // LCOV_EXCL_STOP
+                        m_p1Up = mv.up;
+                        m_p1Down = mv.down;
+                        m_p1Left = mv.left;
+                        m_p1Right = mv.right;
+                    }
+                }
+                // P2 (robot): joystick 1 in LOCAL, joystick 0 in CLIENT.
+                // Gated off when AI is driving P2.
+                if ((m_networkMode == NetworkMode::LOCAL || m_networkMode == NetworkMode::CLIENT) &&
+                    !m_ai) {
+                    unsigned joyP2 = (m_networkMode == NetworkMode::CLIENT) ? 0u : 1u;
+                    if (id == joyP2) {
+                        // LCOV_EXCL_START — sf::Joystick hardware read; not reachable in headless
+                        // CI
+                        PlayerInput mv = pollJoystick(id);
+                        // LCOV_EXCL_STOP
+                        m_p2Up = mv.up;
+                        m_p2Down = mv.down;
+                        m_p2Left = mv.left;
+                        m_p2Right = mv.right;
+                    }
+                }
+            }
+            break;
+        }
         default:
             break;
         }
