@@ -229,11 +229,13 @@ TEST_CASE("integration: P2 hazard clamps points at 0", "[integration]") {
 }
 
 // ── 8. P1 left wraparound ─────────────────────────────────────────────────────
-// P1 moves left 30 steps; wraps from ~x=-138 to x=1920, ends up on right side.
+// P1 moves left ~20px/frame; wraps once x < -(rendered width = getWidth()*|scale.x| = 268,
+// see #33) around frame 40, repositioning to x=1920, then continues left. Ends on the
+// right side of the arena.
 
 TEST_CASE("integration: P1 wraps around left edge", "[integration]") {
     DebugConfig cfg;
-    cfg.frames = 35;
+    cfg.frames = 45;
     cfg.replayPathP1 = dataPath("p1_wrap_left.replay");
     auto [t, s] = runGame(cfg);
 

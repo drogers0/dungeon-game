@@ -384,9 +384,8 @@ void Game::processEvents() {
                 }
             }
         } else if (const auto* jb = event->getIf<sf::Event::JoystickButtonPressed>()) {
-            // NOTE: gamepad attack fires on button PRESS; P2 keyboard attack fires on
-            // key RELEASE (see handlePlayerInput — m_p2Attack = !isDown). Pre-existing
-            // discrepancy tracked in issue #37.
+            // Gamepad attack fires on button PRESS, matching keyboard attack for both
+            // players (handlePlayerInput — m_pXAttack = isDown). Unified in #37.
             if (!m_debug.active() && jb->button == kAttackButton) {
                 if (m_networkMode == NetworkMode::LOCAL || m_networkMode == NetworkMode::HOST) {
                     if (jb->joystickId == 0)
@@ -490,7 +489,7 @@ void Game::handlePlayerInput(sf::Keyboard::Key key, bool isDown) {
             if (key == m_bindings.p2.right)
                 m_p2Right = isDown;
             if (key == m_bindings.p2.attack)
-                m_p2Attack = !isDown;
+                m_p2Attack = isDown;
         }
 
         // Speed tweaks and wait-skip
@@ -522,6 +521,9 @@ void Game::update(sf::Time deltaT, float time) {
     sf::Vector2f p2movement(0.0f, 0.0f);
 
     const float rocketH = m_rocket->getHeight() * m_rocket->getScale().y; // rendered: 68*2=136
+    // Rendered width: getWidth() is the unscaled frame width (134); scale.x flips sign with
+    // facing direction (±2), so use its magnitude for the horizontal screen-wrap (#33).
+    const float rocketW = m_rocket->getWidth() * std::abs(m_rocket->getScale().x); // 134*2=268
     if (m_p1Up) {
         if (m_rocket->getPosition().y < -rocketH) {
             m_rocket->setPosition(m_rocket->getPosition().x, kGameH - rocketH);
@@ -546,7 +548,7 @@ void Game::update(sf::Time deltaT, float time) {
         }
     }
     if (m_p1Left) {
-        if (m_rocket->getPosition().x < -(m_rocket->getWidth())) {
+        if (m_rocket->getPosition().x < -rocketW) {
             m_rocket->setPosition(kGameW, m_rocket->getPosition().y);
         }
         if (!m_p1FacingLeft) {
@@ -567,7 +569,7 @@ void Game::update(sf::Time deltaT, float time) {
         m_rocket->setScale(2.0f, 2);
 
         if (m_rocket->getPosition().x > kGameW) {
-            m_rocket->setPosition(-(m_rocket->getWidth()), m_rocket->getPosition().y);
+            m_rocket->setPosition(-rocketW, m_rocket->getPosition().y);
         }
 
         if (m_p1FacingLeft) {
