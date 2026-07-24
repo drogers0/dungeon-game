@@ -13,14 +13,14 @@ static AiView makeView(float selfX, float selfY, float oppX, float oppY, bool fa
                        bool inCooldown = false) {
     AiView v;
     v.selfPos = {selfX, selfY};
-    v.selfBounds = {selfX - 60.f, selfY - 90.f, 120.f, 180.f}; // normalised positive rect
+    v.selfBounds = {{selfX - 60.f, selfY - 90.f}, {120.f, 180.f}}; // normalised positive rect
     v.selfFacingLeft = facingLeft;
     v.oppPos = {oppX, oppY};
-    v.oppBounds = {oppX - 60.f, oppY - 90.f, 120.f, 180.f};
+    v.oppBounds = {{oppX - 60.f, oppY - 90.f}, {120.f, 180.f}};
     // Hazards far off-screen
-    v.hazards = {sf::FloatRect{-2000.f, -2000.f, 1.f, 1.f},
-                 sf::FloatRect{-2000.f, -2000.f, 1.f, 1.f},
-                 sf::FloatRect{-2000.f, -2000.f, 1.f, 1.f}};
+    v.hazards = {sf::FloatRect{{-2000.f, -2000.f}, {1.f, 1.f}},
+                 sf::FloatRect{{-2000.f, -2000.f}, {1.f, 1.f}},
+                 sf::FloatRect{{-2000.f, -2000.f}, {1.f, 1.f}}};
     v.inCooldown = inCooldown;
     v.selfScore = 0;
     v.oppScore = 0;
@@ -61,7 +61,7 @@ TEST_CASE("ai: near-edge attack - wide opponent to the right, anchor out but edg
     // Robot at x=960; opponent anchor at x=1410 (dx=+450 > attackRange -> anchor out of range).
     AiView v = makeView(960.f, 400.f, 1410.f, 400.f, /*facingLeft=*/false);
     // Wide opponent: near (left) edge at 1260 -> edge distance 300 < attackRange=320.
-    v.oppBounds = sf::FloatRect{1260.f, 310.f, 300.f, 180.f};
+    v.oppBounds = sf::FloatRect{{1260.f, 310.f}, {300.f, 180.f}};
 
     PlayerInput out = decideAiInput(v, p, rng);
     REQUIRE(out.attack == true); // fires on near-edge distance, not the far anchor
@@ -119,7 +119,7 @@ TEST_CASE("ai: selfBounds in hazard -> moves out, no attack", "[ai]") {
     // Place a hazard overlapping the inflated selfBounds
     // selfBounds = {900, 310, 120, 180}; inflated by 80 -> {820, 230, 280, 340}
     // Hazard at x=830, width=20 -> overlaps inflated bounds
-    v.hazards[0] = sf::FloatRect{830.f, 250.f, 20.f, 300.f};
+    v.hazards[0] = sf::FloatRect{{830.f, 250.f}, {20.f, 300.f}};
 
     PlayerInput out = decideAiInput(v, p, rng);
     REQUIRE(out.attack == false);
@@ -201,7 +201,7 @@ TEST_CASE("ai: reaction delay - teleport seen after reactionSteps", "[ai]") {
 
     // Now teleport opponent to far left - AI should NOT react immediately
     v.oppPos = {100.f, 400.f};
-    v.oppBounds = {40.f, 310.f, 120.f, 180.f};
+    v.oppBounds = {{40.f, 310.f}, {120.f, 180.f}};
     v.step = p.reactionSteps - 1;
     PlayerInput at_teleport = ctrl.step(v);
     // Still sees old position (reactionSteps - 1 steps of new pos; need reactionSteps)

@@ -24,17 +24,18 @@ inline FrameResult advanceFrameRect(sf::IntRect rect, int curr, int nx, int ny, 
     if (curr < howmany) {
         int check = curr % nx;
         if (check == 0) {
-            rect = sf::IntRect(0, rect.top + rect.height, (int)std::floor(xsize / (double)nx),
-                               (int)std::floor(ysize / (double)ny));
+            rect = sf::IntRect(
+                {0, rect.position.y + rect.size.y},
+                {(int)std::floor(xsize / (double)nx), (int)std::floor(ysize / (double)ny)});
         } else {
             int h = (int)std::floor(ysize / (double)ny);
-            rect = sf::IntRect(rect.left + rect.width, ((int)std::ceil(curr / nx)) * h, rect.width,
-                               (int)(ysize / ny));
+            rect = sf::IntRect({rect.position.x + rect.size.x, ((int)std::ceil(curr / nx)) * h},
+                               {rect.size.x, (int)(ysize / ny)});
         }
         curr++;
     } else {
-        rect = sf::IntRect(0, 0, (int)std::floor(xsize / (double)nx),
-                           (int)std::floor(ysize / (double)ny));
+        rect = sf::IntRect(
+            {0, 0}, {(int)std::floor(xsize / (double)nx), (int)std::floor(ysize / (double)ny)});
         curr = 1;
     }
     return {rect, curr};

@@ -18,13 +18,13 @@ inline sf::FloatRect objectBounds(const GameObject& obj) {
 // for collision: intersects() relies on the raw negative-width form.
 inline sf::FloatRect normalizedBounds(const GameObject& obj) {
     sf::FloatRect r = objectBounds(obj);
-    if (r.width < 0.f) {
-        r.left += r.width;
-        r.width = -r.width;
+    if (r.size.x < 0.f) {
+        r.position.x += r.size.x;
+        r.size.x = -r.size.x;
     }
-    if (r.height < 0.f) {
-        r.top += r.height;
-        r.height = -r.height;
+    if (r.size.y < 0.f) {
+        r.position.y += r.size.y;
+        r.size.y = -r.size.y;
     }
     return r;
 }

@@ -14,10 +14,16 @@
 
 ## SFML
 
-SFML **2.6.2** is pinned and built via CMake `FetchContent`, so a system SFML install is **not**
-required and every machine/CI runner builds against the same version. If a compatible SFML 2 is
-already discoverable, a `find_package(SFML 2 ...)` fast path is used instead to skip the source
-build. (A full SFML 3 migration is intentionally out of scope — the code targets the SFML 2.x API.)
+SFML **3.0.2** is pinned and built via CMake `FetchContent`, so a system SFML install is **not**
+required and every machine/CI runner builds against the same version. If a compatible SFML 3 is
+already discoverable, a `find_package(SFML 3 ...)` fast path is used instead to skip the source
+build. The code targets the SFML 3.x API.
+
+> **Keep local and CI identical:** do **not** `brew install sfml` (or otherwise install a
+> system SFML 3). If `find_package(SFML 3 ...)` finds a system copy it will take the fast path
+> and skip FetchContent, so the dev box would build against a different SFML than CI (which has
+> no system SFML and always uses the pinned FetchContent build). With no system SFML installed,
+> both use the identical pinned 3.0.2.
 
 The first configure fetches and compiles SFML, which takes a few minutes; subsequent builds reuse
 the cached build tree.
@@ -52,9 +58,8 @@ cmake --build build --config Release
 build\Release\dungeon_game.exe
 ```
 
-SFML 2.6.2 is fetched automatically on the first configure. The build system copies `openal32.dll`
-from the fetched SFML tree next to `dungeon_game.exe`, so the game runs without a separate OpenAL
-install. Assets are also copied next to the binary.
+SFML 3.0.2 is fetched automatically on the first configure. SFML 3 uses miniaudio internally, so
+no separate OpenAL DLL is needed next to the executable. Assets are copied next to the binary.
 
 ## Tests
 

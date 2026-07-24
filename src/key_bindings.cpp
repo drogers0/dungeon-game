@@ -10,85 +10,85 @@
 
 static const std::pair<const char*, sf::Keyboard::Key> kKeyTable[] = {
     // Letters
-    {"A", sf::Keyboard::A},
-    {"B", sf::Keyboard::B},
-    {"C", sf::Keyboard::C},
-    {"D", sf::Keyboard::D},
-    {"E", sf::Keyboard::E},
-    {"F", sf::Keyboard::F},
-    {"G", sf::Keyboard::G},
-    {"H", sf::Keyboard::H},
-    {"I", sf::Keyboard::I},
-    {"J", sf::Keyboard::J},
-    {"K", sf::Keyboard::K},
-    {"L", sf::Keyboard::L},
-    {"M", sf::Keyboard::M},
-    {"N", sf::Keyboard::N},
-    {"O", sf::Keyboard::O},
-    {"P", sf::Keyboard::P},
-    {"Q", sf::Keyboard::Q},
-    {"R", sf::Keyboard::R},
-    {"S", sf::Keyboard::S},
-    {"T", sf::Keyboard::T},
-    {"U", sf::Keyboard::U},
-    {"V", sf::Keyboard::V},
-    {"W", sf::Keyboard::W},
-    {"X", sf::Keyboard::X},
-    {"Y", sf::Keyboard::Y},
-    {"Z", sf::Keyboard::Z},
+    {"A", sf::Keyboard::Key::A},
+    {"B", sf::Keyboard::Key::B},
+    {"C", sf::Keyboard::Key::C},
+    {"D", sf::Keyboard::Key::D},
+    {"E", sf::Keyboard::Key::E},
+    {"F", sf::Keyboard::Key::F},
+    {"G", sf::Keyboard::Key::G},
+    {"H", sf::Keyboard::Key::H},
+    {"I", sf::Keyboard::Key::I},
+    {"J", sf::Keyboard::Key::J},
+    {"K", sf::Keyboard::Key::K},
+    {"L", sf::Keyboard::Key::L},
+    {"M", sf::Keyboard::Key::M},
+    {"N", sf::Keyboard::Key::N},
+    {"O", sf::Keyboard::Key::O},
+    {"P", sf::Keyboard::Key::P},
+    {"Q", sf::Keyboard::Key::Q},
+    {"R", sf::Keyboard::Key::R},
+    {"S", sf::Keyboard::Key::S},
+    {"T", sf::Keyboard::Key::T},
+    {"U", sf::Keyboard::Key::U},
+    {"V", sf::Keyboard::Key::V},
+    {"W", sf::Keyboard::Key::W},
+    {"X", sf::Keyboard::Key::X},
+    {"Y", sf::Keyboard::Key::Y},
+    {"Z", sf::Keyboard::Key::Z},
     // Top-row digits
-    {"0", sf::Keyboard::Num0},
-    {"1", sf::Keyboard::Num1},
-    {"2", sf::Keyboard::Num2},
-    {"3", sf::Keyboard::Num3},
-    {"4", sf::Keyboard::Num4},
-    {"5", sf::Keyboard::Num5},
-    {"6", sf::Keyboard::Num6},
-    {"7", sf::Keyboard::Num7},
-    {"8", sf::Keyboard::Num8},
-    {"9", sf::Keyboard::Num9},
+    {"0", sf::Keyboard::Key::Num0},
+    {"1", sf::Keyboard::Key::Num1},
+    {"2", sf::Keyboard::Key::Num2},
+    {"3", sf::Keyboard::Key::Num3},
+    {"4", sf::Keyboard::Key::Num4},
+    {"5", sf::Keyboard::Key::Num5},
+    {"6", sf::Keyboard::Key::Num6},
+    {"7", sf::Keyboard::Key::Num7},
+    {"8", sf::Keyboard::Key::Num8},
+    {"9", sf::Keyboard::Key::Num9},
     // Numpad
-    {"Num0", sf::Keyboard::Numpad0},
-    {"Num1", sf::Keyboard::Numpad1},
-    {"Num2", sf::Keyboard::Numpad2},
-    {"Num3", sf::Keyboard::Numpad3},
-    {"Num4", sf::Keyboard::Numpad4},
-    {"Num5", sf::Keyboard::Numpad5},
-    {"Num6", sf::Keyboard::Numpad6},
-    {"Num7", sf::Keyboard::Numpad7},
-    {"Num8", sf::Keyboard::Numpad8},
-    {"Num9", sf::Keyboard::Numpad9},
+    {"Num0", sf::Keyboard::Key::Numpad0},
+    {"Num1", sf::Keyboard::Key::Numpad1},
+    {"Num2", sf::Keyboard::Key::Numpad2},
+    {"Num3", sf::Keyboard::Key::Numpad3},
+    {"Num4", sf::Keyboard::Key::Numpad4},
+    {"Num5", sf::Keyboard::Key::Numpad5},
+    {"Num6", sf::Keyboard::Key::Numpad6},
+    {"Num7", sf::Keyboard::Key::Numpad7},
+    {"Num8", sf::Keyboard::Key::Numpad8},
+    {"Num9", sf::Keyboard::Key::Numpad9},
     // Arrow keys
-    {"Up", sf::Keyboard::Up},
-    {"Down", sf::Keyboard::Down},
-    {"Left", sf::Keyboard::Left},
-    {"Right", sf::Keyboard::Right},
+    {"Up", sf::Keyboard::Key::Up},
+    {"Down", sf::Keyboard::Key::Down},
+    {"Left", sf::Keyboard::Key::Left},
+    {"Right", sf::Keyboard::Key::Right},
     // Special keys
-    {"Space", sf::Keyboard::Space},
-    {"Enter", sf::Keyboard::Return},
-    {"Escape", sf::Keyboard::Escape},
-    {"Tab", sf::Keyboard::Tab},
-    {"Backspace", sf::Keyboard::BackSpace},
+    {"Space", sf::Keyboard::Key::Space},
+    {"Enter", sf::Keyboard::Key::Enter},
+    {"Escape", sf::Keyboard::Key::Escape},
+    {"Tab", sf::Keyboard::Key::Tab},
+    {"Backspace", sf::Keyboard::Key::Backspace},
     // Function keys
-    {"F1", sf::Keyboard::F1},
-    {"F2", sf::Keyboard::F2},
-    {"F3", sf::Keyboard::F3},
-    {"F4", sf::Keyboard::F4},
-    {"F5", sf::Keyboard::F5},
-    {"F6", sf::Keyboard::F6},
-    {"F7", sf::Keyboard::F7},
-    {"F8", sf::Keyboard::F8},
-    {"F9", sf::Keyboard::F9},
-    {"F10", sf::Keyboard::F10},
-    {"F11", sf::Keyboard::F11},
-    {"F12", sf::Keyboard::F12},
+    {"F1", sf::Keyboard::Key::F1},
+    {"F2", sf::Keyboard::Key::F2},
+    {"F3", sf::Keyboard::Key::F3},
+    {"F4", sf::Keyboard::Key::F4},
+    {"F5", sf::Keyboard::Key::F5},
+    {"F6", sf::Keyboard::Key::F6},
+    {"F7", sf::Keyboard::Key::F7},
+    {"F8", sf::Keyboard::Key::F8},
+    {"F9", sf::Keyboard::Key::F9},
+    {"F10", sf::Keyboard::Key::F10},
+    {"F11", sf::Keyboard::Key::F11},
+    {"F12", sf::Keyboard::Key::F12},
 };
 
 sf::Keyboard::Key keyFromName(const std::string& name) {
     for (const auto& [n, k] : kKeyTable)
         if (name == n)
             return k;
-    return sf::Keyboard::Unknown;
+    return sf::Keyboard::Key::Unknown;
 }
 
 std::string nameFromKey(sf::Keyboard::Key key) {
@@ -103,26 +103,26 @@ std::string nameFromKey(sf::Keyboard::Key key) {
 KeyBindings defaultBindings() {
     KeyBindings b;
     // P1 (rocket) — numpad
-    b.p1.up = sf::Keyboard::Numpad8;
-    b.p1.down = sf::Keyboard::Numpad5;
-    b.p1.left = sf::Keyboard::Numpad4;
-    b.p1.right = sf::Keyboard::Numpad6;
-    b.p1.attack = sf::Keyboard::Right;
+    b.p1.up = sf::Keyboard::Key::Numpad8;
+    b.p1.down = sf::Keyboard::Key::Numpad5;
+    b.p1.left = sf::Keyboard::Key::Numpad4;
+    b.p1.right = sf::Keyboard::Key::Numpad6;
+    b.p1.attack = sf::Keyboard::Key::Right;
     // P2 (robot) — WASD + Space
-    b.p2.up = sf::Keyboard::W;
-    b.p2.down = sf::Keyboard::S;
-    b.p2.left = sf::Keyboard::A;
-    b.p2.right = sf::Keyboard::D;
-    b.p2.attack = sf::Keyboard::Space;
+    b.p2.up = sf::Keyboard::Key::W;
+    b.p2.down = sf::Keyboard::Key::S;
+    b.p2.left = sf::Keyboard::Key::A;
+    b.p2.right = sf::Keyboard::Key::D;
+    b.p2.attack = sf::Keyboard::Key::Space;
     // Debug/speed keys
-    b.slowDown = sf::Keyboard::O;
-    b.speedUp = sf::Keyboard::P;
-    b.skipCooldown = sf::Keyboard::K;
+    b.slowDown = sf::Keyboard::Key::O;
+    b.speedUp = sf::Keyboard::Key::P;
+    b.skipCooldown = sf::Keyboard::Key::K;
     return b;
 }
 
 bool isReservedKey(sf::Keyboard::Key key, const KeyBindings& b) {
-    return key == sf::Keyboard::F11 || key == sf::Keyboard::F12 || key == b.slowDown ||
+    return key == sf::Keyboard::Key::F11 || key == sf::Keyboard::Key::F12 || key == b.slowDown ||
            key == b.speedUp || key == b.skipCooldown;
 }
 
@@ -156,7 +156,7 @@ KeyBindings loadBindings(std::istream& in) {
             continue;
 
         sf::Keyboard::Key k = keyFromName(val);
-        if (k == sf::Keyboard::Unknown) {
+        if (k == sf::Keyboard::Key::Unknown) {
             std::cerr << "[controls.cfg] Unknown key name '" << val << "' for field '" << field
                       << "', keeping default\n";
             continue; // keep default

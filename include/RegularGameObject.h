@@ -4,6 +4,7 @@
 
 #pragma once
 #include "GameObject.h"
+#include <optional>
 
 class RegularGameObject : public GameObject {
 public:
@@ -40,7 +41,7 @@ public:
     sf::FloatRect getGlobalBounds() const override;
 
 private:
-    sf::Sprite m_sprite;
+    std::optional<sf::Sprite> m_sprite;
     sf::Texture m_texture;
     std::string m_filename;
     bool m_valid = false;

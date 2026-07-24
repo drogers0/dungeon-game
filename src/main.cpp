@@ -32,10 +32,6 @@ static bool showEndscreen(int highscore, int p1score, int p2score, float minutes
 
     sf::Font tfont;
     sf::Font pfont;
-    sf::Text p1scoret;
-    sf::Text p2scoret;
-    sf::Text finalTimet;
-    sf::Text highscoret;
 
     RegularGameObject wall = RegularGameObject();
     loadOrThrow(wall, resource_path + "david_background.png");
@@ -44,33 +40,33 @@ static bool showEndscreen(int highscore, int p1score, int p2score, float minutes
     loadOrThrow(pfont, resource_path + "Joyful_Theatre.otf");
     loadOrThrow(tfont, resource_path + "timer.ttf");
 
-    sf::RenderWindow endscreen(sf::VideoMode(1024, 576), "end game", sf::Style::Default);
+    sf::RenderWindow endscreen(sf::VideoMode({1024u, 576u}), "end game", sf::Style::Default);
     endscreen.setView(makeLetterboxView({kMenuW, kMenuH}, endscreen.getSize()));
 
-    sf::Text peerDisconnectedText("", pfont, 36);
+    sf::Text peerDisconnectedText(pfont, "", 36);
     if (peerLeft) {
         peerDisconnectedText.setString("Peer disconnected");
         peerDisconnectedText.setFillColor(sf::Color::Red);
-        peerDisconnectedText.setStyle(sf::Text::Bold);
-        peerDisconnectedText.setOrigin(peerDisconnectedText.getLocalBounds().width / 2.f, 0);
-        peerDisconnectedText.setPosition(kMenuW / 2.f, 460.f);
+        peerDisconnectedText.setStyle(sf::Text::Style::Bold);
+        peerDisconnectedText.setOrigin({peerDisconnectedText.getLocalBounds().size.x / 2.f, 0.f});
+        peerDisconnectedText.setPosition({kMenuW / 2.f, 460.f});
     }
 
     sf::Music background;
     loadOrThrow(background, resource_path + "m_start_background.wav");
 
-    p1scoret = sf::Text(std::to_string(p1score), pfont, 50);
+    sf::Text p1scoret(pfont, std::to_string(p1score), 50);
     p1scoret.setFillColor(sf::Color::Blue);
-    p2scoret = sf::Text(std::to_string(p2score), pfont, 50);
+    sf::Text p2scoret(pfont, std::to_string(p2score), 50);
     p2scoret.setFillColor(sf::Color::Green);
-    finalTimet = sf::Text(finalTime, tfont, 50);
+    sf::Text finalTimet(tfont, finalTime, 50);
     finalTimet.setFillColor(sf::Color::Blue);
-    highscoret = sf::Text(std::to_string(highscore), pfont, 70);
+    sf::Text highscoret(pfont, std::to_string(highscore), 70);
 
-    p1scoret.setPosition(5, kMenuH / 2);
-    p2scoret.setPosition(kMenuW - p1scoret.getGlobalBounds().width - 5, kMenuH / 2);
-    finalTimet.setPosition(kMenuW / 2 - finalTimet.getGlobalBounds().width + 20, -10);
-    highscoret.setPosition(kMenuW / 2 - highscoret.getGlobalBounds().width, 25);
+    p1scoret.setPosition({5, kMenuH / 2});
+    p2scoret.setPosition({kMenuW - p1scoret.getGlobalBounds().size.x - 5, kMenuH / 2});
+    finalTimet.setPosition({kMenuW / 2 - finalTimet.getGlobalBounds().size.x + 20, -10});
+    highscoret.setPosition({kMenuW / 2 - highscoret.getGlobalBounds().size.x, 25});
 
     if (p1score == highscore)
         highscoret.setFillColor(sf::Color::Blue);
@@ -85,10 +81,8 @@ static bool showEndscreen(int highscore, int p1score, int p2score, float minutes
     loadOrThrow(down_buffer, resource_path + "ButtonOn.wav");
     loadOrThrow(up_buffer, resource_path + "ButtonOff.wav");
 
-    sf::Sound press;
-    sf::Sound up;
-    press.setBuffer(down_buffer);
-    up.setBuffer(up_buffer);
+    sf::Sound press(down_buffer);
+    sf::Sound up(up_buffer);
 
     bool start_updated = false;
     bool quit_updated = false;
@@ -133,34 +127,32 @@ static bool showEndscreen(int highscore, int p1score, int p2score, float minutes
             up.play();
         }
 
-        if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && srect.contains(mousePos)) {
+        if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left) && srect.contains(mousePos)) {
             background.stop();
             endscreen.close();
             // Play again only for LOCAL; online must go back through menu.
             playAgain = (mode == NetworkMode::LOCAL);
         }
-        if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && qrect.contains(mousePos)) {
+        if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left) && qrect.contains(mousePos)) {
             background.stop();
             endscreen.close();
         }
 
-        sf::Event event;
-        while (endscreen.pollEvent(event)) {
-            if (event.type == sf::Event::Closed) {
+        while (const auto event = endscreen.pollEvent()) {
+            if (event->is<sf::Event::Closed>()) {
                 background.stop();
                 endscreen.close();
             }
-            if (event.type == sf::Event::Resized) {
-                endscreen.setView(
-                    makeLetterboxView({kMenuW, kMenuH}, {event.size.width, event.size.height}));
+            if (const auto* rs = event->getIf<sf::Event::Resized>()) {
+                endscreen.setView(makeLetterboxView({kMenuW, kMenuH}, rs->size));
             }
-            if (event.type == sf::Event::KeyPressed) {
-                if (event.key.code == sf::Keyboard::Y) {
+            if (const auto* kp = event->getIf<sf::Event::KeyPressed>()) {
+                if (kp->code == sf::Keyboard::Key::Y) {
                     background.stop();
                     endscreen.close();
                     playAgain = (mode == NetworkMode::LOCAL);
                 }
-                if (event.key.code == sf::Keyboard::N) {
+                if (kp->code == sf::Keyboard::Key::N) {
                     background.stop();
                     endscreen.close();
                 }

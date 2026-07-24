@@ -26,8 +26,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/build/_deps
-          key: ${{ runner.os }}-sfmldeps-v1-${{ hashFiles('CMakeLists.txt', '.github/workflows/ci.yml') }}
-          restore-keys: ${{ runner.os }}-sfmldeps-v1-
+          key: ${{ runner.os }}-sfmldeps-v2-${{ hashFiles('CMakeLists.txt', '.github/workflows/ci.yml') }}
+          restore-keys: ${{ runner.os }}-sfmldeps-v2-
 
       - name: Configure
         run: |
@@ -99,8 +99,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/build/_deps
-          key: ${{ runner.os }}-sfmldeps-v1-${{ hashFiles('CMakeLists.txt', '.github/workflows/ci.yml') }}
-          restore-keys: ${{ runner.os }}-sfmldeps-v1-
+          key: ${{ runner.os }}-sfmldeps-v2-${{ hashFiles('CMakeLists.txt', '.github/workflows/ci.yml') }}
+          restore-keys: ${{ runner.os }}-sfmldeps-v2-
 
       - name: Configure
         run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DDUNGEON_BUILD_TESTS=ON
@@ -123,8 +123,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/build/_deps
-          key: ${{ runner.os }}-sfmldeps-v1-${{ hashFiles('CMakeLists.txt', '.github/workflows/ci.yml') }}
-          restore-keys: ${{ runner.os }}-sfmldeps-v1-
+          key: ${{ runner.os }}-sfmldeps-v2-${{ hashFiles('CMakeLists.txt', '.github/workflows/ci.yml') }}
+          restore-keys: ${{ runner.os }}-sfmldeps-v2-
 
       - name: Configure
         run: |

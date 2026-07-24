@@ -17,8 +17,8 @@ single-player AI opponent (Easy/Medium/Hard), and a scripted replay/debug harnes
 
 ## Build, run, test
 
-The build system is **CMake** (≥3.16). SFML 2.6.2 is fetched and pinned via `FetchContent`, so
-no system SFML install is required (a `find_package` fallback is used if a compatible SFML 2 is
+The build system is **CMake** (≥3.16). SFML 3.0.2 is fetched and pinned via `FetchContent`, so
+no system SFML install is required (a `find_package` fallback is used if a compatible SFML 3 is
 already present). Full details in [docs/building.md](docs/building.md).
 
 ```bash
@@ -57,9 +57,9 @@ The load-bearing pieces:
 
 ## Design decisions (don't "fix" these without reason)
 
-- **SFML pinned at 2.6.2 via FetchContent**, not the system package. Reproducible across
-  machines/CI and matches the SFML 2.x API the code uses. A full SFML 3 migration is a separate,
-  out-of-scope effort.
+- **SFML pinned at 3.0.2 via FetchContent**, not the system package. Reproducible across
+  machines/CI and matches the SFML 3.x API the code uses. Do not install a system SFML 3
+  locally — it would make `find_package` skip FetchContent and diverge from CI.
 - **`PlayerInput` is the single input abstraction.** Local input, network packets, the AI
   opponent, and the replay/debug harness all produce a `PlayerInput` per frame that flows through
   one code path — do not special-case per-mode behavior in the update loop.

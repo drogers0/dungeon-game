@@ -24,9 +24,10 @@ void Game::toggleFullscreen() {
                               : m_networkMode == NetworkMode::HOST ? "Dungeon Game - Host"
                                                                    : "Dungeon Game - Client";
     if (m_fullscreen) {
-        m_window.create(sf::VideoMode::getDesktopMode(), title, sf::Style::Fullscreen);
+        m_window.create(sf::VideoMode::getDesktopMode(), title, sf::Style::Default,
+                        sf::State::Fullscreen);
     } else {
-        m_window.create(sf::VideoMode(1920, 1080), title, sf::Style::Default);
+        m_window.create(sf::VideoMode({1920u, 1080u}), title, sf::Style::Default);
     }
     // Re-apply display settings after create() resets them.
     // NOTE (macOS): SFML 2 create() reconstructs the GL context; textures
@@ -42,7 +43,7 @@ void Game::toggleFullscreen() {
 Game::Game() : Game(NetworkMode::LOCAL, nullptr) {}
 
 Game::Game(NetworkMode mode, std::shared_ptr<NetworkManager> netManager)
-    : m_window(sf::VideoMode(1920, 1080),
+    : m_window(sf::VideoMode({1920u, 1080u}),
                mode == NetworkMode::LOCAL  ? "Dungeon Game"
                : mode == NetworkMode::HOST ? "Dungeon Game - Host"
                                            : "Dungeon Game - Client",
@@ -88,41 +89,41 @@ Game::Game(NetworkMode mode, std::shared_ptr<NetworkManager> netManager)
     loadOrThrow(tfont, resource_path + "timer.ttf");
     loadOrThrow(block, resource_path + "Blockt.ttf");
 
-    pause_text = sf::Text("Cooldown", block, 400);
-    pause_text.setPosition(kGameW / 2 - 850, 100);
-    pause_text.setFillColor(sf::Color::Black);
+    pause_text.emplace(block, "Cooldown", 400);
+    pause_text->setPosition({kGameW / 2 - 850, 100});
+    pause_text->setFillColor(sf::Color::Black);
 
-    info = sf::Text("a short intermission", font, 50);
-    info.setPosition(pause_text.getPosition().x + 150, pause_text.getPosition().y + 500);
-    info.setFillColor(sf::Color::Black);
+    info.emplace(font, "a short intermission", 50);
+    info->setPosition({pause_text->getPosition().x + 150, pause_text->getPosition().y + 500});
+    info->setFillColor(sf::Color::Black);
 
-    m_rocketScoreText = sf::Text("Rocket Score: 0", font, 40);
-    m_robotScoreText = sf::Text("Robot Score: 0", font, 40);
-    timer = sf::Text("timer", tfont, 60);
-    timer.setPosition(kGameW / 2 - 60, 0);
-    m_rocketScoreText.setPosition(10, 0);
-    m_robotScoreText.setPosition(kGameW - m_robotScoreText.getGlobalBounds().width, 0);
-    m_robotScoreText.setFillColor(sf::Color::Green);
-    timer.setFillColor(sf::Color::Black);
-    m_rocketScoreText.setFillColor(sf::Color::Blue);
+    m_rocketScoreText.emplace(font, "Rocket Score: 0", 40);
+    m_robotScoreText.emplace(font, "Robot Score: 0", 40);
+    timer.emplace(tfont, "timer", 60);
+    timer->setPosition({kGameW / 2 - 60, 0});
+    m_rocketScoreText->setPosition({10, 0});
+    m_robotScoreText->setPosition({kGameW - m_robotScoreText->getGlobalBounds().size.x, 0});
+    m_robotScoreText->setFillColor(sf::Color::Green);
+    timer->setFillColor(sf::Color::Black);
+    m_rocketScoreText->setFillColor(sf::Color::Blue);
 
     loadOrThrow(sbuffer, resource_path + "sword_miss.wav");
-    sword.setBuffer(sbuffer);
+    sword.emplace(sbuffer);
     loadOrThrow(p2hitbuffer, resource_path + "skeleton.wav");
-    p2hit.setBuffer(p2hitbuffer);
+    p2hit.emplace(p2hitbuffer);
     loadOrThrow(laserbuffer, resource_path + "new_laser.wav");
-    laser.setBuffer(laserbuffer);
+    laser.emplace(laserbuffer);
     loadOrThrow(metalbuffer, resource_path + "metal_hit.wav");
-    metal.setBuffer(metalbuffer);
+    metal.emplace(metalbuffer);
     loadOrThrow(speedbuffer, resource_path + "SpeedUp.wav");
-    speed_up.setBuffer(speedbuffer);
+    speed_up.emplace(speedbuffer);
     loadOrThrow(slowbuffer, resource_path + "SlowDown.wav");
-    slow_down.setBuffer(slowbuffer);
+    slow_down.emplace(slowbuffer);
     loadOrThrow(burnbuffer, resource_path + "burn.wav");
-    burn.setBuffer(burnbuffer);
+    burn.emplace(burnbuffer);
     loadOrThrow(gongbuffer, resource_path + "gong.wav");
-    gong.setBuffer(gongbuffer);
-    laser.setVolume(60);
+    gong.emplace(gongbuffer);
+    laser->setVolume(60);
 }
 
 // ── debug config ──────────────────────────────────────────────────────────────
@@ -160,12 +161,12 @@ AiView Game::makeAiView() const {
     // picks the far edge and the AI thinks it is a full body-width too far).
     view.selfBounds = normalizedBounds(*m_robot);
     view.selfPos = m_robot->getPosition();
-    view.selfPos.y += view.selfBounds.height * 0.5f; // anchor → body centre
+    view.selfPos.y += view.selfBounds.size.y * 0.5f; // anchor → body centre
 
     view.selfFacingLeft = m_p2FacingLeft;
     view.oppBounds = normalizedBounds(*m_rocket);
     view.oppPos = m_rocket->getPosition();
-    view.oppPos.y += view.oppBounds.height * 0.5f; // anchor → body centre
+    view.oppPos.y += view.oppBounds.size.y * 0.5f; // anchor → body centre
 
     // arena[0] is the brick floor; arena[1..3] are the three fire hazards.
     for (int i = 0; i < 3; ++i)
@@ -189,9 +190,9 @@ std::tuple<int, int, float, int, bool, bool> Game::run() {
 
     sf::Clock clock;
     background.play();
-    background.setLoop(true);
+    background.setLooping(true);
     background.setVolume(40);
-    gong.setVolume(50);
+    gong->setVolume(50);
 
     float apieceofcrap = 0.f;
     int seconds = 0;
@@ -207,7 +208,7 @@ std::tuple<int, int, float, int, bool, bool> Game::run() {
             seconds = totalSecs % 60;
             char gClock[10];
             std::snprintf(gClock, sizeof(gClock), "%02.0f:%02d", apieceofcrap, seconds);
-            timer.setString(gClock);
+            timer->setString(gClock);
         }
 
         float iterDt = std::min(clock.restart().asSeconds(), 0.25f);
@@ -283,7 +284,7 @@ void Game::simStep() {
         m_cooldownEnd = static_cast<float>(gameSeconds()) + 1.75f;
     } else if (gameSeconds() > static_cast<double>(m_cooldownEnd)) {
         m_inCooldown = false;
-        gong.play();
+        gong->play();
     }
 
     // Animation accumulator (matches original pattern: reset-then-increment).
@@ -300,13 +301,13 @@ void Game::simStep() {
     // Hazard collision + scoring.
     for (int x = 1; x < static_cast<int>(m_arena.size()); x++) {
         if (collision(*m_arena[x], *m_rocket) && m_p1HazardReady) {
-            burn.play();
+            burn->play();
             m_rocketScore--;
             m_p1HazardReady = false;
             m_p1HazardCooldownEnd = static_cast<float>(gameSeconds()) + 2.2f;
         }
         if (collision(*m_arena[x], *m_robot) && m_p2HazardReady) {
-            burn.play();
+            burn->play();
             m_robotScore--;
             m_p2HazardReady = false;
             m_p2HazardCooldownEnd = static_cast<float>(gameSeconds()) + 2.2f;
@@ -354,31 +355,23 @@ void Game::captureIfDue() {
 // ── processEvents ─────────────────────────────────────────────────────────────
 
 void Game::processEvents() {
-    sf::Event event;
-    while (m_window.pollEvent(event)) {
-        switch (event.type) {
+    while (const auto event = m_window.pollEvent()) {
         // LCOV_EXCL_START — UI events not generated in harness/headless runs
-        case sf::Event::KeyPressed:
-            if (event.key.code == sf::Keyboard::F11 && !m_debug.active()) {
+        if (const auto* kp = event->getIf<sf::Event::KeyPressed>()) {
+            if (kp->code == sf::Keyboard::Key::F11 && !m_debug.active()) {
                 toggleFullscreen();
                 return; // restart event loop with the new window
             }
-            handlePlayerInput(event.key.code, true);
-            break;
-        case sf::Event::KeyReleased:
-            handlePlayerInput(event.key.code, false);
-            break;
-        case sf::Event::Resized:
-            m_window.setView(
-                makeLetterboxView({kGameW, kGameH}, {event.size.width, event.size.height}));
-            break;
-        case sf::Event::Closed:
+            handlePlayerInput(kp->code, true);
+        } else if (const auto* kr = event->getIf<sf::Event::KeyReleased>()) {
+            handlePlayerInput(kr->code, false);
+        } else if (const auto* rs = event->getIf<sf::Event::Resized>()) {
+            m_window.setView(makeLetterboxView({kGameW, kGameH}, rs->size));
+        } else if (event->is<sf::Event::Closed>()) {
             m_window.close();
-            break;
-        case sf::Event::MouseButtonReleased:
-            if (m_paused && event.mouseButton.button == sf::Mouse::Left) {
-                sf::Vector2f mp =
-                    m_window.mapPixelToCoords({event.mouseButton.x, event.mouseButton.y});
+        } else if (const auto* mb = event->getIf<sf::Event::MouseButtonReleased>()) {
+            if (m_paused && mb->button == sf::Mouse::Button::Left) {
+                sf::Vector2f mp = m_window.mapPixelToCoords(mb->position);
                 if (pauseButtonRect(0).contains(mp)) {
                     m_paused = false;
                     background.play();
@@ -390,27 +383,24 @@ void Game::processEvents() {
                     m_window.close();
                 }
             }
-            break;
-        case sf::Event::JoystickButtonPressed:
+        } else if (const auto* jb = event->getIf<sf::Event::JoystickButtonPressed>()) {
             // NOTE: gamepad attack fires on button PRESS; P2 keyboard attack fires on
             // key RELEASE (see handlePlayerInput — m_p2Attack = !isDown). Pre-existing
             // discrepancy tracked in issue #37.
-            if (!m_debug.active() && event.joystickButton.button == kAttackButton) {
+            if (!m_debug.active() && jb->button == kAttackButton) {
                 if (m_networkMode == NetworkMode::LOCAL || m_networkMode == NetworkMode::HOST) {
-                    if (event.joystickButton.joystickId == 0)
+                    if (jb->joystickId == 0)
                         m_p1Attack = true;
                 }
                 if ((m_networkMode == NetworkMode::LOCAL || m_networkMode == NetworkMode::CLIENT) &&
                     !m_ai) {
                     unsigned joyP2 = (m_networkMode == NetworkMode::CLIENT) ? 0u : 1u;
-                    if (event.joystickButton.joystickId == joyP2)
+                    if (jb->joystickId == joyP2)
                         m_p2Attack = true;
                 }
             }
-            break;
-        // JoystickMoved is entirely hardware-driven (never fires in headless CI), so the
-        // whole case stays inside this LCOV exclusion block.
-        case sf::Event::JoystickMoved: {
+        } else if (const auto* jm = event->getIf<sf::Event::JoystickMoved>()) {
+            // JoystickMoved is entirely hardware-driven (never fires in headless CI).
             // Event-driven movement: SFML fires JoystickMoved when any axis moves,
             // including return-to-center. We ASSIGN (not OR) so bools clear when
             // the stick centers — mirrors keyboard KeyPressed/KeyReleased exactly.
@@ -419,7 +409,7 @@ void Game::processEvents() {
             // gamepad on one player the gamepad state wins — acceptable per the
             // one-control-source-at-a-time contract.
             if (!m_debug.active()) {
-                unsigned id = event.joystickMove.joystickId;
+                unsigned id = jm->joystickId;
                 // P1 (rocket): joystick 0 in LOCAL or HOST.
                 if (m_networkMode == NetworkMode::LOCAL || m_networkMode == NetworkMode::HOST) {
                     if (id == 0) {
@@ -444,12 +434,8 @@ void Game::processEvents() {
                     }
                 }
             }
-            break;
         }
         // LCOV_EXCL_STOP
-        default:
-            break;
-        }
     }
 }
 
@@ -461,7 +447,7 @@ void Game::handlePlayerInput(sf::Keyboard::Key key, bool isDown) {
     // keyboard cannot perturb a --frames / --replay run.
     if (!m_debug.active()) {
         // Pause / resume
-        if (key == sf::Keyboard::Escape && isDown) {
+        if (key == sf::Keyboard::Key::Escape && isDown) {
             m_paused = !m_paused;
             if (m_paused)
                 background.pause();
@@ -470,7 +456,7 @@ void Game::handlePlayerInput(sf::Keyboard::Key key, bool isDown) {
         }
 
         // Quit to menu while paused
-        if (m_paused && key == sf::Keyboard::Q && isDown) {
+        if (m_paused && key == sf::Keyboard::Key::Q && isDown) {
             if (m_networkManager)
                 m_networkManager->disconnect();
             m_quitToMenu = true;
@@ -515,13 +501,13 @@ void Game::handlePlayerInput(sf::Keyboard::Key key, bool isDown) {
         if (key == m_bindings.skipCooldown && isDown) {
             if (m_inCooldown) {
                 m_inCooldown = false;
-                gong.play();
+                gong->play();
             }
         }
     }
 
     // Always-active: manual screenshot (F12).
-    if (key == sf::Keyboard::F12 && isDown)
+    if (key == sf::Keyboard::Key::F12 && isDown)
         captureScreenshot(m_window,
                           m_debug.screenshotDir + "/manual_" + std::to_string(m_steps) + ".png");
 }
@@ -670,11 +656,11 @@ void Game::update(sf::Time deltaT, float time) {
         }
 
         if (collision(hit, *m_rocket)) {
-            metal.play();
+            metal->play();
             m_robotScore++;
             reset = true;
         } else {
-            sword.play();
+            sword->play();
         }
 
         m_p2Attack = false;
@@ -696,9 +682,9 @@ void Game::update(sf::Time deltaT, float time) {
         if (collision(hit, *m_robot)) {
             m_rocketScore++;
             reset = true;
-            p2hit.play();
+            p2hit->play();
         } else {
-            laser.play();
+            laser->play();
         }
 
         m_p1Attack = false;
@@ -708,12 +694,12 @@ void Game::update(sf::Time deltaT, float time) {
         if (m_speed < 0)
             m_speed = 1.0f;
         m_slowDownPressed = false;
-        slow_down.play();
+        slow_down->play();
     }
     if (m_speedUpPressed) {
         m_speed = m_speed + 150.0f;
         m_speedUpPressed = false;
-        speed_up.play();
+        speed_up->play();
     }
 
     if ((m_p1Up || m_p1Down || m_p1Left || m_p1Right) && !collision(*m_rocket, *m_robot)) {
@@ -739,9 +725,9 @@ void Game::update(sf::Time deltaT, float time) {
         m_inCooldown = true;
     }
 
-    m_rocketScoreText.setString("Rocket Score: " + std::to_string(m_rocketScore));
-    m_robotScoreText.setString("Robot Score: " + std::to_string(m_robotScore));
-    m_robotScoreText.setPosition(kGameW - m_robotScoreText.getGlobalBounds().width - 20, 0);
+    m_rocketScoreText->setString("Rocket Score: " + std::to_string(m_rocketScore));
+    m_robotScoreText->setString("Robot Score: " + std::to_string(m_robotScore));
+    m_robotScoreText->setPosition({kGameW - m_robotScoreText->getGlobalBounds().size.x - 20, 0});
 }
 
 // ── render ────────────────────────────────────────────────────────────────────
@@ -790,14 +776,14 @@ void Game::render() {
     for (std::size_t x = 0; x < m_arena.size(); ++x) {
         m_arena[x]->draw(m_window);
     }
-    m_window.draw(timer);
-    m_window.draw(m_rocketScoreText);
-    m_window.draw(m_robotScoreText);
+    m_window.draw(*timer);
+    m_window.draw(*m_rocketScoreText);
+    m_window.draw(*m_robotScoreText);
     m_rocket->draw(m_window);
     m_robot->draw(m_window);
     if (m_inCooldown) {
-        m_window.draw(pause_text);
-        m_window.draw(info);
+        m_window.draw(*pause_text);
+        m_window.draw(*info);
     }
     if (m_paused) {
         sf::RectangleShape overlay(sf::Vector2f(kGameW, kGameH));
@@ -808,18 +794,18 @@ void Game::render() {
         auto r1 = pauseButtonRect(1);
         sf::Vector2f mousePos = m_window.mapPixelToCoords(sf::Mouse::getPosition(m_window));
 
-        sf::Text txt("PAUSED", font, 60);
+        sf::Text txt(font, "PAUSED", 60);
         txt.setFillColor(sf::Color::White);
-        txt.setStyle(sf::Text::Bold);
+        txt.setStyle(sf::Text::Style::Bold);
         auto tlb = txt.getLocalBounds();
-        txt.setOrigin(tlb.left + tlb.width / 2.f, tlb.top + tlb.height / 2.f);
-        txt.setPosition(kGameW / 2.f, r0.top - 60.f);
+        txt.setOrigin({tlb.position.x + tlb.size.x / 2.f, tlb.position.y + tlb.size.y / 2.f});
+        txt.setPosition({kGameW / 2.f, r0.position.y - 60.f});
         m_window.draw(txt);
 
-        MenuButton resumeBtn({r0.width, r0.height}, font, "Resume");
-        MenuButton quitBtn({r1.width, r1.height}, font, "Quit to Menu");
-        resumeBtn.setPosition({r0.left + r0.width / 2.f, r0.top + r0.height / 2.f});
-        quitBtn.setPosition({r1.left + r1.width / 2.f, r1.top + r1.height / 2.f});
+        MenuButton resumeBtn({r0.size.x, r0.size.y}, font, "Resume");
+        MenuButton quitBtn({r1.size.x, r1.size.y}, font, "Quit to Menu");
+        resumeBtn.setPosition({r0.position.x + r0.size.x / 2.f, r0.position.y + r0.size.y / 2.f});
+        quitBtn.setPosition({r1.position.x + r1.size.x / 2.f, r1.position.y + r1.size.y / 2.f});
         resumeBtn.setHovered(r0.contains(mousePos));
         quitBtn.setHovered(r1.contains(mousePos));
         resumeBtn.draw(m_window);
@@ -840,11 +826,11 @@ void Game::render() {
 // ── collision ─────────────────────────────────────────────────────────────────
 
 bool Game::collision(const GameObject& a, const GameObject& b) {
-    return objectBounds(a).intersects(objectBounds(b));
+    return objectBounds(a).findIntersection(objectBounds(b)).has_value();
 }
 
-bool Game::collision(sf::Rect<float> a, const GameObject& b) {
-    return a.intersects(objectBounds(b));
+bool Game::collision(sf::FloatRect a, const GameObject& b) {
+    return a.findIntersection(objectBounds(b)).has_value();
 }
 
 // ── handleNetworkCommunication ────────────────────────────────────────────────

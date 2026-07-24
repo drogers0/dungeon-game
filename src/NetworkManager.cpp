@@ -1,12 +1,13 @@
 #include "NetworkManager.h"
 #include <algorithm>
+#include <cstdint>
 #include <iostream>
 
 // ── free functions ────────────────────────────────────────────────────────────
 
 void dispatchPacket(sf::Packet& pkt, sf::Time arrival, std::deque<TimedState>& stateBuf,
                     std::deque<PlayerInput>& inputQueue, std::size_t cap) {
-    sf::Uint8 typeRaw = 0;
+    std::uint8_t typeRaw = 0;
     if (!(pkt >> typeRaw))
         return;
 
@@ -58,11 +59,11 @@ bool NetworkManager::flushSend() {
     if (!m_hasPending)
         return true;
     auto status = m_socket.send(m_pendingSend);
-    if (status == sf::Socket::Done) {
+    if (status == sf::Socket::Status::Done) {
         m_hasPending = false;
         return true;
     }
-    if (status == sf::Socket::Disconnected || status == sf::Socket::Error)
+    if (status == sf::Socket::Status::Disconnected || status == sf::Socket::Status::Error)
         setDisconnected();
     // Partial: SFML 2.x copies the payload into the SOCKET's internal buffer on the
     // first send() and stores progress there; the next send() on this socket resumes
@@ -74,12 +75,13 @@ bool NetworkManager::flushSend() {
 bool NetworkManager::startHost(unsigned short port) {
     m_isHost = true;
     m_listener.setBlocking(false);
-    if (m_listener.listen(port) != sf::Socket::Done) {
+    if (m_listener.listen(port) != sf::Socket::Status::Done) {
         std::cout << "Failed to bind to port " << port << "\n";
         return false;
     }
     std::cout << "Hosting on port " << m_listener.getLocalPort() << "\n";
-    std::cout << "Your IP: " << sf::IpAddress::getLocalAddress() << "\n";
+    auto local = sf::IpAddress::getLocalAddress();
+    std::cout << "Your IP: " << (local ? local->toString() : "unknown") << "\n";
     return true;
 }
 
@@ -88,8 +90,9 @@ bool NetworkManager::waitForClient(sf::Time timeout) {
         return false; // already accepted; listener is closed
     sf::Clock clock;
     while (timeout == sf::Time::Zero || clock.getElapsedTime() < timeout) {
-        if (m_listener.accept(m_socket) == sf::Socket::Done) {
-            std::cout << "Client connected: " << m_socket.getRemoteAddress() << "\n";
+        if (m_listener.accept(m_socket) == sf::Socket::Status::Done) {
+            auto remote = m_socket.getRemoteAddress();
+            std::cout << "Client connected: " << (remote ? remote->toString() : "unknown") << "\n";
             m_socket.setBlocking(false);
             m_connected = true;
             m_listener.close(); // 1v1: stop accepting new connections
@@ -102,8 +105,8 @@ bool NetworkManager::waitForClient(sf::Time timeout) {
 
 bool NetworkManager::connectToHost(const std::string& ip, unsigned short port) {
     // Validate ip before doing any blocking work — bad input fails instantly.
-    sf::IpAddress addr(ip);
-    if (addr == sf::IpAddress::None) {
+    auto addr = sf::IpAddress::resolve(ip);
+    if (!addr) {
         std::cout << "Invalid IP address: " << ip << "\n";
         return false;
     }
@@ -115,11 +118,11 @@ bool NetworkManager::connectToHost(const std::string& ip, unsigned short port) {
     m_isHost = false;
     std::cout << "Connecting to " << ip << ":" << port << "\n";
     m_socket.setBlocking(true);
-    auto status = m_socket.connect(addr, port, sf::seconds(10));
+    auto status = m_socket.connect(*addr, port, sf::seconds(10));
     m_socket.setBlocking(false);
 
-    if (status != sf::Socket::Done) {
-        std::cout << "Failed to connect (status: " << status << ")\n";
+    if (status != sf::Socket::Status::Done) {
+        std::cout << "Failed to connect (status: " << static_cast<int>(status) << ")\n";
         return false;
     }
     m_connected = true;
@@ -134,7 +137,7 @@ bool NetworkManager::sendInput(const PlayerInput& input) {
         return false; // pending slot still occupied — drop
 
     m_pendingSend.clear();
-    m_pendingSend << static_cast<sf::Uint8>(MsgType::Input);
+    m_pendingSend << static_cast<std::uint8_t>(MsgType::Input);
     input.toPacket(m_pendingSend);
     m_hasPending = true;
     return flushSend();
@@ -147,7 +150,7 @@ bool NetworkManager::sendGameState(const GameState& state) {
         return false;
 
     m_pendingSend.clear();
-    m_pendingSend << static_cast<sf::Uint8>(MsgType::State);
+    m_pendingSend << static_cast<std::uint8_t>(MsgType::State);
     state.toPacket(m_pendingSend);
     m_hasPending = true;
     return flushSend();
@@ -159,9 +162,10 @@ void NetworkManager::poll() {
     sf::Packet pkt;
     for (;;) {
         auto status = m_socket.receive(pkt);
-        if (status == sf::Socket::Done) {
+        if (status == sf::Socket::Status::Done) {
             dispatchPacket(pkt, m_clock.getElapsedTime(), m_stateBuf, m_inputQueue, kStateBufCap);
-        } else if (status == sf::Socket::NotReady || status == sf::Socket::Partial) {
+        } else if (status == sf::Socket::Status::NotReady ||
+                   status == sf::Socket::Status::Partial) {
             // NotReady: no data yet.
             // Partial: SFML stores receive progress inside the socket; resume next poll().
             break;

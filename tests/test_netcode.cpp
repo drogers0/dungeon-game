@@ -83,7 +83,7 @@ TEST_CASE("dispatchPacket routes State into stateBuf", "[netcode][unit]") {
     s.p1_y = 7.f;
 
     sf::Packet pkt;
-    pkt << static_cast<sf::Uint8>(2); // MsgType::State
+    pkt << static_cast<std::uint8_t>(2); // MsgType::State
     s.toPacket(pkt);
 
     dispatchPacket(pkt, sf::seconds(1.f), stateBuf, inputQueue, 4);
@@ -106,7 +106,7 @@ TEST_CASE("dispatchPacket routes Input into inputQueue", "[netcode][unit]") {
     inp.attack = true;
 
     sf::Packet pkt;
-    pkt << static_cast<sf::Uint8>(1); // MsgType::Input
+    pkt << static_cast<std::uint8_t>(1); // MsgType::Input
     inp.toPacket(pkt);
 
     dispatchPacket(pkt, sf::seconds(0.f), stateBuf, inputQueue, 4);
@@ -125,7 +125,7 @@ TEST_CASE("dispatchPacket discards unknown message type", "[netcode][unit]") {
     std::deque<PlayerInput> inputQueue;
 
     sf::Packet pkt;
-    pkt << static_cast<sf::Uint8>(99); // unknown
+    pkt << static_cast<std::uint8_t>(99); // unknown
 
     dispatchPacket(pkt, sf::seconds(0.f), stateBuf, inputQueue, 4);
 
@@ -141,7 +141,7 @@ TEST_CASE("dispatchPacket evicts oldest state when cap reached", "[netcode][unit
 
     for (int i = 0; i < 5; ++i) {
         sf::Packet pkt;
-        pkt << static_cast<sf::Uint8>(2);
+        pkt << static_cast<std::uint8_t>(2);
         GameState s;
         s.p1_x = static_cast<float>(i);
         s.toPacket(pkt);

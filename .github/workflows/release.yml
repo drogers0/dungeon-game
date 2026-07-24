@@ -59,8 +59,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/build/_deps
-          key: ${{ runner.os }}-sfmldeps-release-v1-${{ hashFiles('CMakeLists.txt', '.github/workflows/release.yml') }}
-          restore-keys: ${{ runner.os }}-sfmldeps-release-v1-
+          key: ${{ runner.os }}-sfmldeps-release-v2-${{ hashFiles('CMakeLists.txt', '.github/workflows/release.yml') }}
+          restore-keys: ${{ runner.os }}-sfmldeps-release-v2-
 
       - name: Configure (Windows)
         if: matrix.os == 'windows-latest'
@@ -88,31 +88,45 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path dungeon-game-windows
           Copy-Item build/Release/dungeon_game.exe dungeon-game-windows/
-          Copy-Item build/Release/openal32.dll     dungeon-game-windows/
+          # SFML 3 uses miniaudio internally — no openal32.dll is shipped/needed.
           Copy-Item -Recurse build/Release/assets  dungeon-game-windows/
 
       - name: Stage (macOS)
         if: matrix.os == 'macos-latest'
         run: |
+          # TODO #25 — re-verify framework bundling for SFML 3.
+          # SFML 2.6.2's extlibs/libs-osx/Frameworks/ (freetype/OpenAL/vorbis/FLAC) does
+          # NOT exist in SFML 3: with BUILD_SHARED_LIBS=OFF + FetchContent, SFML 3 static-
+          # links freetype and uses miniaudio (no OpenAL framework), so typically nothing
+          # needs bundling. Inspect otool -L below and bundle any non-system dylib before
+          # relying on this zip. Gate merge on a workflow_dispatch dry-run of this workflow:
+          # download the macos zip and run the bundled binary on a clean path.
           mkdir -p dungeon-game-macos/Frameworks
           cp build/dungeon_game dungeon-game-macos/
           cp -R build/assets    dungeon-game-macos/
-          # SFML 2.6.2 on macOS does NOT static-link its third-party libs — it links
-          # bundled frameworks via @rpath (pointed at the build tree). Bundle those
-          # frameworks next to the binary and repoint the rpath so the zip is portable.
-          fwsrc=build/_deps/sfml-src/extlibs/libs-osx/Frameworks
-          for fw in freetype OpenAL vorbisenc vorbisfile vorbis ogg FLAC; do
-            cp -R "$fwsrc/$fw.framework" dungeon-game-macos/Frameworks/
-          done
           bin=dungeon-game-macos/dungeon_game
-          old_rpath=$(otool -l "$bin" | awk '$1=="path"{print $2; exit}')
-          [ -n "$old_rpath" ] && install_name_tool -delete_rpath "$old_rpath" "$bin"
-          install_name_tool -add_rpath @executable_path/Frameworks "$bin"
-          # Sanity: the executable-relative rpath must be present and the stale
-          # build-tree rpath (…/libs-osx/…) must be gone, else the zip won't launch.
-          rpaths=$(otool -l "$bin" | awk '$1=="path"{print $2}')
-          echo "$rpaths" | grep -qx "@executable_path/Frameworks" || { echo "rpath fix missing"; exit 1; }
-          echo "$rpaths" | grep -q "libs-osx" && { echo "stale build-tree rpath remains"; exit 1; } || true
+          echo "== otool -L $bin =="
+          otool -L "$bin"
+          # Copy every non-system dylib the binary references into Frameworks/ and repoint.
+          bundled=0
+          while read -r dylib; do
+            case "$dylib" in
+              /usr/lib/*|/System/*|@rpath/*|@executable_path/*|"") continue ;;
+            esac
+            if [ -f "$dylib" ]; then
+              cp "$dylib" dungeon-game-macos/Frameworks/
+              base=$(basename "$dylib")
+              install_name_tool -change "$dylib" "@executable_path/Frameworks/$base" "$bin"
+              bundled=$((bundled+1))
+            fi
+          done < <(otool -L "$bin" | tail -n +2 | awk '{print $1}')
+          if [ "$bundled" -gt 0 ]; then
+            install_name_tool -add_rpath @executable_path/Frameworks "$bin" || true
+            echo "Bundled $bundled non-system dylib(s)."
+          else
+            rmdir dungeon-game-macos/Frameworks 2>/dev/null || true
+            echo "No non-system dylibs to bundle (SFML 3 static link)."
+          fi
 
       - name: Stage (Linux)
         if: matrix.os == 'ubuntu-latest'

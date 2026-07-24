@@ -1,12 +1,13 @@
 #pragma once
 
 #include <SFML/Network.hpp>
+#include <cstdint>
 #include <deque>
 #include <string>
 
 enum class NetworkMode { LOCAL, HOST, CLIENT };
 
-enum class MsgType : sf::Uint8 { Input = 1, State = 2 };
+enum class MsgType : std::uint8_t { Input = 1, State = 2 };
 
 struct PlayerInput {
     bool up = false;
