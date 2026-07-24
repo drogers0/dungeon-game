@@ -14,14 +14,14 @@ inline sf::View makeLetterboxView(sf::Vector2f logicalSize, sf::Vector2u windowP
     if (windowAspect >= logicalAspect) {
         // Window is wider than logical canvas → pillarbox (black bars on sides).
         float vpW = logicalAspect / windowAspect;
-        viewport = sf::FloatRect((1.f - vpW) / 2.f, 0.f, vpW, 1.f);
+        viewport = sf::FloatRect({(1.f - vpW) / 2.f, 0.f}, {vpW, 1.f});
     } else {
         // Window is taller than logical canvas → letterbox (black bars top/bottom).
         float vpH = windowAspect / logicalAspect;
-        viewport = sf::FloatRect(0.f, (1.f - vpH) / 2.f, 1.f, vpH);
+        viewport = sf::FloatRect({0.f, (1.f - vpH) / 2.f}, {1.f, vpH});
     }
 
-    sf::View view(sf::FloatRect(0.f, 0.f, logicalSize.x, logicalSize.y));
+    sf::View view(sf::FloatRect({0.f, 0.f}, {logicalSize.x, logicalSize.y}));
     view.setViewport(viewport);
     return view;
 }

@@ -9,7 +9,7 @@
 // sf::Music streams from disk so uses openFromFile; others use loadFromFile / .load().
 
 inline void loadOrThrow(sf::Font& f, const std::string& path) {
-    if (!f.loadFromFile(path))
+    if (!f.openFromFile(path))
         throw std::runtime_error("failed to load asset: " + path);
 }
 

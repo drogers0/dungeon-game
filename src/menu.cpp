@@ -19,9 +19,9 @@
 
 // Build a MenuButton from a ButtonSpec, coloring label by button label text.
 static MenuButton makeButton(const ButtonSpec& spec, const sf::Font& font) {
-    MenuButton btn({spec.rect.width, spec.rect.height}, font, spec.label);
-    btn.setPosition(
-        {spec.rect.left + spec.rect.width / 2.f, spec.rect.top + spec.rect.height / 2.f});
+    MenuButton btn({spec.rect.size.x, spec.rect.size.y}, font, spec.label);
+    btn.setPosition({spec.rect.position.x + spec.rect.size.x / 2.f,
+                     spec.rect.position.y + spec.rect.size.y / 2.f});
     if (spec.label == "1 PLAYER")
         btn.label.setFillColor(sf::Color::Yellow);
     else if (spec.label == "HOST")
@@ -73,8 +73,8 @@ bool parseMenuState(const std::string& name, MenuState& out) {
 // Center a text object horizontally on a given position.
 static void centerText(sf::Text& t, float x, float y) {
     auto lb = t.getLocalBounds();
-    t.setOrigin(lb.left + lb.width / 2.f, lb.top);
-    t.setPosition(x, y);
+    t.setOrigin({lb.position.x + lb.size.x / 2.f, lb.position.y});
+    t.setPosition({x, y});
 }
 
 static void saveControls(const KeyBindings& bindings, std::string& statusMessage) {
@@ -104,15 +104,15 @@ static void renderMenu(sf::RenderWindow& win, RegularGameObject& bg, const sf::F
     bg.draw(win);
 
     if (menuState == MenuState::SETTINGS) {
-        sf::Text title("CONTROLS", font, 40);
+        sf::Text title(font, "CONTROLS", 40);
         title.setFillColor(sf::Color::White);
-        title.setStyle(sf::Text::Bold);
+        title.setStyle(sf::Text::Style::Bold);
         centerText(title, kMenuW / 2.f, 30.f);
         win.draw(title);
 
         const char* headers[2] = {"PLAYER 1", "PLAYER 2"};
         for (int col = 0; col < 2; ++col) {
-            sf::Text hdr(headers[col], font, 24);
+            sf::Text hdr(font, headers[col], 24);
             hdr.setFillColor(sf::Color(200, 200, 200));
             auto pos = settingsColumnHeaderPos(col);
             centerText(hdr, pos.x, pos.y);
@@ -132,7 +132,7 @@ static void renderMenu(sf::RenderWindow& win, RegularGameObject& bg, const sf::F
             btn.draw(win);
         }
         if (!statusMessage.empty()) {
-            sf::Text statusText(statusMessage, font, 22);
+            sf::Text statusText(font, statusMessage, 22);
             statusText.setFillColor(statusMessage.find("Failed") != std::string::npos
                                         ? sf::Color::Red
                                         : sf::Color::Yellow);
@@ -147,53 +147,53 @@ static void renderMenu(sf::RenderWindow& win, RegularGameObject& bg, const sf::F
     if (menuState == MenuState::HOST_WAITING || menuState == MenuState::JOIN_INPUT) {
         // Semi-transparent panel first, then text, then button on top.
         auto pr = menuInfoPanelRect();
-        sf::RectangleShape panel({pr.width, pr.height});
-        panel.setPosition(pr.left, pr.top);
+        sf::RectangleShape panel({pr.size.x, pr.size.y});
+        panel.setPosition({pr.position.x, pr.position.y});
         panel.setFillColor(sf::Color(0, 0, 0, 180));
         win.draw(panel);
 
         if (menuState == MenuState::HOST_WAITING) {
-            sf::Text title("HOSTING GAME", font, 50);
+            sf::Text title(font, "HOSTING GAME", 50);
             title.setFillColor(sf::Color::Green);
-            title.setStyle(sf::Text::Bold);
+            title.setStyle(sf::Text::Style::Bold);
             centerText(title, kMenuW / 2.f, 150.f);
             win.draw(title);
 
-            sf::Text ipText("Your IP: " + hostIpAddress, font, 35);
+            sf::Text ipText(font, "Your IP: " + hostIpAddress, 35);
             ipText.setFillColor(sf::Color::White);
             centerText(ipText, kMenuW / 2.f, 250.f);
             win.draw(ipText);
 
             if (!statusMessage.empty()) {
-                sf::Text statusText(statusMessage, font, 30);
+                sf::Text statusText(font, statusMessage, 30);
                 statusText.setFillColor(sf::Color(200, 200, 200));
                 centerText(statusText, kMenuW / 2.f, 350.f);
                 win.draw(statusText);
             }
         } else {
-            sf::Text title("JOIN GAME", font, 50);
+            sf::Text title(font, "JOIN GAME", 50);
             title.setFillColor(sf::Color::Blue);
-            title.setStyle(sf::Text::Bold);
+            title.setStyle(sf::Text::Style::Bold);
             centerText(title, kMenuW / 2.f, 150.f);
             win.draw(title);
 
-            sf::Text prompt("Enter Host IP Address:", font, 30);
+            sf::Text prompt(font, "Enter Host IP Address:", 30);
             prompt.setFillColor(sf::Color::White);
             centerText(prompt, kMenuW / 2.f, 250.f);
             win.draw(prompt);
 
-            sf::Text ipText(ipInput, font, 40);
+            sf::Text ipText(font, ipInput, 40);
             ipText.setFillColor(sf::Color::Green);
             centerText(ipText, kMenuW / 2.f, 320.f);
             win.draw(ipText);
 
-            sf::Text instruct("Press ENTER to connect", font, 25);
+            sf::Text instruct(font, "Press ENTER to connect", 25);
             instruct.setFillColor(sf::Color(200, 200, 200));
             centerText(instruct, kMenuW / 2.f, 400.f);
             win.draw(instruct);
 
             if (!statusMessage.empty()) {
-                sf::Text statusText(statusMessage, font, 22);
+                sf::Text statusText(font, statusMessage, 22);
                 statusText.setFillColor(statusMessage.find("Failed") != std::string::npos
                                             ? sf::Color::Red
                                             : sf::Color::Yellow);
@@ -202,15 +202,15 @@ static void renderMenu(sf::RenderWindow& win, RegularGameObject& bg, const sf::F
             }
         }
     } else if (menuState == MenuState::AI_DIFFICULTY) {
-        sf::Text diffTitle("SELECT DIFFICULTY", font, 40);
+        sf::Text diffTitle(font, "SELECT DIFFICULTY", 40);
         diffTitle.setFillColor(sf::Color::White);
-        diffTitle.setStyle(sf::Text::Bold);
+        diffTitle.setStyle(sf::Text::Style::Bold);
         centerText(diffTitle, kMenuW / 2.f, 80.f);
         win.draw(diffTitle);
     } else if (menuState == MenuState::READY_TO_START && !statusMessage.empty()) {
-        sf::Text statusText(statusMessage, font, 30);
+        sf::Text statusText(font, statusMessage, 30);
         statusText.setFillColor(sf::Color::Green);
-        statusText.setStyle(sf::Text::Bold);
+        statusText.setStyle(sf::Text::Style::Bold);
         centerText(statusText, kMenuW / 2.f, 350.f);
         win.draw(statusText);
     }
@@ -258,27 +258,25 @@ MenuResult showMenu(KeyBindings& bindings, const DebugConfig& cfg) {
     loadOrThrow(background, resource_path + "m_start_background.wav");
     background.play();
     background.setVolume(60);
-    background.setLoop(true);
+    background.setLooping(true);
 
     sf::SoundBuffer down_buffer;
     loadOrThrow(down_buffer, resource_path + "ButtonOn.wav");
 
-    sf::Sound press;
-    press.setBuffer(down_buffer);
+    sf::Sound press(down_buffer);
 
     sf::Font font;
     loadOrThrow(font, resource_path + "oswald.ttf");
 
-    sf::RenderWindow startscreen(sf::VideoMode(1024, 576), "Dungeon Game", sf::Style::Default);
+    sf::RenderWindow startscreen(sf::VideoMode({1024u, 576u}), "Dungeon Game", sf::Style::Default);
     startscreen.setView(makeLetterboxView({kMenuW, kMenuH}, startscreen.getSize()));
 
     // ── Harness loop (bounded; exits after cfg.frames or window close) ─────────
     if (cfg.menuMode()) {
         const int effectiveFrames = (cfg.frames > 0 ? cfg.frames : 5);
         for (int frame = 0; frame < effectiveFrames; ++frame) {
-            sf::Event event;
-            while (startscreen.pollEvent(event)) {
-                if (event.type == sf::Event::Closed)
+            while (const auto event = startscreen.pollEvent()) {
+                if (event->is<sf::Event::Closed>())
                     startscreen.close();
             }
             if (!startscreen.isOpen())
@@ -300,44 +298,43 @@ MenuResult showMenu(KeyBindings& bindings, const DebugConfig& cfg) {
 
     // ── Normal interactive loop ────────────────────────────────────────────────
     while (startscreen.isOpen()) {
-        sf::Event event;
-        while (startscreen.pollEvent(event)) {
-            if (event.type == sf::Event::Closed) {
+        while (const auto event = startscreen.pollEvent()) {
+            if (event->is<sf::Event::Closed>()) {
                 background.stop();
                 startscreen.close();
                 result.quit = true;
                 return result;
             }
-            if (event.type == sf::Event::Resized) {
-                startscreen.setView(
-                    makeLetterboxView({kMenuW, kMenuH}, {event.size.width, event.size.height}));
+            if (const auto* rs = event->getIf<sf::Event::Resized>()) {
+                startscreen.setView(makeLetterboxView({kMenuW, kMenuH}, rs->size));
             }
-            if (event.type == sf::Event::KeyPressed) {
+            if (const auto* kp = event->getIf<sf::Event::KeyPressed>()) {
                 if (menuState == MenuState::SETTINGS) {
                     if (capturingIdx >= 0) {
-                        if (event.key.code == sf::Keyboard::Escape) {
+                        if (kp->code == sf::Keyboard::Key::Escape) {
                             capturingIdx = -1;
-                        } else if (nameFromKey(event.key.code) == "Unknown") {
+                        } else if (nameFromKey(kp->code) == "Unknown") {
                             // Key not in kKeyTable (IME, multimedia, etc.) — silently cancel.
                             capturingIdx = -1;
-                        } else if (isReservedKey(event.key.code, bindings)) {
+                        } else if (isReservedKey(kp->code, bindings)) {
                             capturingIdx = -1;
                             statusMessage = "Reserved key";
                         } else {
-                            bindings = applyBindingEdit(bindings, capturingIdx, event.key.code);
+                            bindings = applyBindingEdit(bindings, capturingIdx, kp->code);
                             saveControls(bindings, statusMessage);
                             capturingIdx = -1;
                         }
-                    } else if (event.key.code == sf::Keyboard::Escape) {
+                    } else if (kp->code == sf::Keyboard::Key::Escape) {
                         capturingIdx = -1;
                         menuState = MenuState::MAIN_MENU;
                     }
                 }
             }
-            if (menuState == MenuState::JOIN_INPUT && event.type == sf::Event::TextEntered) {
-                if (event.text.unicode == '\b' && !ipInput.empty()) {
+            if (const auto* te = event->getIf<sf::Event::TextEntered>();
+                te && menuState == MenuState::JOIN_INPUT) {
+                if (te->unicode == '\b' && !ipInput.empty()) {
                     ipInput.pop_back();
-                } else if (event.text.unicode == '\r' || event.text.unicode == '\n') {
+                } else if (te->unicode == '\r' || te->unicode == '\n') {
                     netManager = std::make_shared<NetworkManager>();
                     statusMessage = "Connecting...";
                     if (netManager->connectToHost(ipInput)) {
@@ -348,17 +345,15 @@ MenuResult showMenu(KeyBindings& bindings, const DebugConfig& cfg) {
                         statusMessage = "Failed to connect (invalid IP or host unreachable)";
                         netManager = nullptr;
                     }
-                } else if (event.text.unicode < 128 && event.text.unicode != '\b' &&
-                           ipInput.length() < 30) {
-                    char c = static_cast<char>(event.text.unicode);
+                } else if (te->unicode < 128 && te->unicode != '\b' && ipInput.length() < 30) {
+                    char c = static_cast<char>(te->unicode);
                     if ((c >= '0' && c <= '9') || c == '.' || c == ':')
                         ipInput += c;
                 }
             }
-            if (event.type == sf::Event::MouseButtonReleased &&
-                event.mouseButton.button == sf::Mouse::Left) {
-                sf::Vector2f mp =
-                    startscreen.mapPixelToCoords({event.mouseButton.x, event.mouseButton.y});
+            if (const auto* mb = event->getIf<sf::Event::MouseButtonReleased>();
+                mb && mb->button == sf::Mouse::Button::Left) {
+                sf::Vector2f mp = startscreen.mapPixelToCoords(mb->position);
 
                 if (menuState == MenuState::MAIN_MENU) {
                     auto specs = menuButtonRects(menuState);
@@ -375,7 +370,10 @@ MenuResult showMenu(KeyBindings& bindings, const DebugConfig& cfg) {
                         if (netManager->startHost()) {
                             mode = NetworkMode::HOST;
                             menuState = MenuState::HOST_WAITING;
-                            hostIpAddress = sf::IpAddress::getLocalAddress().toString();
+                            {
+                                auto local = sf::IpAddress::getLocalAddress();
+                                hostIpAddress = local ? local->toString() : "unknown";
+                            }
                             statusMessage = "Waiting for player 2...";
                         } else {
                             statusMessage = "Failed to start host!";

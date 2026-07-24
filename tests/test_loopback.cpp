@@ -87,12 +87,12 @@ TEST_CASE("loopback: unknown message type is discarded", "[loopback][unit]") {
 
     sf::TcpSocket rawSender;
     rawSender.setBlocking(true);
-    REQUIRE(rawSender.connect(sf::IpAddress::LocalHost, port2) == sf::Socket::Done);
+    REQUIRE(rawSender.connect(sf::IpAddress::LocalHost, port2) == sf::Socket::Status::Done);
     REQUIRE(host2.waitForClient(sf::seconds(5)));
 
     sf::Packet unknownPkt;
-    unknownPkt << static_cast<sf::Uint8>(99);
-    rawSender.send(unknownPkt);
+    unknownPkt << static_cast<std::uint8_t>(99);
+    (void)rawSender.send(unknownPkt);
 
     for (int i = 0; i < 100; ++i) {
         host2.poll();

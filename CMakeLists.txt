@@ -13,7 +13,7 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 
 # ── SFML: fast-path via find_package, fallback to FetchContent ──────────────
-find_package(SFML 2.5 COMPONENTS graphics window system audio network QUIET)
+find_package(SFML 3 COMPONENTS Graphics Window System Audio Network QUIET)
 if(NOT SFML_FOUND)
     include(FetchContent)
     set(SFML_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
@@ -21,7 +21,7 @@ if(NOT SFML_FOUND)
     FetchContent_Declare(
         SFML
         GIT_REPOSITORY https://github.com/SFML/SFML.git
-        GIT_TAG        2.6.2
+        GIT_TAG        3.0.2
         GIT_SHALLOW    TRUE
     )
     FetchContent_MakeAvailable(SFML)
@@ -45,11 +45,11 @@ add_library(dungeon_lib STATIC
 target_include_directories(dungeon_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 target_link_libraries(dungeon_lib PUBLIC
-    sfml-graphics
-    sfml-window
-    sfml-system
-    sfml-audio
-    sfml-network
+    SFML::Graphics
+    SFML::Window
+    SFML::System
+    SFML::Audio
+    SFML::Network
 )
 
 # ── dungeon_game executable ──────────────────────────────────────────────────
@@ -80,14 +80,6 @@ add_custom_command(TARGET dungeon_game POST_BUILD
         $<TARGET_FILE_DIR:dungeon_game>/assets
     COMMENT "Copying assets/ to output directory"
 )
-
-if(WIN32 AND DEFINED sfml_SOURCE_DIR)
-    add_custom_command(TARGET dungeon_game POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${sfml_SOURCE_DIR}/extlibs/bin/x64/openal32.dll
-            $<TARGET_FILE_DIR:dungeon_game>
-        COMMENT "Copying openal32.dll next to dungeon_game.exe")
-endif()
 
 # ── Coverage instrumentation (clang only; propagated PUBLIC so test binaries
 #    that link dungeon_lib also get the flags) ─────────────────────────────────

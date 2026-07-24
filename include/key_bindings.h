@@ -31,7 +31,7 @@ KeyBindings defaultBindings();
 KeyBindings loadBindings(std::istream& in);
 
 // Convert between SFML key enum and the string names used in controls.cfg.
-// keyFromName returns sf::Keyboard::Unknown for unrecognised names.
+// keyFromName returns sf::Keyboard::Key::Unknown for unrecognised names.
 // nameFromKey returns "Unknown" for keys not in the table.
 sf::Keyboard::Key keyFromName(const std::string& name);
 std::string nameFromKey(sf::Keyboard::Key key);

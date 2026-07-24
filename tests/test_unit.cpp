@@ -54,7 +54,7 @@ public:
     void setOrigin() override {}
     sf::FloatRect getGlobalBounds() const override {
         // Centered-origin convention: matches AnimatedGameObject post-setOrigin().
-        return {px - w * sx / 2.f, py - h * sy / 2.f, w * sx, h * sy};
+        return {{px - w * sx / 2.f, py - h * sy / 2.f}, {w * sx, h * sy}};
     }
 };
 
@@ -70,10 +70,10 @@ TEST_CASE("objectBounds: positive scale produces correct rect", "[geometry][unit
     obj.sy = 2;
 
     sf::FloatRect r = objectBounds(obj);
-    REQUIRE(r.left == Catch::Approx(100.f));
-    REQUIRE(r.top == Catch::Approx(200.f));
-    REQUIRE(r.width == Catch::Approx(100.f)); // 50 * 2
-    REQUIRE(r.height == Catch::Approx(60.f)); // 30 * 2
+    REQUIRE(r.position.x == Catch::Approx(100.f));
+    REQUIRE(r.position.y == Catch::Approx(200.f));
+    REQUIRE(r.size.x == Catch::Approx(100.f)); // 50 * 2
+    REQUIRE(r.size.y == Catch::Approx(60.f));  // 30 * 2
 }
 
 TEST_CASE("objectBounds: negative scale.x produces negative-width rect (pinned quirk)",
@@ -89,10 +89,10 @@ TEST_CASE("objectBounds: negative scale.x produces negative-width rect (pinned q
     obj.sy = 1;
 
     sf::FloatRect r = objectBounds(obj);
-    REQUIRE(r.left == Catch::Approx(500.f));
-    REQUIRE(r.top == Catch::Approx(400.f));
-    REQUIRE(r.width == Catch::Approx(-119.f)); // negative - NOT normalised here
-    REQUIRE(r.height == Catch::Approx(180.f));
+    REQUIRE(r.position.x == Catch::Approx(500.f));
+    REQUIRE(r.position.y == Catch::Approx(400.f));
+    REQUIRE(r.size.x == Catch::Approx(-119.f)); // negative - NOT normalised here
+    REQUIRE(r.size.y == Catch::Approx(180.f));
 }
 
 // ── normalizedBounds ─────────────────────────────────────────────────────────
@@ -112,37 +112,37 @@ TEST_CASE("normalizedBounds: normalises every scale-sign combination", "[geometr
         obj.sx = 2;
         obj.sy = 2;
         sf::FloatRect r = normalizedBounds(obj);
-        REQUIRE(r.left == Catch::Approx(500.f));
-        REQUIRE(r.top == Catch::Approx(400.f));
-        REQUIRE(r.width == Catch::Approx(238.f));
-        REQUIRE(r.height == Catch::Approx(360.f));
+        REQUIRE(r.position.x == Catch::Approx(500.f));
+        REQUIRE(r.position.y == Catch::Approx(400.f));
+        REQUIRE(r.size.x == Catch::Approx(238.f));
+        REQUIRE(r.size.y == Catch::Approx(360.f));
     }
     SECTION("negative scale.x - left shifts, width positive") {
         obj.sx = -1;
         obj.sy = 1;
         sf::FloatRect r = normalizedBounds(obj);
-        REQUIRE(r.left == Catch::Approx(381.f)); // 500 + (-119)
-        REQUIRE(r.top == Catch::Approx(400.f));
-        REQUIRE(r.width == Catch::Approx(119.f));
-        REQUIRE(r.height == Catch::Approx(180.f));
+        REQUIRE(r.position.x == Catch::Approx(381.f)); // 500 + (-119)
+        REQUIRE(r.position.y == Catch::Approx(400.f));
+        REQUIRE(r.size.x == Catch::Approx(119.f));
+        REQUIRE(r.size.y == Catch::Approx(180.f));
     }
     SECTION("negative scale.y - top shifts, height positive") {
         obj.sx = 1;
         obj.sy = -1;
         sf::FloatRect r = normalizedBounds(obj);
-        REQUIRE(r.left == Catch::Approx(500.f));
-        REQUIRE(r.top == Catch::Approx(220.f)); // 400 + (-180)
-        REQUIRE(r.width == Catch::Approx(119.f));
-        REQUIRE(r.height == Catch::Approx(180.f));
+        REQUIRE(r.position.x == Catch::Approx(500.f));
+        REQUIRE(r.position.y == Catch::Approx(220.f)); // 400 + (-180)
+        REQUIRE(r.size.x == Catch::Approx(119.f));
+        REQUIRE(r.size.y == Catch::Approx(180.f));
     }
     SECTION("both negative - both axes corrected") {
         obj.sx = -1;
         obj.sy = -1;
         sf::FloatRect r = normalizedBounds(obj);
-        REQUIRE(r.left == Catch::Approx(381.f));
-        REQUIRE(r.top == Catch::Approx(220.f));
-        REQUIRE(r.width == Catch::Approx(119.f));
-        REQUIRE(r.height == Catch::Approx(180.f));
+        REQUIRE(r.position.x == Catch::Approx(381.f));
+        REQUIRE(r.position.y == Catch::Approx(220.f));
+        REQUIRE(r.size.x == Catch::Approx(119.f));
+        REQUIRE(r.size.y == Catch::Approx(180.f));
     }
 }
 
@@ -169,7 +169,7 @@ TEST_CASE("objectBounds: touching rects with negative-width rect do not crash",
     // Overlap on x: [200,200] -> touching (not overlapping); intersects() returns false.
     sf::FloatRect ra = objectBounds(a);
     sf::FloatRect rb = objectBounds(b);
-    bool result = ra.intersects(rb);
+    bool result = ra.findIntersection(rb).has_value();
     (void)result; // touching rects; key point is no crash, not the bool result
     SUCCEED("negative-width intersects() did not crash");
 }
@@ -189,7 +189,7 @@ TEST_CASE("objectBounds: disjoint objects do not intersect", "[geometry][unit]")
     b.sx = 1;
     b.sy = 1;
 
-    REQUIRE(!objectBounds(a).intersects(objectBounds(b)));
+    REQUIRE(!objectBounds(a).findIntersection(objectBounds(b)).has_value());
 }
 
 TEST_CASE("objectBounds: overlapping objects intersect", "[geometry][unit]") {
@@ -207,7 +207,7 @@ TEST_CASE("objectBounds: overlapping objects intersect", "[geometry][unit]") {
     b.sx = 1;
     b.sy = 1;
 
-    REQUIRE(objectBounds(a).intersects(objectBounds(b)));
+    REQUIRE(objectBounds(a).findIntersection(objectBounds(b)).has_value());
 }
 
 // ── advanceFrameRect ───────────────────────────────────────────────────────────
@@ -223,7 +223,7 @@ TEST_CASE("objectBounds: overlapping objects intersect", "[geometry][unit]") {
 
 TEST_CASE("advanceFrameRect: fire sheet - full cycle resets to frame 1", "[anim][unit]") {
     // Walk all 10 frames of the fire sheet, verify reset after frame 10
-    sf::IntRect rect(0, 0, 43, 72); // initial rect from load()
+    sf::IntRect rect({0, 0}, {43, 72}); // initial rect from load()
     int curr = 1;
 
     for (int step = 0; step < 10; ++step) {
@@ -233,20 +233,20 @@ TEST_CASE("advanceFrameRect: fire sheet - full cycle resets to frame 1", "[anim]
     }
     // After 10 advances, curr resets to 1 and rect resets to (0,0,43,72)
     REQUIRE(curr == 1);
-    REQUIRE(rect.left == 0);
-    REQUIRE(rect.top == 0);
-    REQUIRE(rect.width == 43);
-    REQUIRE(rect.height == 72);
+    REQUIRE(rect.position.x == 0);
+    REQUIRE(rect.position.y == 0);
+    REQUIRE(rect.size.x == 43);
+    REQUIRE(rect.size.y == 72);
 }
 
 TEST_CASE("advanceFrameRect: fire sheet - row wrap at curr%nx==0", "[anim][unit]") {
     // curr=5 (last in row 0, 0-indexed), check==0 -> new row
-    sf::IntRect rect(4 * 43, 0, 43, 72); // curr=5, check = 5%5 = 0
+    sf::IntRect rect({4 * 43, 0}, {43, 72}); // curr=5, check = 5%5 = 0
     int curr = 5;
 
     auto res = advanceFrameRect(rect, curr, 5, 3, 10, 216.0, 216.0);
-    REQUIRE(res.rect.left == 0);
-    REQUIRE(res.rect.top == 72); // new row: old top(0) + height(72)
+    REQUIRE(res.rect.position.x == 0);
+    REQUIRE(res.rect.position.y == 72); // new row: old top(0) + height(72)
     REQUIRE(res.curr == 6);
 }
 
@@ -254,21 +254,21 @@ TEST_CASE("advanceFrameRect: fire sheet - int-ceil quirk pinned", "[anim][unit]"
     // curr=3, check = 3%5 = 3 ≠ 0 -> else branch
     // ((int)ceil(3/5)) = ((int)ceil(0)) = 0   ← int division BEFORE ceil
     // So top = 0 * 72 = 0
-    sf::IntRect rect(43, 0, 43, 72); // curr=2, but we'll test curr=3
-    rect = sf::IntRect(2 * 43, 0, 43, 72);
+    sf::IntRect rect({43, 0}, {43, 72}); // curr=2, but we'll test curr=3
+    rect = sf::IntRect({2 * 43, 0}, {43, 72});
     int curr = 3;
 
     auto res = advanceFrameRect(rect, curr, 5, 3, 10, 216.0, 216.0);
     // check = 3%5 = 3 ≠ 0 -> else branch
     // h = floor(216/3) = 72
     // top = ceil(3/5) * 72 = ceil(0) * 72 = 0  (int division first)
-    REQUIRE(res.rect.top == 0);
+    REQUIRE(res.rect.position.y == 0);
     REQUIRE(res.curr == 4);
 }
 
 TEST_CASE("advanceFrameRect: player sheet (rocket) - full cycle", "[anim][unit]") {
     // AnimatedGameObject(404, 206, 3, 3, 9, 0): frame 134x68, 9 frames total
-    sf::IntRect rect(0, 0, 134, 68);
+    sf::IntRect rect({0, 0}, {134, 68});
     int curr = 1;
 
     for (int step = 0; step < 9; ++step) {
@@ -277,21 +277,21 @@ TEST_CASE("advanceFrameRect: player sheet (rocket) - full cycle", "[anim][unit]"
         curr = res.curr;
     }
     REQUIRE(curr == 1);
-    REQUIRE(rect.left == 0);
-    REQUIRE(rect.top == 0);
+    REQUIRE(rect.position.x == 0);
+    REQUIRE(rect.position.y == 0);
 }
 
 TEST_CASE("advanceFrameRect: robot sheet - walk first frame", "[anim][unit]") {
     // AnimatedGameObject(959, 180, 8, 1, 8, 0): frame floor(959/8)=119, 8 frames total
-    sf::IntRect rect(0, 0, 119, 180);
+    sf::IntRect rect({0, 0}, {119, 180});
     int curr = 1;
 
     auto res = advanceFrameRect(rect, curr, 8, 1, 8, 959.0, 180.0);
     // curr=1, check=1%8=1 ≠ 0 -> else branch
     // h = floor(180/1) = 180
     // top = ceil(1/8)*180 = ceil(0)*180 = 0  (int division: 1/8=0)
-    REQUIRE(res.rect.left == 119);
-    REQUIRE(res.rect.top == 0);
+    REQUIRE(res.rect.position.x == 119);
+    REQUIRE(res.rect.position.y == 0);
     REQUIRE(res.curr == 2);
 }
 
@@ -402,10 +402,10 @@ TEST_CASE("makeLetterboxView: wider window -> pillarbox viewport", "[letterbox][
     // vpW = 1.777/2.370 = 0.75, vpX = 0.125
     auto view = makeLetterboxView({1920.f, 1080.f}, {2560u, 1080u});
     auto vp = view.getViewport();
-    REQUIRE(vp.left == Catch::Approx(0.125f).margin(0.001f));
-    REQUIRE(vp.top == Catch::Approx(0.f).margin(0.001f));
-    REQUIRE(vp.width == Catch::Approx(0.75f).margin(0.001f));
-    REQUIRE(vp.height == Catch::Approx(1.f).margin(0.001f));
+    REQUIRE(vp.position.x == Catch::Approx(0.125f).margin(0.001f));
+    REQUIRE(vp.position.y == Catch::Approx(0.f).margin(0.001f));
+    REQUIRE(vp.size.x == Catch::Approx(0.75f).margin(0.001f));
+    REQUIRE(vp.size.y == Catch::Approx(1.f).margin(0.001f));
 }
 
 TEST_CASE("makeLetterboxView: taller window -> letterbox viewport", "[letterbox][unit]") {
@@ -414,19 +414,19 @@ TEST_CASE("makeLetterboxView: taller window -> letterbox viewport", "[letterbox]
     // vpH = 1.333/1.777 = 0.75, vpY = 0.125
     auto view = makeLetterboxView({1920.f, 1080.f}, {1920u, 1440u});
     auto vp = view.getViewport();
-    REQUIRE(vp.left == Catch::Approx(0.f).margin(0.001f));
-    REQUIRE(vp.top == Catch::Approx(0.125f).margin(0.001f));
-    REQUIRE(vp.width == Catch::Approx(1.f).margin(0.001f));
-    REQUIRE(vp.height == Catch::Approx(0.75f).margin(0.001f));
+    REQUIRE(vp.position.x == Catch::Approx(0.f).margin(0.001f));
+    REQUIRE(vp.position.y == Catch::Approx(0.125f).margin(0.001f));
+    REQUIRE(vp.size.x == Catch::Approx(1.f).margin(0.001f));
+    REQUIRE(vp.size.y == Catch::Approx(0.75f).margin(0.001f));
 }
 
 TEST_CASE("makeLetterboxView: exact aspect -> full viewport", "[letterbox][unit]") {
     auto view = makeLetterboxView({1920.f, 1080.f}, {1920u, 1080u});
     auto vp = view.getViewport();
-    REQUIRE(vp.left == Catch::Approx(0.f).margin(0.001f));
-    REQUIRE(vp.top == Catch::Approx(0.f).margin(0.001f));
-    REQUIRE(vp.width == Catch::Approx(1.f).margin(0.001f));
-    REQUIRE(vp.height == Catch::Approx(1.f).margin(0.001f));
+    REQUIRE(vp.position.x == Catch::Approx(0.f).margin(0.001f));
+    REQUIRE(vp.position.y == Catch::Approx(0.f).margin(0.001f));
+    REQUIRE(vp.size.x == Catch::Approx(1.f).margin(0.001f));
+    REQUIRE(vp.size.y == Catch::Approx(1.f).margin(0.001f));
 }
 
 TEST_CASE("makeLetterboxView: view maps logical rect [0,0,w,h]", "[letterbox][unit]") {
@@ -443,40 +443,40 @@ TEST_CASE("makeLetterboxView: view maps logical rect [0,0,w,h]", "[letterbox][un
 // ── key_bindings ───────────────────────────────────────────────────────────────
 
 TEST_CASE("keyFromName / nameFromKey round-trip", "[key_bindings][unit]") {
-    REQUIRE(keyFromName("Num8") == sf::Keyboard::Numpad8);
-    REQUIRE(nameFromKey(sf::Keyboard::Numpad8) == "Num8");
-    REQUIRE(keyFromName("Space") == sf::Keyboard::Space);
-    REQUIRE(nameFromKey(sf::Keyboard::Space) == "Space");
-    REQUIRE(keyFromName("Right") == sf::Keyboard::Right);
-    REQUIRE(nameFromKey(sf::Keyboard::Right) == "Right");
-    REQUIRE(keyFromName("W") == sf::Keyboard::W);
-    REQUIRE(nameFromKey(sf::Keyboard::W) == "W");
+    REQUIRE(keyFromName("Num8") == sf::Keyboard::Key::Numpad8);
+    REQUIRE(nameFromKey(sf::Keyboard::Key::Numpad8) == "Num8");
+    REQUIRE(keyFromName("Space") == sf::Keyboard::Key::Space);
+    REQUIRE(nameFromKey(sf::Keyboard::Key::Space) == "Space");
+    REQUIRE(keyFromName("Right") == sf::Keyboard::Key::Right);
+    REQUIRE(nameFromKey(sf::Keyboard::Key::Right) == "Right");
+    REQUIRE(keyFromName("W") == sf::Keyboard::Key::W);
+    REQUIRE(nameFromKey(sf::Keyboard::Key::W) == "W");
 }
 
 TEST_CASE("keyFromName: unknown name returns Unknown", "[key_bindings][unit]") {
-    REQUIRE(keyFromName("INVALID_KEY") == sf::Keyboard::Unknown);
-    REQUIRE(keyFromName("") == sf::Keyboard::Unknown);
+    REQUIRE(keyFromName("INVALID_KEY") == sf::Keyboard::Key::Unknown);
+    REQUIRE(keyFromName("") == sf::Keyboard::Key::Unknown);
 }
 
 TEST_CASE("nameFromKey: unknown key returns 'Unknown'", "[key_bindings][unit]") {
-    REQUIRE(nameFromKey(sf::Keyboard::Unknown) == "Unknown");
+    REQUIRE(nameFromKey(sf::Keyboard::Key::Unknown) == "Unknown");
 }
 
 TEST_CASE("defaultBindings: hard-coded keys match original layout", "[key_bindings][unit]") {
     auto b = defaultBindings();
-    REQUIRE(b.p1.up == sf::Keyboard::Numpad8);
-    REQUIRE(b.p1.down == sf::Keyboard::Numpad5);
-    REQUIRE(b.p1.left == sf::Keyboard::Numpad4);
-    REQUIRE(b.p1.right == sf::Keyboard::Numpad6);
-    REQUIRE(b.p1.attack == sf::Keyboard::Right);
-    REQUIRE(b.p2.up == sf::Keyboard::W);
-    REQUIRE(b.p2.down == sf::Keyboard::S);
-    REQUIRE(b.p2.left == sf::Keyboard::A);
-    REQUIRE(b.p2.right == sf::Keyboard::D);
-    REQUIRE(b.p2.attack == sf::Keyboard::Space);
-    REQUIRE(b.slowDown == sf::Keyboard::O);
-    REQUIRE(b.speedUp == sf::Keyboard::P);
-    REQUIRE(b.skipCooldown == sf::Keyboard::K);
+    REQUIRE(b.p1.up == sf::Keyboard::Key::Numpad8);
+    REQUIRE(b.p1.down == sf::Keyboard::Key::Numpad5);
+    REQUIRE(b.p1.left == sf::Keyboard::Key::Numpad4);
+    REQUIRE(b.p1.right == sf::Keyboard::Key::Numpad6);
+    REQUIRE(b.p1.attack == sf::Keyboard::Key::Right);
+    REQUIRE(b.p2.up == sf::Keyboard::Key::W);
+    REQUIRE(b.p2.down == sf::Keyboard::Key::S);
+    REQUIRE(b.p2.left == sf::Keyboard::Key::A);
+    REQUIRE(b.p2.right == sf::Keyboard::Key::D);
+    REQUIRE(b.p2.attack == sf::Keyboard::Key::Space);
+    REQUIRE(b.slowDown == sf::Keyboard::Key::O);
+    REQUIRE(b.speedUp == sf::Keyboard::Key::P);
+    REQUIRE(b.skipCooldown == sf::Keyboard::Key::K);
 }
 
 TEST_CASE("loadBindings: empty stream returns defaults", "[key_bindings][unit]") {
@@ -491,8 +491,8 @@ TEST_CASE("loadBindings: empty stream returns defaults", "[key_bindings][unit]")
 TEST_CASE("loadBindings: parses valid p1/p2 fields", "[key_bindings][unit]") {
     std::istringstream cfg("p1_up = W\np2_attack = Enter\n");
     auto b = loadBindings(cfg);
-    REQUIRE(b.p1.up == sf::Keyboard::W);
-    REQUIRE(b.p2.attack == sf::Keyboard::Return);
+    REQUIRE(b.p1.up == sf::Keyboard::Key::W);
+    REQUIRE(b.p2.attack == sf::Keyboard::Key::Enter);
     // Unspecified fields keep defaults
     REQUIRE(b.p1.down == defaultBindings().p1.down);
 }
@@ -500,7 +500,7 @@ TEST_CASE("loadBindings: parses valid p1/p2 fields", "[key_bindings][unit]") {
 TEST_CASE("loadBindings: strips comments and blank lines", "[key_bindings][unit]") {
     std::istringstream cfg("# comment\n\np1_up = A # inline comment\n");
     auto b = loadBindings(cfg);
-    REQUIRE(b.p1.up == sf::Keyboard::A);
+    REQUIRE(b.p1.up == sf::Keyboard::Key::A);
 }
 
 TEST_CASE("loadBindings: unknown key name warns and keeps default", "[key_bindings][unit]") {
@@ -516,19 +516,19 @@ TEST_CASE("loadBindings: all 13 fields parsed", "[key_bindings][unit]") {
         "p2_up = F6\np2_down = F7\np2_left = F8\np2_right = F9\np2_attack = F10\n"
         "slow_down = F11\nspeed_up = F12\nskip_cooldown = Tab\n");
     auto b = loadBindings(cfg);
-    REQUIRE(b.p1.up == sf::Keyboard::F1);
-    REQUIRE(b.p1.down == sf::Keyboard::F2);
-    REQUIRE(b.p1.left == sf::Keyboard::F3);
-    REQUIRE(b.p1.right == sf::Keyboard::F4);
-    REQUIRE(b.p1.attack == sf::Keyboard::F5);
-    REQUIRE(b.p2.up == sf::Keyboard::F6);
-    REQUIRE(b.p2.down == sf::Keyboard::F7);
-    REQUIRE(b.p2.left == sf::Keyboard::F8);
-    REQUIRE(b.p2.right == sf::Keyboard::F9);
-    REQUIRE(b.p2.attack == sf::Keyboard::F10);
-    REQUIRE(b.slowDown == sf::Keyboard::F11);
-    REQUIRE(b.speedUp == sf::Keyboard::F12);
-    REQUIRE(b.skipCooldown == sf::Keyboard::Tab);
+    REQUIRE(b.p1.up == sf::Keyboard::Key::F1);
+    REQUIRE(b.p1.down == sf::Keyboard::Key::F2);
+    REQUIRE(b.p1.left == sf::Keyboard::Key::F3);
+    REQUIRE(b.p1.right == sf::Keyboard::Key::F4);
+    REQUIRE(b.p1.attack == sf::Keyboard::Key::F5);
+    REQUIRE(b.p2.up == sf::Keyboard::Key::F6);
+    REQUIRE(b.p2.down == sf::Keyboard::Key::F7);
+    REQUIRE(b.p2.left == sf::Keyboard::Key::F8);
+    REQUIRE(b.p2.right == sf::Keyboard::Key::F9);
+    REQUIRE(b.p2.attack == sf::Keyboard::Key::F10);
+    REQUIRE(b.slowDown == sf::Keyboard::Key::F11);
+    REQUIRE(b.speedUp == sf::Keyboard::Key::F12);
+    REQUIRE(b.skipCooldown == sf::Keyboard::Key::Tab);
 }
 
 // ── menu_layout unit tests ────────────────────────────────────────────────────
@@ -573,21 +573,21 @@ TEST_CASE("menuButtonRects: no two buttons overlap per state", "[menu][unit]") {
             for (std::size_t j = i + 1; j < specs.size(); ++j) {
                 INFO("state " << static_cast<int>(state) << " buttons " << i << " and " << j
                               << " overlap");
-                REQUIRE(!specs[i].rect.intersects(specs[j].rect));
+                REQUIRE(!specs[i].rect.findIntersection(specs[j].rect).has_value());
             }
         }
     }
 }
 
 TEST_CASE("menuButtonRects: all rects fit within canvas", "[menu][unit]") {
-    sf::FloatRect canvas{0.f, 0.f, kMenuW, kMenuH};
+    sf::FloatRect canvas{{0.f, 0.f}, {kMenuW, kMenuH}};
     for (auto state : {MenuState::MAIN_MENU, MenuState::AI_DIFFICULTY, MenuState::HOST_WAITING,
                        MenuState::JOIN_INPUT, MenuState::READY_TO_START, MenuState::SETTINGS}) {
         for (const auto& spec : menuButtonRects(state)) {
-            REQUIRE(spec.rect.left >= 0.f);
-            REQUIRE(spec.rect.top >= 0.f);
-            REQUIRE(spec.rect.left + spec.rect.width <= canvas.width);
-            REQUIRE(spec.rect.top + spec.rect.height <= canvas.height);
+            REQUIRE(spec.rect.position.x >= 0.f);
+            REQUIRE(spec.rect.position.y >= 0.f);
+            REQUIRE(spec.rect.position.x + spec.rect.size.x <= canvas.size.x);
+            REQUIRE(spec.rect.position.y + spec.rect.size.y <= canvas.size.y);
         }
     }
 }
@@ -600,31 +600,31 @@ TEST_CASE("MenuButton::bounds equals drawn rect", "[menu][unit]") {
     sf::Font f{};
     MenuButton btn({200.f, 50.f}, f, "Test");
     btn.setPosition({300.f, 200.f});
-    REQUIRE(btn.bounds().left == Catch::Approx(198.5f));
-    REQUIRE(btn.bounds().top == Catch::Approx(173.5f));
-    REQUIRE(btn.bounds().width == Catch::Approx(203.f));
-    REQUIRE(btn.bounds().height == Catch::Approx(53.f));
+    REQUIRE(btn.bounds().position.x == Catch::Approx(198.5f));
+    REQUIRE(btn.bounds().position.y == Catch::Approx(173.5f));
+    REQUIRE(btn.bounds().size.x == Catch::Approx(203.f));
+    REQUIRE(btn.bounds().size.y == Catch::Approx(53.f));
 }
 
 TEST_CASE("pauseButtonRect: non-overlap and in-canvas", "[menu][unit]") {
     auto r0 = pauseButtonRect(0);
     auto r1 = pauseButtonRect(1);
-    REQUIRE(!r0.intersects(r1));
-    REQUIRE(r0.left >= 0.f);
-    REQUIRE(r0.top >= 0.f);
-    REQUIRE(r0.left + r0.width <= kGameW);
-    REQUIRE(r0.top + r0.height <= kGameH);
-    REQUIRE(r1.left >= 0.f);
-    REQUIRE(r1.top >= 0.f);
-    REQUIRE(r1.left + r1.width <= kGameW);
-    REQUIRE(r1.top + r1.height <= kGameH);
+    REQUIRE(!r0.findIntersection(r1).has_value());
+    REQUIRE(r0.position.x >= 0.f);
+    REQUIRE(r0.position.y >= 0.f);
+    REQUIRE(r0.position.x + r0.size.x <= kGameW);
+    REQUIRE(r0.position.y + r0.size.y <= kGameH);
+    REQUIRE(r1.position.x >= 0.f);
+    REQUIRE(r1.position.y >= 0.f);
+    REQUIRE(r1.position.x + r1.size.x <= kGameW);
+    REQUIRE(r1.position.y + r1.size.y <= kGameH);
 }
 
 TEST_CASE("menuInfoPanelRect: covers expected text positions", "[menu][unit]") {
     auto panel = menuInfoPanelRect();
     for (float y : {150.f, 250.f, 320.f, 350.f, 400.f, 460.f}) {
         INFO("panel should contain y=" << y);
-        REQUIRE(panel.contains(kMenuW / 2.f, y));
+        REQUIRE(panel.contains({kMenuW / 2.f, y}));
     }
 }
 
@@ -648,7 +648,7 @@ TEST_CASE("settingsButtonSpecs: no two rects overlap", "[settings][unit]") {
     for (std::size_t i = 0; i < specs.size(); ++i) {
         for (std::size_t j = i + 1; j < specs.size(); ++j) {
             INFO("specs " << i << " and " << j << " overlap");
-            REQUIRE(!specs[i].rect.intersects(specs[j].rect));
+            REQUIRE(!specs[i].rect.findIntersection(specs[j].rect).has_value());
         }
     }
 }
@@ -657,10 +657,10 @@ TEST_CASE("settingsButtonSpecs: all rects fit in canvas", "[settings][unit]") {
     auto b = defaultBindings();
     auto specs = settingsButtonSpecs(b);
     for (const auto& spec : specs) {
-        REQUIRE(spec.rect.left >= 0.f);
-        REQUIRE(spec.rect.top >= 0.f);
-        REQUIRE(spec.rect.left + spec.rect.width <= kMenuW);
-        REQUIRE(spec.rect.top + spec.rect.height <= kMenuH);
+        REQUIRE(spec.rect.position.x >= 0.f);
+        REQUIRE(spec.rect.position.y >= 0.f);
+        REQUIRE(spec.rect.position.x + spec.rect.size.x <= kMenuW);
+        REQUIRE(spec.rect.position.y + spec.rect.size.y <= kMenuH);
     }
 }
 
@@ -709,35 +709,35 @@ TEST_CASE("saveBindings round-trips with loadBindings", "[key_bindings][unit]") 
 
 TEST_CASE("saveBindings preserves non-default bindings", "[key_bindings][unit]") {
     auto b = defaultBindings();
-    b.p1.up = sf::Keyboard::F1;
+    b.p1.up = sf::Keyboard::Key::F1;
     std::ostringstream oss;
     saveBindings(b, oss);
     std::istringstream iss(oss.str());
     auto reloaded = loadBindings(iss);
-    REQUIRE(reloaded.p1.up == sf::Keyboard::F1);
+    REQUIRE(reloaded.p1.up == sf::Keyboard::Key::F1);
     // Other fields unchanged from defaults
     REQUIRE(reloaded.p1.down == defaultBindings().p1.down);
 }
 
 TEST_CASE("isReservedKey: rejects hard-coded and current debug keys", "[key_bindings][unit]") {
     auto b = defaultBindings();
-    REQUIRE(isReservedKey(sf::Keyboard::F11, b));
-    REQUIRE(isReservedKey(sf::Keyboard::F12, b));
+    REQUIRE(isReservedKey(sf::Keyboard::Key::F11, b));
+    REQUIRE(isReservedKey(sf::Keyboard::Key::F12, b));
     REQUIRE(isReservedKey(b.slowDown, b));
     REQUIRE(isReservedKey(b.speedUp, b));
     REQUIRE(isReservedKey(b.skipCooldown, b));
-    REQUIRE_FALSE(isReservedKey(sf::Keyboard::F3, b));
+    REQUIRE_FALSE(isReservedKey(sf::Keyboard::Key::F3, b));
 
-    b.slowDown = sf::Keyboard::F1;
-    REQUIRE(isReservedKey(sf::Keyboard::F1, b));
-    REQUIRE_FALSE(isReservedKey(sf::Keyboard::O, b));
+    b.slowDown = sf::Keyboard::Key::F1;
+    REQUIRE(isReservedKey(sf::Keyboard::Key::F1, b));
+    REQUIRE_FALSE(isReservedKey(sf::Keyboard::Key::O, b));
 }
 
 TEST_CASE("applyBindingEdit: sets new key with no conflict", "[key_bindings][unit]") {
     auto b = defaultBindings();
     // F3 is not used by any default binding
-    auto result = applyBindingEdit(b, 0, sf::Keyboard::F3);
-    REQUIRE(result.p1.up == sf::Keyboard::F3);
+    auto result = applyBindingEdit(b, 0, sf::Keyboard::Key::F3);
+    REQUIRE(result.p1.up == sf::Keyboard::Key::F3);
     // Other slots unchanged
     REQUIRE(result.p1.down == b.p1.down);
 }
@@ -747,8 +747,8 @@ TEST_CASE("applyBindingEdit: swap on conflict", "[key_bindings][unit]") {
     // rowIdx 0 = p1.up (Numpad8); newKey = b.p2.up (W) which is rowIdx 5
     sf::Keyboard::Key oldP1Up = b.p1.up;
     auto result = applyBindingEdit(b, 0, b.p2.up);
-    REQUIRE(result.p1.up == sf::Keyboard::W); // p2.up moved to p1.up
-    REQUIRE(result.p2.up == oldP1Up);         // old p1.up swapped to p2.up
+    REQUIRE(result.p1.up == sf::Keyboard::Key::W); // p2.up moved to p1.up
+    REQUIRE(result.p2.up == oldP1Up);              // old p1.up swapped to p2.up
 }
 
 TEST_CASE("applyBindingEdit: no-op when same key", "[key_bindings][unit]") {
@@ -765,7 +765,7 @@ TEST_CASE("applyBindingEdit: swap at P1/P2 boundary (rowIdx=4 vs rowIdx=5)",
     // rowIdx 4 = p1.attack (Right); rowIdx 5 = p2.up (W)
     sf::Keyboard::Key oldP1Attack = b.p1.attack;
     auto result = applyBindingEdit(b, 4, b.p2.up);
-    REQUIRE(result.p1.attack == sf::Keyboard::W);
+    REQUIRE(result.p1.attack == sf::Keyboard::Key::W);
     REQUIRE(result.p2.up == oldP1Attack);
 }
 

@@ -16,6 +16,7 @@
 #include <SFML/Audio.hpp>
 #include <SFML/Graphics.hpp>
 #include <memory>
+#include <optional>
 #include <tuple>
 #include <vector>
 
@@ -60,7 +61,7 @@ private:
     void handlePlayerInput(sf::Keyboard::Key key, bool isDown);
     // check collision with walls or other objects
     bool collision(const GameObject& a, const GameObject& b);
-    bool collision(sf::Rect<float> a, const GameObject& b);
+    bool collision(sf::FloatRect a, const GameObject& b);
 
     // Fixed-timestep deterministic sim body.
     void simStep();
@@ -81,14 +82,14 @@ private:
     sf::SoundBuffer speedbuffer;
     sf::SoundBuffer slowbuffer;
     sf::SoundBuffer burnbuffer;
-    sf::Sound gong;
-    sf::Sound sword;
-    sf::Sound p2hit;
-    sf::Sound laser;
-    sf::Sound metal;
-    sf::Sound speed_up;
-    sf::Sound slow_down;
-    sf::Sound burn;
+    std::optional<sf::Sound> gong;
+    std::optional<sf::Sound> sword;
+    std::optional<sf::Sound> p2hit;
+    std::optional<sf::Sound> laser;
+    std::optional<sf::Sound> metal;
+    std::optional<sf::Sound> speed_up;
+    std::optional<sf::Sound> slow_down;
+    std::optional<sf::Sound> burn;
 
     sf::Music background;
 
@@ -101,11 +102,11 @@ private:
     sf::Font font;
     sf::Font tfont;
     sf::Font block;
-    sf::Text m_rocketScoreText;
-    sf::Text m_robotScoreText;
-    sf::Text timer;
-    sf::Text pause_text;
-    sf::Text info;
+    std::optional<sf::Text> m_rocketScoreText;
+    std::optional<sf::Text> m_robotScoreText;
+    std::optional<sf::Text> timer;
+    std::optional<sf::Text> pause_text;
+    std::optional<sf::Text> info;
 
     float m_speed = 1200.0f;
     float m_cooldownEnd = 0;

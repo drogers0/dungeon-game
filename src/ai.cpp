@@ -39,16 +39,16 @@ PlayerInput decideAiInput(const AiView& view, const AiParams& p, std::mt19937& r
     // Priority 3: hazard escape (uses self — not delayed — position + bounds)
     if (p.hazardMargin > 0.f) {
         sf::FloatRect inflated = view.selfBounds;
-        inflated.left -= p.hazardMargin;
-        inflated.top -= p.hazardMargin;
-        inflated.width += 2.f * p.hazardMargin;
-        inflated.height += 2.f * p.hazardMargin;
+        inflated.position.x -= p.hazardMargin;
+        inflated.position.y -= p.hazardMargin;
+        inflated.size.x += 2.f * p.hazardMargin;
+        inflated.size.y += 2.f * p.hazardMargin;
 
         for (const auto& hazard : view.hazards) {
-            if (inflated.intersects(hazard)) {
+            if (inflated.findIntersection(hazard).has_value()) {
                 // Move away from hazard centre horizontally
-                float hcx = hazard.left + hazard.width * 0.5f;
-                float scx = view.selfBounds.left + view.selfBounds.width * 0.5f;
+                float hcx = hazard.position.x + hazard.size.x * 0.5f;
+                float scx = view.selfBounds.position.x + view.selfBounds.size.x * 0.5f;
                 out.right = (hcx <= scx);
                 out.left = (hcx > scx);
                 return out;
@@ -68,8 +68,8 @@ PlayerInput decideAiInput(const AiView& view, const AiParams& p, std::mt19937& r
     // This accounts for the opponent's body width so the AI fires when its weapon can
     // actually connect, not just when the sprite anchors are within attackRange.
     {
-        float nearOppEdge =
-            oppToRight ? view.oppBounds.left : view.oppBounds.left + view.oppBounds.width;
+        float nearOppEdge = oppToRight ? view.oppBounds.position.x
+                                       : view.oppBounds.position.x + view.oppBounds.size.x;
         float horizDist = (view.selfPos.x - nearOppEdge);
         if (horizDist < 0.f)
             horizDist = -horizDist;
