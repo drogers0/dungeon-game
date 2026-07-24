@@ -48,7 +48,8 @@ void AnimatedGameObject::update(float Tsec) {
         auto res = advanceFrameRect(rect, curr, howmanyx, howmanyy, howmany, xsize, ysize);
         rect = res.rect;
         curr = res.curr;
-        m_sprite->setTextureRect(rect);
+        if (m_sprite)
+            m_sprite->setTextureRect(rect);
     }
 }
 
@@ -100,7 +101,14 @@ sf::Vector2f AnimatedGameObject::getScale() const {
         return sf::Vector2f(0, 0);
 }
 
-void AnimatedGameObject::changeValid(bool a) { m_valid = a; }
+void AnimatedGameObject::changeValid(bool a) {
+    m_valid = a;
+    // SFML 3's sf::Sprite has no default ctor; keep m_valid ⇒ m_sprite live so the
+    // m_valid-guarded mutators never dereference an empty optional (see
+    // RegularGameObject::changeValid).
+    if (a && !m_sprite)
+        m_sprite.emplace(m_texture);
+}
 
 bool AnimatedGameObject::isValid() { return m_valid; }
 

@@ -65,7 +65,15 @@ sf::Vector2f RegularGameObject::getScale() const {
         return sf::Vector2f(0, 0);
 }
 
-void RegularGameObject::changeValid(bool a) { m_valid = a; }
+void RegularGameObject::changeValid(bool a) {
+    m_valid = a;
+    // SFML 3's sf::Sprite has no default ctor, so m_sprite is empty until load().
+    // Marking an unloaded object valid must still give the mutators (guarded on
+    // m_valid) a live sprite to act on — emplace an untextured sprite backed by the
+    // default m_texture, matching SFML 2's always-present default sprite.
+    if (a && !m_sprite)
+        m_sprite.emplace(m_texture);
+}
 
 bool RegularGameObject::isValid() { return m_valid; }
 
