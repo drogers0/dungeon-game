@@ -91,6 +91,16 @@ endif()
 
 # ── Tests (guarded: only if tests/ subdir exists and option is ON) ───────────
 enable_testing()
+
+# Guards the deliberately-odd identifiers listed in CLAUDE.md → "Load-bearing
+# quirks". Needs no build, so it stays outside the DUNGEON_BUILD_TESTS guard.
+add_test(NAME load_bearing_names
+    COMMAND ${CMAKE_COMMAND}
+        -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_load_bearing_names.cmake
+)
+set_tests_properties(load_bearing_names PROPERTIES LABELS "unit")
+
 option(DUNGEON_BUILD_TESTS "Build the dungeon_game test suite" ON)
 if(DUNGEON_BUILD_TESTS AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests/CMakeLists.txt)
     add_subdirectory(tests)
