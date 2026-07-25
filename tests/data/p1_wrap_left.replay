@@ -1,8 +1,26 @@
 # p1_wrap_left.replay — P1 moves left until it wraps to the right side of screen
 # P1 starts at x=134.  Direction flip on frame 1 shifts to x=402.
-# After 28 left steps total, position < -134 → wraps to x=1920.
-# Used with --replay-p1.
+# Moving left ~20px/frame; wraps once x < -(rendered width 268) — see #33 — around
+# frame 40, repositioning to x=1920, then continues left. Used with --replay-p1.
 # up down left right attack
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
+0 0 1 0 0
 0 0 1 0 0
 0 0 1 0 0
 0 0 1 0 0
