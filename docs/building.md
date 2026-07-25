@@ -78,11 +78,39 @@ headless in CI (below).
   xvfb-run -s "-screen 0 1920x1080x24" ./build/dungeon_game --frames 120 --screenshot-every 30
   ```
 - **macOS:** there is no true headless mode (native Cocoa/OpenGL); a real window must open. Use a
-  local window plus the debug harness (issue #13) for playtesting.
+  local window plus the debug harness for playtesting (see
+  [contributing.md](contributing.md#automated-playtesting)).
 
 ## Warnings & tooling
 
 Builds enable `-Wall -Wextra -Wpedantic` (and `-Werror` in CI). Format with `clang-format` and
 statically analyze with `clang-tidy` using the repo-root configs; install both via `brew install
-llvm` on macOS or your distro's LLVM packages on Linux. See issue #6 and
-[contributing.md](contributing.md).
+llvm` on macOS or your distro's LLVM packages on Linux. See [contributing.md](contributing.md).
+
+> **Match CI's clang-format version (18).** Apple's bundled `clang-format` is v17 and produces
+> different formatting, so it can fail the CI `--dry-run --Werror` gate even when it looks clean
+> locally. Use a pinned v18 binary, e.g. the one shipped with the `clang-format` pip package
+> (`.../site-packages/clang_format/data/bin/clang-format`), or otherwise ensure v18.
+
+`dungeon_lib` is a single static library compiled from all of `src/*.cpp` under `-Werror`, and the
+test targets link it — so a broad change won't produce a runnable binary (or any `ctest`) until
+the *entire* tree compiles cleanly.
+
+## Releases & packaging
+
+`.github/workflows/release.yml` builds redistributable per-OS zips:
+
+- **Trigger:** push a `v*` tag → creates a GitHub Release and attaches Linux/macOS/Windows zips.
+  Tags like `v1.0.0-rc1` / `-beta` are auto-marked as pre-releases.
+- **Dry-run:** the workflow also accepts `workflow_dispatch` (run it from the Actions tab on any
+  branch) — it builds the three zips as **artifacts without creating a release**. Use this to
+  verify packaging before tagging.
+- **macOS packaging:** under SFML 3 the binary links **only system frameworks and `/usr/lib`**
+  (freetype is static-linked, audio uses miniaudio rather than an OpenAL framework), so **no
+  dylib/framework bundling is needed**. The macOS stage still runs `otool -L` and relinks any
+  non-system dylib defensively, but in practice bundles nothing. (This is what eliminated the
+  SFML 2 `@rpath/../Frameworks/*` dyld crash that broke the first v1.0.0 build.)
+- **Windows:** static build (`-DBUILD_SHARED_LIBS=OFF`), no OpenAL DLL (miniaudio).
+
+> The next `v*` tag will be the **first real tagged release on SFML 3** — the packaging dry-run
+> passes, but the full tag path (Release + all three zips) has not run end-to-end yet.

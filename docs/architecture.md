@@ -1,7 +1,7 @@
 # Architecture
 
 A conceptual map of the game. File paths are given where stable, but the emphasis is on
-concepts that survive refactors (the physical layout is being reorganized under issue #8).
+concepts that survive refactors.
 
 ## The game in one paragraph
 
@@ -39,9 +39,9 @@ validity, origin. Two implementations:
 - **`AnimatedGameObject`** — a sprite sheet advanced frame-by-frame in `update()`; constructed with
   frame dimensions + count. Players, fire, and menu buttons are animated objects.
 
-Objects are currently created with raw `new` and stored as `GameObject*` (including the `stuff`
-vector of arena props). Ownership is being moved to smart pointers / RAII (issue #9); note the base
-class currently has **no virtual destructor**.
+Objects are owned via `std::unique_ptr<GameObject>` (the players `m_rocket`/`m_robot` and the
+`m_arena` vector of props); `GameObject` has a `virtual` destructor. Construct new objects with
+`std::make_unique` rather than raw `new`.
 
 ## The game loop
 
@@ -60,32 +60,37 @@ class currently has **no virtual destructor**.
 > per-frame timing, hazard-damage loop, and cooldown countdown. When extending hazard logic, edit
 > `run()`, not `update()`.
 
-**Timing caveats (issue #11):** movement scales with `deltaT` (good), but sprite animation uses a
-`time > .1f` reset accumulator (a frame-rate-sensitive hack), and the window is a fixed
-non-resizable `1920x1080` while menus are `1024x576`. Fixed-timestep + a scalable view are the
-intended fixes, and are also what makes deterministic replay (#13) and AI testing (#12) possible.
+**Timing & view:** the loop runs a **fixed timestep** — `run()` accumulates real time and drains
+it in `kFixedDt` (1/60 s) `simStep()` steps, so movement and the `time > .1f` sprite-animation
+accumulator advance deterministically (this is what makes replay and AI testing reproducible). The
+window renders through a **letterboxed scalable view** (`makeLetterboxView`, reapplied on
+`sf::Event::Resized`): the logical arena is `1920x1080` and menus `1024x576`, but the window is
+resizable and the view preserves aspect ratio.
 
 ## Scoring, hazards, cooldown
 
-- **Attacks:** each attack builds a `sf::Rect` extending from the attacker in its facing direction
-  and tests overlap with the opponent (`Game::collision(sf::Rect, GameObject*)`). A hit scores and
-  sets `reset`, which recenters both fighters and enters `wait` (cooldown).
-- **Hazards:** the `stuff` vector holds a wall + fire objects; touching one decrements score,
+- **Attacks:** each attack builds a `sf::FloatRect` extending from the attacker in its facing
+  direction and tests overlap with the opponent (`Game::collision(sf::FloatRect, const GameObject&)`).
+  A hit scores and sets `reset`, which recenters both fighters and enters `wait` (cooldown).
+- **Hazards:** the `m_arena` vector holds a wall + fire objects; touching one decrements score,
   gated by a per-player timeout so damage can't repeat every frame.
 - **Cooldown (`wait`):** after a score, the loop pauses gameplay ~1.75s (showing an intermission
   banner) before resuming with a gong.
 
-> Internal score naming is currently inverted/confusing (`points` tracks the robot/p2 score,
-> `p2points` tracks the rocket/p1 score); this is a known smell (#9) — verify against the HUD
-> strings and the `run()` return tuple before relying on either name.
+> Internal score naming is inverted (`points` tracks the robot/p2 score, `p2points` tracks the
+> rocket/p1 score), and `captureGameState` mirrors that inversion into `GameState`. This is
+> intentional and load-bearing (see CLAUDE.md) — verify against the HUD strings and the `run()`
+> return tuple before relying on either name; do not "fix" it.
 
 ## Network model
 
 `NetworkManager` wraps an `sf::TcpListener` + `sf::TcpSocket`. `PlayerInput` and `GameState`
-serialize via `sf::Packet`. The host is authoritative: it receives the client's `PlayerInput`,
-simulates, and returns the full `GameState` each frame. Known hardening work (issue #2): packets
-are demultiplexed by a leading type byte but mismatches are silently dropped, disconnection isn't
-detected, full state is sent every frame with no interpolation, and join input isn't validated.
+serialize via `sf::Packet`, demultiplexed by a leading type byte (mismatched packets are dropped).
+The host is authoritative: it receives the client's `PlayerInput`, simulates, and returns the full
+`GameState` each frame. Hardening (from #2) is in place: peer disconnection is detected
+(`isConnected()`/`peerLost()`), sends are one-slot drop-if-pending (no unbounded queue), and
+`lerpPos()` provides position interpolation. Received states are buffered (`m_stateBuf`, cap 8)
+with arrival timestamps.
 
 ## Testability seams
 
