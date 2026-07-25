@@ -90,7 +90,10 @@ These look wrong but are intentional; changing them breaks gameplay in non-obvio
   or the `m_valid`-guarded mutators dereference an empty optional (UB).
 - **The `apieceofcrap` variable name** (the minutes accumulator in `Game.cpp`). Do not rename it
   to something sensible — it was deliberately restored (#30) and is considered load-bearing for
-  reasons no one has been able to establish. Leave it exactly as is.
+  reasons no one has been able to establish. Leave it exactly as is. **Enforced by CI:** the
+  `load_bearing_names` ctest case (label `unit`, so it runs on all 3 platforms) fails if the name
+  disappears from `src/Game.cpp`. The guarded list lives in
+  [cmake/check_load_bearing_names.cmake](cmake/check_load_bearing_names.cmake).
 
 ## Working in this repo
 
