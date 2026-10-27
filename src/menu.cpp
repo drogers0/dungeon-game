@@ -77,6 +77,13 @@ static void centerText(sf::Text& t, float x, float y) {
     t.setPosition({x, y});
 }
 
+// Status-line colour: failures red, everything else yellow.
+static sf::Color statusColor(const std::string& msg) {
+    return msg.find("Failed") != std::string::npos ? sf::Color::Red : sf::Color::Yellow;
+}
+
+static constexpr const char* kDefaultHostIp = "127.0.0.1";
+
 static void saveControls(const KeyBindings& bindings, std::string& statusMessage) {
     std::ofstream f(std::filesystem::path(exe_dir_path) / "controls.cfg");
     if (!f) {
@@ -133,9 +140,7 @@ static void renderMenu(sf::RenderWindow& win, RegularGameObject& bg, const sf::F
         }
         if (!statusMessage.empty()) {
             sf::Text statusText(font, statusMessage, 22);
-            statusText.setFillColor(statusMessage.find("Failed") != std::string::npos
-                                        ? sf::Color::Red
-                                        : sf::Color::Yellow);
+            statusText.setFillColor(statusColor(statusMessage));
             centerText(statusText, kMenuW / 2.f, 480.f);
             win.draw(statusText);
         }
@@ -144,7 +149,13 @@ static void renderMenu(sf::RenderWindow& win, RegularGameObject& bg, const sf::F
 
     auto specs = menuButtonRects(menuState);
 
-    if (menuState == MenuState::HOST_WAITING || menuState == MenuState::JOIN_INPUT) {
+    if (menuState == MenuState::MAIN_MENU && !statusMessage.empty()) {
+        // Below the 6-button stack (free band ~y 513-576).
+        sf::Text statusText(font, statusMessage, 22);
+        statusText.setFillColor(statusColor(statusMessage));
+        centerText(statusText, kMenuW / 2.f, kMenuH - 32.f);
+        win.draw(statusText);
+    } else if (menuState == MenuState::HOST_WAITING || menuState == MenuState::JOIN_INPUT) {
         // Semi-transparent panel first, then text, then button on top.
         auto pr = menuInfoPanelRect();
         sf::RectangleShape panel({pr.size.x, pr.size.y});
@@ -194,9 +205,7 @@ static void renderMenu(sf::RenderWindow& win, RegularGameObject& bg, const sf::F
 
             if (!statusMessage.empty()) {
                 sf::Text statusText(font, statusMessage, 22);
-                statusText.setFillColor(statusMessage.find("Failed") != std::string::npos
-                                            ? sf::Color::Red
-                                            : sf::Color::Yellow);
+                statusText.setFillColor(statusColor(statusMessage));
                 centerText(statusText, kMenuW / 2.f, 460.f);
                 win.draw(statusText);
             }
@@ -230,13 +239,20 @@ static void renderMenu(sf::RenderWindow& win, RegularGameObject& bg, const sf::F
 
 MenuResult showMenu(KeyBindings& bindings, const DebugConfig& cfg) {
     MenuState menuState = MenuState::MAIN_MENU;
-    NetworkMode mode = NetworkMode::LOCAL;
-    std::shared_ptr<NetworkManager> netManager = nullptr;
-    std::string ipInput = "127.0.0.1";
+    std::string ipInput = kDefaultHostIp;
     std::string statusMessage;
     std::string hostIpAddress;
-    MenuResult result;
+    MenuResult result; // the in-progress selection; default-constructed on MAIN_MENU
     int capturingIdx = -1;
+
+    // Abandon any in-progress selection: dropping result.netManager closes the listener/socket.
+    auto returnToMainMenu = [&] {
+        result = {};
+        menuState = MenuState::MAIN_MENU;
+        ipInput = kDefaultHostIp;
+        statusMessage.clear();
+        capturingIdx = -1;
+    };
 
     // Harness: parse the requested state.
     if (cfg.menuMode()) {
@@ -309,25 +325,23 @@ MenuResult showMenu(KeyBindings& bindings, const DebugConfig& cfg) {
                 startscreen.setView(makeLetterboxView({kMenuW, kMenuH}, rs->size));
             }
             if (const auto* kp = event->getIf<sf::Event::KeyPressed>()) {
-                if (menuState == MenuState::SETTINGS) {
-                    if (capturingIdx >= 0) {
-                        if (kp->code == sf::Keyboard::Key::Escape) {
-                            capturingIdx = -1;
-                        } else if (nameFromKey(kp->code) == "Unknown") {
-                            // Key not in kKeyTable (IME, multimedia, etc.) — silently cancel.
-                            capturingIdx = -1;
-                        } else if (isReservedKey(kp->code, bindings)) {
-                            capturingIdx = -1;
-                            statusMessage = "Reserved key";
-                        } else {
-                            bindings = applyBindingEdit(bindings, capturingIdx, kp->code);
-                            saveControls(bindings, statusMessage);
-                            capturingIdx = -1;
-                        }
-                    } else if (kp->code == sf::Keyboard::Key::Escape) {
+                if (menuState == MenuState::SETTINGS && capturingIdx >= 0) {
+                    if (kp->code == sf::Keyboard::Key::Escape) {
                         capturingIdx = -1;
-                        menuState = MenuState::MAIN_MENU;
+                    } else if (nameFromKey(kp->code) == "Unknown") {
+                        // Key not in kKeyTable (IME, multimedia, etc.) — silently cancel.
+                        capturingIdx = -1;
+                    } else if (isReservedKey(kp->code, bindings)) {
+                        capturingIdx = -1;
+                        statusMessage = "Reserved key";
+                    } else {
+                        bindings = applyBindingEdit(bindings, capturingIdx, kp->code);
+                        saveControls(bindings, statusMessage);
+                        capturingIdx = -1;
                     }
+                } else if (kp->code == sf::Keyboard::Key::Escape &&
+                           menuState != MenuState::MAIN_MENU) {
+                    returnToMainMenu();
                 }
             }
             if (const auto* te = event->getIf<sf::Event::TextEntered>();
@@ -335,15 +349,15 @@ MenuResult showMenu(KeyBindings& bindings, const DebugConfig& cfg) {
                 if (te->unicode == '\b' && !ipInput.empty()) {
                     ipInput.pop_back();
                 } else if (te->unicode == '\r' || te->unicode == '\n') {
-                    netManager = std::make_shared<NetworkManager>();
+                    result.netManager = std::make_shared<NetworkManager>();
                     statusMessage = "Connecting...";
-                    if (netManager->connectToHost(ipInput)) {
-                        mode = NetworkMode::CLIENT;
+                    if (result.netManager->connectToHost(ipInput)) {
+                        result.mode = NetworkMode::CLIENT;
                         menuState = MenuState::READY_TO_START;
                         statusMessage = "Connected! Click START to begin";
                     } else {
                         statusMessage = "Failed to connect (invalid IP or host unreachable)";
-                        netManager = nullptr;
+                        result.netManager.reset();
                     }
                 } else if (te->unicode < 128 && te->unicode != '\b' && ipInput.length() < 30) {
                     char c = static_cast<char>(te->unicode);
@@ -360,15 +374,16 @@ MenuResult showMenu(KeyBindings& bindings, const DebugConfig& cfg) {
                     // specs: [0]=1PLAYER [1]=2PLAYER [2]=HOST [3]=JOIN [4]=CONTROLS [5]=QUIT
                     if (specs[0].rect.contains(mp)) {
                         menuState = MenuState::AI_DIFFICULTY;
+                        statusMessage.clear();
                         press.play();
                     } else if (specs[1].rect.contains(mp)) {
-                        mode = NetworkMode::LOCAL;
                         menuState = MenuState::READY_TO_START;
+                        statusMessage.clear();
                         press.play();
                     } else if (specs[2].rect.contains(mp)) {
-                        netManager = std::make_shared<NetworkManager>();
-                        if (netManager->startHost()) {
-                            mode = NetworkMode::HOST;
+                        result.netManager = std::make_shared<NetworkManager>();
+                        if (result.netManager->startHost()) {
+                            result.mode = NetworkMode::HOST;
                             menuState = MenuState::HOST_WAITING;
                             {
                                 auto local = sf::IpAddress::getLocalAddress();
@@ -376,8 +391,8 @@ MenuResult showMenu(KeyBindings& bindings, const DebugConfig& cfg) {
                             }
                             statusMessage = "Waiting for player 2...";
                         } else {
-                            statusMessage = "Failed to start host!";
-                            netManager = nullptr;
+                            statusMessage = "Failed to start host (port busy? try again shortly)";
+                            result.netManager.reset();
                         }
                         press.play();
                     } else if (specs[3].rect.contains(mp)) {
@@ -386,7 +401,6 @@ MenuResult showMenu(KeyBindings& bindings, const DebugConfig& cfg) {
                         press.play();
                     } else if (specs[4].rect.contains(mp)) {
                         menuState = MenuState::SETTINGS;
-                        capturingIdx = -1;
                         statusMessage.clear();
                         press.play();
                     } else if (specs[5].rect.contains(mp)) {
@@ -399,18 +413,14 @@ MenuResult showMenu(KeyBindings& bindings, const DebugConfig& cfg) {
                     auto specs = menuButtonRects(menuState);
                     // specs: [0]=BACK
                     if (specs[0].rect.contains(mp)) {
-                        menuState = MenuState::MAIN_MENU;
-                        netManager = nullptr;
-                        statusMessage = "";
+                        returnToMainMenu();
                         press.play();
                     }
                 } else if (menuState == MenuState::JOIN_INPUT) {
                     auto specs = menuButtonRects(menuState);
                     // specs: [0]=BACK
                     if (specs[0].rect.contains(mp)) {
-                        menuState = MenuState::MAIN_MENU;
-                        ipInput = "127.0.0.1";
-                        statusMessage = "";
+                        returnToMainMenu();
                         press.play();
                     }
                 } else if (menuState == MenuState::AI_DIFFICULTY) {
@@ -418,32 +428,30 @@ MenuResult showMenu(KeyBindings& bindings, const DebugConfig& cfg) {
                     // specs: [0]=EASY [1]=MEDIUM [2]=HARD [3]=BACK
                     if (specs[0].rect.contains(mp)) {
                         result.ai = AiDifficulty::Easy;
-                        mode = NetworkMode::LOCAL;
                         menuState = MenuState::READY_TO_START;
                         press.play();
                     } else if (specs[1].rect.contains(mp)) {
                         result.ai = AiDifficulty::Medium;
-                        mode = NetworkMode::LOCAL;
                         menuState = MenuState::READY_TO_START;
                         press.play();
                     } else if (specs[2].rect.contains(mp)) {
                         result.ai = AiDifficulty::Hard;
-                        mode = NetworkMode::LOCAL;
                         menuState = MenuState::READY_TO_START;
                         press.play();
                     } else if (specs[3].rect.contains(mp)) {
-                        menuState = MenuState::MAIN_MENU;
+                        returnToMainMenu();
                         press.play();
                     }
                 } else if (menuState == MenuState::READY_TO_START) {
                     auto specs = menuButtonRects(menuState);
-                    // specs: [0]=START
+                    // specs: [0]=START [1]=BACK
                     if (specs[0].rect.contains(mp)) {
                         background.stop();
                         startscreen.close();
-                        result.mode = mode;
-                        result.netManager = netManager;
                         return result;
+                    } else if (specs[1].rect.contains(mp)) {
+                        returnToMainMenu();
+                        press.play();
                     }
                 } else if (menuState == MenuState::SETTINGS) {
                     auto specs = settingsButtonSpecs(bindings);
@@ -465,8 +473,7 @@ MenuResult showMenu(KeyBindings& bindings, const DebugConfig& cfg) {
                             capturingIdx = -1;
                             press.play();
                         } else if (specs[11].rect.contains(mp)) {
-                            menuState = MenuState::MAIN_MENU;
-                            capturingIdx = -1;
+                            returnToMainMenu();
                             press.play();
                         }
                     }
@@ -476,7 +483,7 @@ MenuResult showMenu(KeyBindings& bindings, const DebugConfig& cfg) {
 
         // Poll for client connection in HOST_WAITING.
         if (menuState == MenuState::HOST_WAITING) {
-            if (netManager && netManager->waitForClient(sf::milliseconds(0))) {
+            if (result.netManager && result.netManager->waitForClient(sf::Time::Zero)) {
                 menuState = MenuState::READY_TO_START;
                 statusMessage = "Player 2 connected! Click START to begin";
             }

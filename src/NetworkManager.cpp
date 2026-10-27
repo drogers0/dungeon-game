@@ -88,19 +88,21 @@ bool NetworkManager::startHost(unsigned short port) {
 bool NetworkManager::waitForClient(sf::Time timeout) {
     if (!m_isHost || m_connected)
         return false; // already accepted; listener is closed
-    sf::Clock clock;
-    while (timeout == sf::Time::Zero || clock.getElapsedTime() < timeout) {
+    const sf::Clock clock;
+    for (;;) {
         if (m_listener.accept(m_socket) == sf::Socket::Status::Done) {
             auto remote = m_socket.getRemoteAddress();
             std::cout << "Client connected: " << (remote ? remote->toString() : "unknown") << "\n";
+            // accept() re-creates m_socket blocking; poll() needs non-blocking.
             m_socket.setBlocking(false);
             m_connected = true;
             m_listener.close(); // 1v1: stop accepting new connections
             return true;
         }
+        if (clock.getElapsedTime() >= timeout)
+            return false;
         sf::sleep(sf::milliseconds(10));
     }
-    return false;
 }
 
 bool NetworkManager::connectToHost(const std::string& ip, unsigned short port) {

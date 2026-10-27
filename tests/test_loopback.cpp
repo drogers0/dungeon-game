@@ -180,3 +180,44 @@ TEST_CASE("loopback: host disconnect detected by client sendInput", "[loopback][
     }
     REQUIRE(detected);
 }
+
+// ── waitForClient timeout semantics (#42) ──────────────────────────────────────
+
+TEST_CASE("loopback: waitForClient zero timeout returns immediately with no client",
+          "[loopback][unit]") {
+    NetworkManager host;
+    REQUIRE(host.startHost(0));
+
+    const sf::Clock c;
+    REQUIRE_FALSE(host.waitForClient(sf::Time::Zero));
+    REQUIRE(c.getElapsedTime() < sf::milliseconds(500)); // before #42 this never returned
+    REQUIRE_FALSE(host.isConnected());
+}
+
+TEST_CASE("loopback: waitForClient zero timeout polling accepts a pending client",
+          "[loopback][unit]") {
+    NetworkManager host;
+    REQUIRE(host.startHost(0));
+    NetworkManager client;
+    REQUIRE(client.connectToHost("127.0.0.1", host.localPort()));
+
+    // Poll like the menu's HOST_WAITING frame loop does.
+    bool accepted = false;
+    for (int i = 0; i < 200 && !accepted; ++i) {
+        accepted = host.waitForClient(sf::Time::Zero);
+        if (!accepted)
+            sf::sleep(sf::milliseconds(5));
+    }
+    REQUIRE(accepted);
+    REQUIRE(host.isConnected());
+}
+
+TEST_CASE("loopback: waitForClient positive timeout gives up after the timeout",
+          "[loopback][unit]") {
+    NetworkManager host;
+    REQUIRE(host.startHost(0));
+
+    const sf::Clock c;
+    REQUIRE_FALSE(host.waitForClient(sf::milliseconds(50)));
+    REQUIRE(c.getElapsedTime() >= sf::milliseconds(50));
+}
