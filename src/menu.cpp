@@ -154,6 +154,12 @@ static void renderMenu(sf::RenderWindow& win, RegularGameObject& bg, const sf::F
         sf::Text statusText(font, statusMessage, 22);
         statusText.setFillColor(statusColor(statusMessage));
         centerText(statusText, kMenuW / 2.f, kMenuH - 32.f);
+        // Dark backdrop so red text stays legible on the brick background.
+        auto tb = statusText.getGlobalBounds();
+        sf::RectangleShape backdrop({tb.size.x + 24.f, tb.size.y + 12.f});
+        backdrop.setPosition({tb.position.x - 12.f, tb.position.y - 6.f});
+        backdrop.setFillColor(sf::Color(0, 0, 0, 180));
+        win.draw(backdrop);
         win.draw(statusText);
     } else if (menuState == MenuState::HOST_WAITING || menuState == MenuState::JOIN_INPUT) {
         // Semi-transparent panel first, then text, then button on top.
