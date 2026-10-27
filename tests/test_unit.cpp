@@ -18,6 +18,7 @@
 #include "menu_layout.h"
 #include "replay.h"
 #include "sprite_anim.h"
+#include <algorithm>
 #include <sstream>
 
 // ── StubGameObject ─────────────────────────────────────────────────────────────
@@ -561,8 +562,27 @@ TEST_CASE("menuButtonRects: counts per state", "[menu][unit]") {
     REQUIRE(menuButtonRects(MenuState::AI_DIFFICULTY).size() == 4u);
     REQUIRE(menuButtonRects(MenuState::HOST_WAITING).size() == 1u);
     REQUIRE(menuButtonRects(MenuState::JOIN_INPUT).size() == 1u);
-    REQUIRE(menuButtonRects(MenuState::READY_TO_START).size() == 1u);
+    REQUIRE(menuButtonRects(MenuState::READY_TO_START).size() == 2u);
     REQUIRE(menuButtonRects(MenuState::SETTINGS).size() == 0u);
+}
+
+TEST_CASE("menuButtonRects: READY_TO_START is START then BACK", "[menu][unit]") {
+    // The click handler indexes by position, so pin the order.
+    auto specs = menuButtonRects(MenuState::READY_TO_START);
+    REQUIRE(specs.size() == 2u);
+    REQUIRE(specs[0].label == "START");
+    REQUIRE(specs[1].label == "BACK");
+}
+
+TEST_CASE("menu: every sub-screen has the shared top-left BACK", "[menu][unit]") {
+    auto isBack = [](const ButtonSpec& s) { return s.label == "BACK" && s.rect == kBackBtnRect; };
+    for (auto state : {MenuState::AI_DIFFICULTY, MenuState::HOST_WAITING, MenuState::JOIN_INPUT,
+                       MenuState::READY_TO_START}) {
+        INFO("state " << static_cast<int>(state));
+        auto specs = menuButtonRects(state);
+        REQUIRE(std::any_of(specs.begin(), specs.end(), isBack));
+    }
+    REQUIRE(isBack(settingsButtonSpecs(defaultBindings()).back()));
 }
 
 TEST_CASE("menuButtonRects: no two buttons overlap per state", "[menu][unit]") {

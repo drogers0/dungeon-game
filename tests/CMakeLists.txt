@@ -45,7 +45,8 @@ foreach(t dungeon_tests dungeon_integration_tests)
 endforeach()
 
 # ── Register with ctest ───────────────────────────────────────────────────────
-catch_discover_tests(dungeon_tests PROPERTIES LABELS "unit")
+# TIMEOUT: a blocking-socket regression (e.g. #42) fails fast instead of hanging CI.
+catch_discover_tests(dungeon_tests PROPERTIES LABELS "unit" TIMEOUT 60)
 catch_discover_tests(dungeon_integration_tests
     PROPERTIES LABELS "integration"
     WORKING_DIRECTORY $<TARGET_FILE_DIR:dungeon_game>

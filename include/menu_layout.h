@@ -19,6 +19,9 @@ inline constexpr float kSettingsRowW = 380.f;
 inline constexpr float kSettingsRowH = 38.f;
 inline constexpr float kSettingsRowGap = 8.f;
 
+// Top-left BACK button shared by every menu sub-screen.
+inline constexpr sf::FloatRect kBackBtnRect{{20.f, 20.f}, {120.f, 38.f}};
+
 enum class MenuState {
     MAIN_MENU,
     HOST_WAITING,
@@ -53,11 +56,9 @@ struct ButtonSpec {
 // AI_DIFFICULTY:   3 stacked (EASY, MEDIUM, HARD) + Back at top-left
 // HOST_WAITING:    Back only
 // JOIN_INPUT:      Back only
-// READY_TO_START:  START only (centered, no Back)
+// READY_TO_START:  START (centered) + Back at top-left
 // SETTINGS:        (empty — layout driven by settingsButtonSpecs)
 inline std::vector<ButtonSpec> menuButtonRects(MenuState state) {
-    const sf::FloatRect backRect{{20.f, 20.f}, {120.f, 38.f}};
-
     if (state == MenuState::SETTINGS)
         return {};
 
@@ -78,14 +79,17 @@ inline std::vector<ButtonSpec> menuButtonRects(MenuState state) {
             {{{kMenuW / 2.f - kBtnW / 2.f, ys[0] - kBtnH / 2.f}, {kBtnW, kBtnH}}, "EASY"},
             {{{kMenuW / 2.f - kBtnW / 2.f, ys[1] - kBtnH / 2.f}, {kBtnW, kBtnH}}, "MEDIUM"},
             {{{kMenuW / 2.f - kBtnW / 2.f, ys[2] - kBtnH / 2.f}, {kBtnW, kBtnH}}, "HARD"},
-            {backRect, "BACK"},
+            {kBackBtnRect, "BACK"},
         };
     }
     if (state == MenuState::HOST_WAITING || state == MenuState::JOIN_INPUT) {
-        return {{backRect, "BACK"}};
+        return {{kBackBtnRect, "BACK"}};
     }
     // READY_TO_START
-    return {{{{kMenuW / 2.f - kBtnW / 2.f, kMenuH / 2.f - kBtnH / 2.f}, {kBtnW, kBtnH}}, "START"}};
+    return {
+        {{{kMenuW / 2.f - kBtnW / 2.f, kMenuH / 2.f - kBtnH / 2.f}, {kBtnW, kBtnH}}, "START"},
+        {kBackBtnRect, "BACK"},
+    };
 }
 
 // Settings screen: 12 specs in fixed order.
@@ -94,7 +98,6 @@ inline std::vector<ButtonSpec> menuButtonRects(MenuState state) {
 // [10]   RESET TO DEFAULTS (centered)
 // [11]   BACK (top-left)
 inline std::vector<ButtonSpec> settingsButtonSpecs(const KeyBindings& b) {
-    const sf::FloatRect backRect{{20.f, 20.f}, {120.f, 38.f}};
     const float rowY0 = 120.f;
     const float rowStep = kSettingsRowH + kSettingsRowGap;
     const float p1x = 256.f - kSettingsRowW / 2.f;
@@ -133,7 +136,7 @@ inline std::vector<ButtonSpec> settingsButtonSpecs(const KeyBindings& b) {
     // RESET
     specs.push_back({{{kMenuW / 2.f - kBtnW / 2.f, 400.f}, {kBtnW, kBtnH}}, "RESET TO DEFAULTS"});
     // BACK
-    specs.push_back({backRect, "BACK"});
+    specs.push_back({kBackBtnRect, "BACK"});
 
     return specs;
 }

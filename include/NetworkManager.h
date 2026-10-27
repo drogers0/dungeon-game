@@ -61,7 +61,9 @@ public:
 
     // Host API
     bool startHost(unsigned short port = 53000);
-    bool waitForClient(sf::Time timeout = sf::Time::Zero);
+    // Accept the peer on the (non-blocking, see startHost) listener: one accept attempt, then
+    // retry every 10 ms until `timeout` elapses. sf::Time::Zero = a single non-blocking poll.
+    bool waitForClient(sf::Time timeout);
 
     // Client API — validates ip before blocking connect; bad IP fails instantly.
     bool connectToHost(const std::string& ip, unsigned short port = 53000);

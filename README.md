@@ -38,14 +38,15 @@ Launch the game and use the main menu:
 | Move           | Numpad 8/5/4/6         | W/A/S/D           |
 | Attack         | Right arrow            | Space             |
 
-| Global         | Key                    |
-|----------------|------------------------|
-| Slow down      | O                      |
-| Speed up       | P                      |
-| Skip cooldown  | K                      |
-| Pause / resume | Esc                    |
-| Quit to menu   | Q (while paused)       |
-| Fullscreen     | F11                    |
+| Global                   | Key              |
+|--------------------------|------------------|
+| Slow down                | O                |
+| Speed up                 | P                |
+| Skip cooldown            | K                |
+| Pause / resume           | Esc              |
+| Back (menu screens only) | Esc              |
+| Quit to menu             | Q (while paused) |
+| Fullscreen               | F11              |
 
 The window is resizable and scales with a letterbox (aspect preserved). Key bindings can be customised
 via a `controls.cfg` file next to the binary — run `dungeon_game --help` for the format.
